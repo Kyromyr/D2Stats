@@ -346,7 +346,7 @@ endfunc
 	newitem(208, 9, "* LoS", "Life on Striking")
 	newitem(210, 10, "* LoSiM", "Life on Striking in Melee")
 	
-	newitem(061, 12, "*% ML", "Mana Leech")
+	newitem(062, 12, "*% ML", "Mana Leech")
 	newitem(138, 13, "* MaeK", "Mana after each Kill")
 	newitem(209, 14, "* MoS", "Mana on Striking")
 	newitem(211, 15, "* MoSiM", "Mana on Striking in Melee")
