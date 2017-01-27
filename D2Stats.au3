@@ -7,7 +7,7 @@ If IsAdmin() = False Then
 	MsgBox(0, "", "Admin rights needed!")
 	Exit
 EndIf
-$version = "0.3.0.1 - [26.01.2017]"
+$version = "0.3.0.3 - [26.01.2017]"
 
 Global $gui_event_close = -3
 Global $pid, $__dll_kernel32, $diablo_memhandle
