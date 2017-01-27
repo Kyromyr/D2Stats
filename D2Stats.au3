@@ -392,6 +392,7 @@ OnAutoItExitRegister("_Exit")
 HotKeySet("+{INS}", "printstatvalue")
 HotKeySet("{INS}", "copyitem")
 HotKeySet("{DEL}", "copyilvl")
+local $hotkeyactive = 1
 While 1
 	$msg = GUIGetMsg()
 	Select 
@@ -428,10 +429,17 @@ Func readchardata()
 	EndIf
 EndFunc
 func hotkeycheck()
+	if (not $hotkeyactive) then
+		return 0
+	endif
+	
 	if (WinActive("[CLASS:Diablo II]")) then
 		return 1
 	endif
+	
+	$hotkeyactive = 0
 	ControlSend("[ACTIVE]", "", "", @HotKeyPressed)
+	$hotkeyactive = 1
 	return 0
 endfunc
 Func copyitem()
