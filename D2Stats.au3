@@ -84,10 +84,16 @@ func HotKeyCheck()
 	return False
 endfunc
 
-Func HotKey_CopyItem()
+func HotKey_CopyItem()
 	if (not HotKeyCheck() or GetIlvl() == 0) then return False
 
-	local $text = _MemoryRead($d2win + 0xC9E58, $d2handle, "wchar[1024]")
+	local $timer = TimerInit()
+	local $text = ""
+	
+	while ($text == "" and TimerDiff($timer) < 10)
+		$text = _MemoryRead($d2win + 0xC9E58, $d2handle, "wchar[800]")
+	wend
+	
 	$text = StringRegExpReplace($text, "ÿc.", "")
 	local $split = StringSplit($text, @LF)
 	
@@ -98,7 +104,7 @@ Func HotKey_CopyItem()
 
 	ClipPut($text)
 	return True
-EndFunc
+endfunc
 
 func HotKey_ShowIlvl()
 	if (not HotKeyCheck()) then return False
@@ -113,7 +119,7 @@ func HotKey_ShowIlvl()
 	endif
 endfunc
 
-Func HotKey_WriteStatsToDisk()
+func HotKey_WriteStatsToDisk()
 	if (not HotKeyCheck()) then return False
 	
 	updateStatValues()
@@ -126,7 +132,7 @@ Func HotKey_WriteStatsToDisk()
 	next
 	FileDelete(@ScriptName & ".txt")
 	FileWrite(@ScriptName & ".txt", $str)
-EndFunc
+endfunc
 #EndRegion
 
 #Region Stat reading
@@ -144,7 +150,7 @@ func updateStatValueMem($ivector)
 		$finalstruct &= $struct
 	next
 
-	Local $stats = DllStructCreate($finalstruct)
+	local $stats = DllStructCreate($finalstruct)
 	_WinAPI_ReadProcessMemory($d2handle[1], $ptr, DllStructGetPtr($stats), DllStructGetSize($stats), 0)
 
 	local $start = $ivector == 1 ? 5 : 0
@@ -388,7 +394,7 @@ func InjectCode()
 	return $injected == 1465275221
 endfunc
 
-Func _D2Call($address)
+func _D2Call($address)
 	if (not UpdateHandle()) then return False
 	
 	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $address, "ptr", 0, "dword", 0, "ptr", 0)
@@ -397,8 +403,8 @@ Func _D2Call($address)
 	local $ret = _WinAPI_WaitForSingleObject($call[0])
 	_WinAPI_CloseHandle($call[0])
 
-	Return $ret
-EndFunc   ;==>_CreateRemoteThread
+	return $ret
+endfunc   ;==>_CreateRemoteThread
 
 #cs
 
