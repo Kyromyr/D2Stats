@@ -7,7 +7,7 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.1.1 - [28.01.2017]"
+global $version = "0.3.1.2 - [28.01.2017]"
 
 OnAutoItExitRegister("_Exit")
 
