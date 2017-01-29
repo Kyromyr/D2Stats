@@ -15,10 +15,15 @@ local $d2client = 0x6FAB0000
 local $d2win	= 0x6F8E0000
 local $d2inject = 0x6FB7DE00
 
-local const $numStats = 1024
-local $stats_cache[2][$numStats]
 local $gui_event_close = -3
 local $gui[128][5] = [[0]]
+
+local const $numStats = 1024
+local $stats_cache[2][$numStats]
+for $i = 0 to $numStats-1
+	$stats_cache[0][$i] = null
+	$stats_cache[1][$i] = null
+next
 
 local $d2window, $d2pid, $d2handle
 
@@ -173,8 +178,8 @@ endfunc
 
 func updateStatValues()
 	for $i = 0 to $numStats-1
-		$stats_cache[0][$i] = 0
-		$stats_cache[1][$i] = 0
+		$stats_cache[0][$i] = null
+		$stats_cache[1][$i] = null
 	next
 	
 	if (UpdateHandle() and IsIngame()) then
@@ -183,10 +188,10 @@ func updateStatValues()
 	endif
 endfunc
 
-func getStatValue($istat)
+func getStatValue($istat, $default = 0)
 	local $ivector = $istat < 4 ? 0 : 1
 	local $val = $stats_cache[$ivector][$istat]
-	return $val ? $val : 0
+	return $val == null ? $default : $val
 endfunc
 #EndRegion
 
@@ -234,8 +239,8 @@ func UpdateGUI()
 		local $val = getStatValue($gui[$i][0])
 		local $func = $gui[$i][3]
 		
-		if ($val <> 0 and $func) then
-			$val = Call($func, $val)
+		if ($func) then
+			; $val = Call($func, $val)
 		endif
 		
 		local $text = StringReplace($gui[$i][1], "*", $val)
@@ -244,13 +249,16 @@ func UpdateGUI()
 endfunc
 
 func UpdateFunc_IAS($val)
-	return $val + getStatValue(68) - 100
+	local $nval = getStatValue(68, 100)
+	return $nval == 100 ? $val : $val + ($nval - 100)
 endfunc
 func UpdateFunc_FHR($val)
-	return $val + getStatValue(69) - 100
+	local $nval = getStatValue(69, 100)
+	return $nval == 100 ? $val : $val + ($nval - 100)
 endfunc
 func UpdateFunc_FRW($val)
-	return $val + getStatValue(67) - 100
+	local $nval = getStatValue(67, 100)
+	return $nval == 100 ? $val : $val + ($nval - 100)
 endfunc
 
 func CreateGUI()
