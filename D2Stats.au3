@@ -7,7 +7,7 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.1.2 - [28.01.2017]"
+global $version = "0.3.2.0 - [31.01.2017]"
 
 OnAutoItExitRegister("_Exit")
 
@@ -16,16 +16,12 @@ local $d2win	= 0x6F8E0000
 local $d2inject = 0x6FB7DE00
 
 local $gui_event_close = -3
-local $gui[128][5] = [[0]]
+local $gui[128][3] = [[0]]
 
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
-for $i = 0 to $numStats-1
-	$stats_cache[0][$i] = null
-	$stats_cache[1][$i] = null
-next
 
-local $d2window, $d2pid, $d2handle
+local $d2window, $d2pid, $d2handle, $d2sgpt
 
 HotKeySet("+{INS}", "HotKey_WriteStatsToDisk")
 HotKeySet("{INS}", "HotKey_CopyItem")
@@ -64,6 +60,7 @@ func UpdateHandle()
 		return _Debug("Couldn't open Diablo II memory handle")
 	endif
 	$d2window = $hwnd
+	$d2sgpt = _MemoryRead(0x6FDE9E1C, $d2handle)
 	
 	return True
 endfunc
@@ -113,13 +110,13 @@ endfunc
 
 func HotKey_ShowIlvl()
 	if (not HotKeyCheck()) then return False
-	if (not InjectCode()) then return _Debug("Failed to inject code")
+	if (not InjectCode()) then return _Debug("Failed to inject ilvl code")
 	
 	local $ilvl = GetIlvl()
 	if ($ilvl) then
-		local $ret = _MemoryWrite($d2inject+0x2C, $d2handle, $ilvl, "wchar[2]")
+		local $ret = _MemoryWrite($d2inject + 0x2C, $d2handle, $ilvl, "wchar[2]")
 		if ($ret) then
-			_D2Call($d2inject)
+			D2Call()
 		endif
 	endif
 endfunc
@@ -127,10 +124,10 @@ endfunc
 func HotKey_WriteStatsToDisk()
 	if (not HotKeyCheck()) then return False
 	
-	updateStatValues()
+	UpdateStatValues()
 	local $str = ""
 	for $i = 0 to $numStats-1
-		local $val = getStatValue($i)
+		local $val = GetStatValue($i)
 		if ($val) then
 			$str &= StringFormat("%s = %s%s", $i, $val, @CRLF)
 		endif
@@ -141,7 +138,7 @@ endfunc
 #EndRegion
 
 #Region Stat reading
-func updateStatValueMem($ivector)
+func UpdateStatValueMem($ivector)
 	if ($ivector <> 0 and $ivector <> 1) then _Debug("Invalid $ivector value")
 	
 	local $ptr_offsets[3] = [0, 0x5C, ($ivector+1)*0x24]
@@ -176,22 +173,82 @@ func updateStatValueMem($ivector)
 	next
 endfunc
 
-func updateStatValues()
+func UpdateStatValues()
 	for $i = 0 to $numStats-1
-		$stats_cache[0][$i] = null
-		$stats_cache[1][$i] = null
+		$stats_cache[0][$i] = 0
+		$stats_cache[1][$i] = 0
 	next
 	
 	if (UpdateHandle() and IsIngame()) then
-		updateStatValueMem(0)
-		updateStatValueMem(1)
+		UpdateStatValueMem(0)
+		UpdateStatValueMem(1)
+		FixStatVelocities()
 	endif
 endfunc
 
-func getStatValue($istat, $default = 0)
+func FixStatVelocities() ; This is stupid
+	local $pSkillsTxt = _MemoryRead($d2sgpt + 0xB98, $d2handle)
+	local $skill, $pStats, $nStats, $txt, $index, $val
+	
+	local $ptr_offsets[3] = [0, 0x5C, 0x3C]
+	local $ptr = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
+
+	while $ptr
+		$skill = _MemoryRead($ptr + 0x1C, $d2handle)
+		$pStats = _MemoryRead($ptr + 0x24, $d2handle)
+		$nStats = _MemoryRead($ptr + 0x28, $d2handle, "word")
+		$ptr = _MemoryRead($ptr + 0x2C, $d2handle)
+		
+		if (not $skill) then ; This is so stupid
+			for $i = 0 to $nStats-1
+				$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
+				$val = _MemoryRead($pStats + $i*8 + 4, $d2handle)
+				if ($index == 350) then
+					$skill = $val
+					exitloop
+				endif
+			next
+			if (not $skill) then continueloop
+		endif
+
+		$txt = $pSkillsTxt + 0x23C*$skill
+		local $has[3] = [0,0,0]
+		
+		for $i = 0 to 4
+			$index = _MemoryRead($txt + 0x98 + $i*2, $d2handle, "word")
+			switch $index
+				case 67 to 69
+					$has[69-$index] = 1
+			endswitch
+		next
+		
+		for $i = 0 to 5
+			$index = _MemoryRead($txt + 0x54 + $i*2, $d2handle, "word")
+			switch $index
+				case 67 to 69
+					$has[69-$index] = 1
+			endswitch
+		next
+		
+		for $i = 0 to $nStats-1 ; I could not possibly overstate how stupid this is
+			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
+			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle)
+			switch $index
+				case 67 to 69
+					if (not $has[69-$index]) then $stats_cache[1][$index] -= $val
+			endswitch
+		next
+	wend
+	
+	for $i = 67 to 69
+		$stats_cache[1][$i] -= 100
+	next
+endfunc
+
+func GetStatValue($istat)
 	local $ivector = $istat < 4 ? 0 : 1
 	local $val = $stats_cache[$ivector][$istat]
-	return $val == null ? $default : $val
+	return $val ? $val : 0
 endfunc
 #EndRegion
 
@@ -210,7 +267,7 @@ func Main()
 endfunc
 
 func ReadCharacterData()
-	updateStatValues()
+	UpdateStatValues()
 	UpdateGUI()
 endfunc
 
@@ -224,7 +281,6 @@ func NewItem($statid, $i, $text, $tip = "", $clr = -1, $updatefunc = 0)
 	$gui[$arrPos][0] = $statid
 	$gui[$arrPos][1] = $text
 	$gui[$arrPos][2] = NewLabel($text, $i)
-	$gui[$arrPos][3] = $updatefunc
 	if ($tip <> "") then
 		GUICtrlSetTip(-1, $tip)
 	endif
@@ -236,29 +292,10 @@ endfunc
 
 func UpdateGUI()
 	for $i = 1 to $gui[0][0]
-		local $val = getStatValue($gui[$i][0])
-		local $func = $gui[$i][3]
-		
-		if ($func) then
-			; $val = Call($func, $val)
-		endif
-		
+		local $val = GetStatValue($gui[$i][0])
 		local $text = StringReplace($gui[$i][1], "*", $val)
 		GUICtrlSetData($gui[$i][2], $text)
 	next
-endfunc
-
-func UpdateFunc_IAS($val)
-	local $nval = getStatValue(68, 100)
-	return $nval == 100 ? $val : $val + ($nval - 100)
-endfunc
-func UpdateFunc_FHR($val)
-	local $nval = getStatValue(69, 100)
-	return $nval == 100 ? $val : $val + ($nval - 100)
-endfunc
-func UpdateFunc_FRW($val)
-	local $nval = getStatValue(67, 100)
-	return $nval == 100 ? $val : $val + ($nval - 100)
 endfunc
 
 func CreateGUI()
@@ -271,9 +308,9 @@ func CreateGUI()
 	GUICreate(StringFormat("D2Stats%s %s", @AutoItX64 ? "-64" : "", $version), 500, 250, 329, 143)
 	GUISetFont(9, 0, 0, "Courier New")
 	
-	global $btnRead = GUICtrlCreateButton("Read data", 8, 192, 105, 25)
-	global $btnAbout = GUICtrlCreateButton("About", 8, 216, 105, 25)
-	
+	global $btnRead = GUICtrlCreateButton("Read", 8, 192, 70, 25)
+	global $btnAbout = GUICtrlCreateButton("About", 8, 216, 70, 25)
+
 	local $groupX1 = 42
 	local $groupX2 = 80+$groupX1
 	local $groupX3 = 80+$groupX2
@@ -301,13 +338,17 @@ func CreateGUI()
 	NewItem(135, 2, "*% OW", "Open Wounds")
 	NewItem(141, 3, "*% DS", "Deadly Strike")
 	NewItem(119, 4, "*% AR", "Attack Rating")
-	NewItem(489, 5, "* TTAD", "Target Takes Additional Damage")
 	
-	NewItem(093, 7, "*% IAS", "Increased Attack Speed", -1, "UpdateFunc_IAS")
-	NewItem(105, 8, "*% FCR", "Faster Cast Rate")
-	NewItem(099, 9, "*% FHR", "Faster Hit Recovery", -1, "UpdateFunc_FHR")
-	NewItem(102, 10, "*% FBR", "Faster Block Rate", -1, "UpdateFunc_FHR")
-	NewItem(096, 11, "*% FRW", "Faster Run/Walk", -1, "UpdateFunc_FRW")
+	NewItem(093, 6, "*% IAS", "Increased Attack Speed")
+	NewItem(099, 7, "*% FHR", "Faster Hit Recovery")
+	NewItem(102, 8, "*% FBR", "Faster Block Rate")
+	NewItem(096, 9, "*% FRW", "Faster Run/Walk")
+	NewItem(105, 10, "*% FCR", "Faster Cast Rate")
+	
+	NewItem(068, 12, "*% sIAS", "Skill IAS")
+	NewItem(069, 13, "*% sFBR", "Skill FBR")
+	NewItem(069, 14, "*% sFHR", "Skill FHR")
+	NewItem(067, 15, "*% sFRW", "Skill FRW")
 	
 	$gui[0][1] = $groupX3
 	NewItem(076, 0, "*% Life", "Max Life")
@@ -382,6 +423,7 @@ func CreateGUI()
 	NewItem(431, 9, "*% PSD", "Poison Skill Duration")
 	NewItem(409, 10, "*% Buff.Dur", "Buff/Debuff/Cold Skill Duration")
 	NewItem(027, 11, "*% Mana.Reg", "Mana Regeneration")
+	NewItem(489, 12, "* TTAD", "Target Takes Additional Damage")
 	
 	UpdateGUI()
 	GUISetState(@SW_SHOW)
@@ -391,24 +433,25 @@ endfunc
 #Region Injection
 func InjectCode()
 	if (not UpdateHandle()) then return False
+	local $checksum = 1465275221
 	
-	local $injected = _MemoryRead($d2inject, $d2handle)
-	if ($injected == 1465275221) then return True
+	local $injected = _MemoryRead($addr, $d2handle)
+	if ($injected == $checksum) then return True
 	
 	local $sCode = "0x5553565768000000006820DEB76F33C0BB50D8B26FFFD35F5E5B5DC30000000069006C0076006C003A002000300030000000"
 	local $ret = _MemoryWrite($d2inject, $d2handle, $sCode, "byte[50]")
 	
-	$injected = _MemoryRead($d2inject, $d2handle)
-	return $injected == 1465275221
+	$injected = _MemoryRead($addr, $d2handle)
+	return $injected == $checksum
 endfunc
 
-func _D2Call($address)
+func D2Call()
 	if (not UpdateHandle()) then return False
 	
-	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $address, "ptr", 0, "dword", 0, "ptr", 0)
+	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $d2inject, "ptr", 0, "dword", 0, "ptr", 0)
 	if ($call[0] == 0) then return _Debug("Couldn't create remote thread")
 	
-	local $ret = _WinAPI_WaitForSingleObject($call[0])
+	_WinAPI_WaitForSingleObject($call[0])
 	_WinAPI_CloseHandle($call[0])
 
 	return $ret
