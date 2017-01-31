@@ -7,7 +7,7 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.2.0 - [31.01.2017]"
+global $version = "0.3.2.1 - [31.01.2017]"
 
 OnAutoItExitRegister("_Exit")
 
@@ -188,28 +188,30 @@ endfunc
 
 func FixStatVelocities() ; This is stupid
 	local $pSkillsTxt = _MemoryRead($d2sgpt + 0xB98, $d2handle)
-	local $skill, $pStats, $nStats, $txt, $index, $val
+	local $skill, $pStats, $nStats, $txt, $index, $val, $ownerType, $ownerId
+	
+	local $wep_main_offsets[3] = [0, 0x60, 0x1C]
+	local $wep_main = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $wep_main_offsets)
 	
 	local $ptr_offsets[3] = [0, 0x5C, 0x3C]
 	local $ptr = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
 
 	while $ptr
-		$skill = _MemoryRead($ptr + 0x1C, $d2handle)
+		$ownerType = _MemoryRead($ptr + 0x08, $d2handle)
+		$ownerId = _MemoryRead($ptr + 0x0C, $d2handle)
 		$pStats = _MemoryRead($ptr + 0x24, $d2handle)
 		$nStats = _MemoryRead($ptr + 0x28, $d2handle, "word")
 		$ptr = _MemoryRead($ptr + 0x2C, $d2handle)
 		
-		if (not $skill) then ; This is so stupid
-			for $i = 0 to $nStats-1
-				$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
-				$val = _MemoryRead($pStats + $i*8 + 4, $d2handle)
-				if ($index == 350) then
-					$skill = $val
-					exitloop
-				endif
-			next
-			if (not $skill) then continueloop
-		endif
+		for $i = 0 to $nStats-1 ; This is so stupid
+			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
+			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle, "int")
+			
+			if ($index == 350) then
+				$skill = $val
+			endif
+		next
+		if (not $skill) then continueloop
 
 		$txt = $pSkillsTxt + 0x23C*$skill
 		local $has[3] = [0,0,0]
