@@ -209,6 +209,8 @@ func FixStatVelocities() ; This is stupid
 			
 			if ($index == 350) then
 				$skill = $val
+			elseif ($index == 68 and $ownerType == 4 and $ownerId == $wep_main) then
+				$stats_cache[1][$index] -= $val ; Mainhand weapon WSM
 			endif
 		next
 		if (not $skill) then continueloop
