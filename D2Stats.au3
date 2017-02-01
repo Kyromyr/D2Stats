@@ -7,7 +7,7 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.2.2 - [31.01.2017]"
+global $version = "0.3.2.3 - [01.02.2017]"
 
 OnAutoItExitRegister("_Exit")
 
@@ -439,13 +439,13 @@ func InjectCode()
 	if (not UpdateHandle()) then return False
 	local $checksum = 1465275221
 	
-	local $injected = _MemoryRead($addr, $d2handle)
+	local $injected = _MemoryRead($d2inject, $d2handle)
 	if ($injected == $checksum) then return True
 	
 	local $sCode = "0x5553565768000000006820DEB76F33C0BB50D8B26FFFD35F5E5B5DC30000000069006C0076006C003A002000300030000000"
 	local $ret = _MemoryWrite($d2inject, $d2handle, $sCode, "byte[50]")
 	
-	$injected = _MemoryRead($addr, $d2handle)
+	$injected = _MemoryRead($d2inject, $d2handle)
 	return $injected == $checksum
 endfunc
 
@@ -457,8 +457,7 @@ func D2Call()
 	
 	_WinAPI_WaitForSingleObject($call[0])
 	_WinAPI_CloseHandle($call[0])
-
-	return $ret
+	return True
 endfunc   ;==>_CreateRemoteThread
 
 #cs
