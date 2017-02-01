@@ -7,7 +7,7 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.2.1 - [31.01.2017]"
+global $version = "0.3.2.2 - [31.01.2017]"
 
 OnAutoItExitRegister("_Exit")
 
@@ -236,7 +236,7 @@ func FixStatVelocities() ; This is stupid
 		
 		for $i = 0 to $nStats-1 ; I could not possibly overstate how stupid this is
 			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
-			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle)
+			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle, "int")
 			switch $index
 				case 67 to 69
 					if (not $has[69-$index]) then $stats_cache[1][$index] -= $val
@@ -366,14 +366,13 @@ func CreateGUI()
 	
 	NewItem(339, 7, "*% Avoid")
 	NewItem(338, 8, "*% Dodge", "Avoid melee attack")
+	NewItem(164, 9, "*% UA", "Uninterruptable Attack")
+	NewItem(489, 10, "* TTAD", "Target Takes Additional Damage")
 	
-	NewItem(150, 10, "*% ST", "Slow Target")
-	NewItem(363, 11, "*% SA", "Slow Attacker")
-	NewItem(376, 12, "*% SMT", "Slow Melee Target")
-	
-	NewItem(164, 13, "*% UA", "Uninterruptable Attack")
-	NewItem(165, 14, "*% CLR", "Curse Length Reduction")
-	NewItem(166, 15, "*% PLR", "Poison Length Reduction")
+	NewItem(150, 12, "*% ST", "Slows Target")
+	NewItem(376, 13, "*% SMT", "Slows Melee Target")
+	NewItem(363, 14, "*% SA", "Slows Attacker")
+	NewItem(493, 15, "*% SRA", "Slows Ranged Attacker")
 	
 	$gui[0][1] = $groupX4
 	NewLabel("Absorb", 0)
@@ -392,7 +391,7 @@ func CreateGUI()
 	NewItem(062, 12, "*% ML", "Mana Leech")
 	NewItem(138, 13, "* MaeK", "Mana after each Kill")
 	NewItem(209, 14, "* MoS", "Mana on Striking")
-	NewItem(211, 15, "* MoSiM", "Mana on Striking in Melee")
+	NewItem(295, 15, "* MoSiM", "Mana on Striking in Melee")
 	
 	$gui[0][1] = $groupX5
 	NewLabel("Resists", 0)
@@ -427,7 +426,8 @@ func CreateGUI()
 	NewItem(431, 9, "*% PSD", "Poison Skill Duration")
 	NewItem(409, 10, "*% Buff.Dur", "Buff/Debuff/Cold Skill Duration")
 	NewItem(027, 11, "*% Mana.Reg", "Mana Regeneration")
-	NewItem(489, 12, "* TTAD", "Target Takes Additional Damage")
+	NewItem(109, 12, "*% CLR", "Curse Length Reduction")
+	NewItem(110, 13, "*% PLR", "Poison Length Reduction")
 	
 	UpdateGUI()
 	GUISetState(@SW_SHOW)
