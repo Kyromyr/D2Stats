@@ -28,6 +28,8 @@ HotKeySet("{INS}", "HotKey_CopyItem")
 HotKeySet("{DEL}", "HotKey_ShowIlvl")
 HotKeySet("{HOME}", "HotKey_SimulateALT")
 local $hotkeyactive = True
+local $hotkey_alt = False
+local $hotkey_altU = TimerInit()
 
 CreateGUI()
 Main()
@@ -68,6 +70,13 @@ endfunc
 
 func IsIngame()
 	return _MemoryRead($d2client + 0x11BBFC, $d2handle) <> 0
+endfunc
+
+func UpdateALT($force = False)
+	if ($force or TimerDiff($hotkey_altU) >= 1000) then
+		$hotkey_altU = TimerInit()
+		if (UpdateHandle() and IsIngame()) then _MemoryWrite($d2client + 0xFADB4, $d2handle, $hotkey_alt ? 1 : 0, "byte")
+	endif
 endfunc
 
 #Region Hotkeys
@@ -139,7 +148,8 @@ endfunc
 
 func HotKey_SimulateALT()
 	if (not HotKeyCheck()) then return False
-	_MemoryWrite($d2client + 0xFADB4, $d2handle, 1, "byte")
+	$hotkey_alt = not $hotkey_alt
+	UpdateALT(True)
 endfunc
 
 #EndRegion
@@ -268,12 +278,14 @@ func Main()
 	while 1
 		switch GUIGetMsg()
 			case $gui_event_close
-				exitloop
+				exit
 			case $btnRead
 				ReadCharacterData()
 			case $btnAbout
 				MsgBox(4096 + 64, "About", "D2Stats " & $version & " made by Wojen. Using Shaggi's offsets. Press INSERT to copy an item to clipboard, and DELETE to display its ilvl.")
 		endswitch
+		
+		UpdateALT()
 	wend
 endfunc
 
