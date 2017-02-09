@@ -26,6 +26,7 @@ local $d2window, $d2pid, $d2handle, $d2sgpt
 HotKeySet("+{INS}", "HotKey_WriteStatsToDisk")
 HotKeySet("{INS}", "HotKey_CopyItem")
 HotKeySet("{DEL}", "HotKey_ShowIlvl")
+HotKeySet("{HOME}", "HotKey_SimulateALT")
 local $hotkeyactive = True
 
 CreateGUI()
@@ -135,6 +136,12 @@ func HotKey_WriteStatsToDisk()
 	FileDelete(@ScriptName & ".txt")
 	FileWrite(@ScriptName & ".txt", $str)
 endfunc
+
+func HotKey_SimulateALT()
+	if (not HotKeyCheck()) then return False
+	_MemoryWrite($d2client + 0xFADB4, $d2handle, 1, "byte")
+endfunc
+
 #EndRegion
 
 #Region Stat reading
