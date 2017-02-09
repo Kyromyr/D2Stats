@@ -8,6 +8,7 @@ if (not IsAdmin()) then
 endif
 
 global $version = "0.3.2.4 - [09.02.2017]"
+global $about = StringFormat("D2Stats %s made by Wojen. Using Shaggi's offsets.%sPress INSERT to copy an item to clipboard and DELETE to display its ilvl.%sPress HOME to always show items on ground. Press again to disable.", $version, @CRLF, @CRLF)
 
 OnAutoItExitRegister("_Exit")
 
@@ -282,7 +283,7 @@ func Main()
 			case $btnRead
 				ReadCharacterData()
 			case $btnAbout
-				MsgBox(4096 + 64, "About", "D2Stats " & $version & " made by Wojen. Using Shaggi's offsets. Press INSERT to copy an item to clipboard, and DELETE to display its ilvl.")
+				MsgBox(4096 + 64, "About", $about)
 		endswitch
 		
 		UpdateALT()
