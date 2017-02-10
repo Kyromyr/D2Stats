@@ -2,13 +2,26 @@
 #include <WinAPI.au3>
 #include <NomadMemory.au3>
 
+#pragma compile(Icon, Assets/icon.ico)
+#pragma compile(FileDescription, Diablo II Stats reader)
+#pragma compile(ProductName, D2Stats)
+#pragma compile(ProductVersion, 0.3.2.5)
+#pragma compile(FileVersion, 0.3.2.5)
+#pragma compile(UPX, True) ;compression
+;#pragma compile(ExecLevel, requireAdministrator)
+;#pragma compile(Compatibility, win7)
+;#pragma compile(x64, True)
+;#pragma compile(Out, D2Stats.exe)
+;#pragma compile(LegalCopyright, Legal stuff here)
+;#pragma compile(LegalTrademarks, '"Trademark something, and some text in "quotes" and stuff')
+
 if (not IsAdmin()) then
 	MsgBox(4096, "Error", "Admin rights needed!")
 	exit
 endif
 
-global $version = "0.3.2.4 - [09.02.2017]"
-global $about = StringFormat("D2Stats %s made by Wojen. Using Shaggi's offsets.%sPress INSERT to copy an item to clipboard and DELETE to display its ilvl.%sPress HOME to always show items on ground. Press again to disable.", $version, @CRLF, @CRLF)
+global $version = "0.3.2.5 - [10.02.2017]"
+global $about = StringFormat("D2Stats %s%sMade by Wojen and Kyromyr, using Shaggi's offsets.%s%sPress INSERT to copy item stats to clipboard and DELETE to display ilvl.%sPress HOME to always show items on ground. Press again to disable.", $version, @CRLF, @CRLF, @CRLF, @CRLF)
 
 OnAutoItExitRegister("_Exit")
 
