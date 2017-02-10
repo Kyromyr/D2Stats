@@ -7,7 +7,7 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.2.4 - [09.02.2017]"
+global $version = "0.3.2.5 - [10.02.2017]"
 global $about = StringFormat("D2Stats %s made by Wojen. Using Shaggi's offsets.%sPress INSERT to copy an item to clipboard and DELETE to display its ilvl.%sPress HOME to always show items on ground. Press again to disable.", $version, @CRLF, @CRLF)
 
 OnAutoItExitRegister("_Exit")
@@ -286,7 +286,7 @@ func Main()
 				MsgBox(4096 + 64, "About", $about)
 		endswitch
 		
-		UpdateALT()
+		if ($hotkey_alt) then UpdateALT()
 	wend
 endfunc
 
