@@ -216,7 +216,7 @@ func UpdateStatValues()
 	endif
 endfunc
 
-func FixStatVelocities()
+func FixStatVelocities() ; This game is stupid
 	for $i = 67 to 69
 		$stats_cache[1][$i] = 0
 	next
@@ -242,7 +242,7 @@ func FixStatVelocities()
 			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
 			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle, "int")
 			
-			if ($index == 350) then $skill = $val
+			if ($index == 350 and $val <> 511) then $skill = $val
 			if ($ownerType == 4 and $index == 67) then $stats_cache[1][$index] += $val ; Armor FRW penalty
 		next
 		if ($ownerType == 4) then continueloop
