@@ -5,8 +5,8 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.2.5)
-#pragma compile(FileVersion, 0.3.2.5)
+#pragma compile(ProductVersion, 0.3.3.0)
+#pragma compile(FileVersion, 0.3.3.0)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -20,14 +20,10 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.2.5 - [10.02.2017]"
+global $version = "0.3.3.0 - [10.02.2017]"
 global $about = StringFormat("D2Stats %s%sMade by Wojen and Kyromyr, using Shaggi's offsets.%s%sPress INSERT to copy item stats to clipboard and DELETE to display ilvl.%sPress HOME to always show items on ground. Press again to disable.", $version, @CRLF, @CRLF, @CRLF, @CRLF)
 
 OnAutoItExitRegister("_Exit")
-
-local $d2client = 0x6FAB0000
-local $d2win	= 0x6F8E0000
-local $d2inject = 0x6FB7DE00
 
 local $gui_event_close = -3
 local $gui[128][3] = [[0]]
@@ -35,7 +31,8 @@ local $gui[128][3] = [[0]]
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
 
-local $d2window, $d2pid, $d2handle, $d2sgpt
+local $d2client, $d2common, $d2win
+local $d2window, $d2pid, $d2handle, $d2inject, $d2sgpt
 
 HotKeySet("+{INS}", "HotKey_WriteStatsToDisk")
 HotKeySet("{INS}", "HotKey_CopyItem")
@@ -72,12 +69,14 @@ func UpdateHandle()
 	
 	_MemoryClose($d2handle)
 	$d2handle = _MemoryOpen($d2pid)
-	if (@error) then 
+	if (@error or not UpdateDllHandles()) then 
 		$d2pid = 0
 		return _Debug("Couldn't open Diablo II memory handle")
 	endif
 	$d2window = $hwnd
-	$d2sgpt = _MemoryRead(0x6FDE9E1C, $d2handle)
+	
+	$d2inject = $d2client + 0xCDE00
+	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 	
 	return True
 endfunc
@@ -140,7 +139,7 @@ func HotKey_ShowIlvl()
 	if ($ilvl) then
 		local $ret = _MemoryWrite($d2inject + 0x2C, $d2handle, $ilvl, "wchar[2]")
 		if ($ret) then
-			D2Call()
+			_CreateRemoteThread($d2inject)
 		endif
 	endif
 endfunc
@@ -217,7 +216,11 @@ func UpdateStatValues()
 	endif
 endfunc
 
-func FixStatVelocities() ; This is stupid
+func FixStatVelocities()
+	for $i = 67 to 69
+		$stats_cache[1][$i] = 0
+	next
+	
 	local $pSkillsTxt = _MemoryRead($d2sgpt + 0xB98, $d2handle)
 	local $skill, $pStats, $nStats, $txt, $index, $val, $ownerType, $ownerId
 	
@@ -233,51 +236,47 @@ func FixStatVelocities() ; This is stupid
 		$pStats = _MemoryRead($ptr + 0x24, $d2handle)
 		$nStats = _MemoryRead($ptr + 0x28, $d2handle, "word")
 		$ptr = _MemoryRead($ptr + 0x2C, $d2handle)
-		
-		for $i = 0 to $nStats-1 ; This is so stupid
+		$skill = 0
+
+		for $i = 0 to $nStats-1
 			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
 			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle, "int")
 			
-			if ($index == 350) then
-				$skill = $val
-			elseif ($index == 68 and $ownerType == 4 and $ownerId == $wep_main) then
-				$stats_cache[1][$index] -= $val ; Mainhand weapon WSM
-			endif
+			if ($index == 350) then $skill = $val
+			if ($ownerType == 4 and $index == 67) then $stats_cache[1][$index] += $val ; Armor FRW penalty
 		next
-		if (not $skill) then continueloop
+		if ($ownerType == 4) then continueloop
 
-		$txt = $pSkillsTxt + 0x23C*$skill
 		local $has[3] = [0,0,0]
+		if ($skill) then ; Game doesn't even bother setting the skill id for some skills, so we'll just have to assume the stat list isn't lying...
+			$txt = $pSkillsTxt + 0x23C*$skill
 		
-		for $i = 0 to 4
-			$index = _MemoryRead($txt + 0x98 + $i*2, $d2handle, "word")
-			switch $index
-				case 67 to 69
-					$has[69-$index] = 1
-			endswitch
-		next
+			for $i = 0 to 4
+				$index = _MemoryRead($txt + 0x98 + $i*2, $d2handle, "word")
+				switch $index
+					case 67 to 69
+						$has[$index-67] = 1
+				endswitch
+			next
+			
+			for $i = 0 to 5
+				$index = _MemoryRead($txt + 0x54 + $i*2, $d2handle, "word")
+				switch $index
+					case 67 to 69
+						$has[$index-67] = 1
+				endswitch
+			next
+		endif
 		
-		for $i = 0 to 5
-			$index = _MemoryRead($txt + 0x54 + $i*2, $d2handle, "word")
-			switch $index
-				case 67 to 69
-					$has[69-$index] = 1
-			endswitch
-		next
-		
-		for $i = 0 to $nStats-1 ; I could not possibly overstate how stupid this is
+		for $i = 0 to $nStats-1
 			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
 			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle, "int")
 			switch $index
 				case 67 to 69
-					if (not $has[69-$index]) then $stats_cache[1][$index] -= $val
+					if (not $skill or $has[$index-67]) then $stats_cache[1][$index] += $val
 			endswitch
 		next
 	wend
-	
-	for $i = 67 to 69
-		$stats_cache[1][$i] -= 100
-	next
 endfunc
 
 func GetStatValue($istat)
@@ -468,6 +467,34 @@ endfunc
 #EndRegion
 
 #Region Injection
+func UpdateDllHandles()
+	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
+	if (not $gethandle) then return _Debug("Couldn't get GetModuleHandleA address")
+	
+	local $addr = _MemVirtualAllocEx($d2handle[1], 0, 0x100, 0x3000, 0x40)
+	if (@error) then return _Debug("Failed to allocate memory")
+
+	local $nDlls = 3
+	local $dlls[$nDlls] = ["D2Client.dll", "D2Common.dll", "D2Win.dll"]
+	local $handles[$nDlls]
+	local $ret = True
+	
+	for $i = 0 to $nDlls-1
+		_MemoryWrite($addr, $d2handle, $dlls[$i], StringFormat("char[%s]", StringLen($dlls[$i])+1))
+		$handles[$i] = _CreateRemoteThread($gethandle, $addr)
+		if ($handles[$i] == 0) then $ret = False
+	next
+	
+	$d2client = $handles[0]
+	$d2common = $handles[1]
+	$d2win = $handles[2]
+
+	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
+	if (@error) then return _Debug("Failed to free memory")
+	
+	return $ret
+endfunc
+
 func InjectCode()
 	if (not UpdateHandle()) then return False
 	local $checksum = 1465275221
@@ -482,16 +509,42 @@ func InjectCode()
 	return $injected == $checksum
 endfunc
 
-func D2Call()
-	if (not UpdateHandle()) then return False
-	
-	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $d2inject, "ptr", 0, "dword", 0, "ptr", 0)
+func _CreateRemoteThread($func, $var = 0) ; $var is in EBX register
+	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $func, "ptr", $var, "dword", 0, "ptr", 0)
 	if ($call[0] == 0) then return _Debug("Couldn't create remote thread")
 	
 	_WinAPI_WaitForSingleObject($call[0])
+	local $ret = _GetExitCodeThread($call[0])
+	
 	_WinAPI_CloseHandle($call[0])
-	return True
-endfunc   ;==>_CreateRemoteThread
+	return $ret
+endfunc
+
+func _GetExitCodeThread($thread)
+	local $dummy = DllStructCreate("dword")
+	local $call = DllCall($d2handle[0], "bool", "GetExitCodeThread", "handle", $thread, "ptr", DllStructGetPtr($dummy))
+	return Dec(Hex(DllStructGetData($dummy, 1)))
+endfunc
+
+; #FUNCTION# ====================================================================================================================
+; Author ........: Paul Campbell (PaulIA)
+; Modified.......:
+; ===============================================================================================================================
+Func _MemVirtualAllocEx($hProcess, $pAddress, $iSize, $iAllocation, $iProtect)
+	Local $aResult = DllCall($d2handle[0], "ptr", "VirtualAllocEx", "handle", $hProcess, "ptr", $pAddress, "ulong_ptr", $iSize, "dword", $iAllocation, "dword", $iProtect)
+	If @error Then Return SetError(@error, @extended, 0)
+	Return $aResult[0]
+EndFunc   ;==>_MemVirtualAllocEx
+
+; #FUNCTION# ====================================================================================================================
+; Author ........: Paul Campbell (PaulIA)
+; Modified.......:
+; ===============================================================================================================================
+Func _MemVirtualFreeEx($hProcess, $pAddress, $iSize, $iFreeType)
+	Local $aResult = DllCall("kernel32.dll", "bool", "VirtualFreeEx", "handle", $hProcess, "ptr", $pAddress, "ulong_ptr", $iSize, "dword", $iFreeType)
+	If @error Then Return SetError(@error, @extended, False)
+	Return $aResult[0]
+EndFunc   ;==>_MemVirtualFreeEx
 
 #cs
 
