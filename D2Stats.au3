@@ -120,7 +120,7 @@ func HotKey_CopyItem()
 		$text = _MemoryRead($d2win + 0xC9E58, $d2handle, "wchar[800]")
 	wend
 	
-	$text = StringRegExpReplace($text, "ÿc.", "")
+	$text = StringRegExpReplace($text, "Ã¿c.", "")
 	local $split = StringSplit($text, @LF)
 	
 	$text = ""
@@ -299,7 +299,7 @@ func Main()
 				MsgBox(4096 + 64, "About", $about)
 		endswitch
 		
-		UpdateALT()
+		if ($hotkey_alt) then UpdateALT()
 	wend
 endfunc
 
