@@ -5,8 +5,8 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.3.0)
-#pragma compile(FileVersion, 0.3.3.0)
+#pragma compile(ProductVersion, 0.3.3.1)
+#pragma compile(FileVersion, 0.3.3.1)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -20,8 +20,8 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.3.0 - [10.02.2017]"
-global $about = StringFormat("D2Stats %s%sMade by Wojen and Kyromyr, using Shaggi's offsets.%s%sPress INSERT to copy item stats to clipboard and DELETE to display ilvl.%sPress HOME to always show items on ground. Press again to disable.", $version, @CRLF, @CRLF, @CRLF, @CRLF)
+global $version = "0.3.3.1 - [13.02.2017]"
+global $about = StringFormat("D2Stats %s%sMade by Wojen and Kyromyr, using Shaggi's offsets.%s%sPress INSERT to copy item stats to clipboard and DELETE to display ilvl.%sPress HOME to switch Show Items between hold and toggle mode.", $version, @CRLF, @CRLF, @CRLF, @CRLF)
 
 OnAutoItExitRegister("_Exit")
 
@@ -37,10 +37,8 @@ local $d2window, $d2pid, $d2handle, $d2inject, $d2sgpt
 HotKeySet("+{INS}", "HotKey_WriteStatsToDisk")
 HotKeySet("{INS}", "HotKey_CopyItem")
 HotKeySet("{DEL}", "HotKey_ShowIlvl")
-HotKeySet("{HOME}", "HotKey_SimulateALT")
+HotKeySet("{HOME}", "HotKey_ToggleShowItems")
 local $hotkeyactive = True
-local $hotkey_alt = False
-local $hotkey_altU = TimerInit()
 
 CreateGUI()
 Main()
@@ -65,17 +63,16 @@ func UpdateHandle()
 	endif
 
 	if ($pid == $d2pid) then return True
-	$d2pid = $pid
+	$d2pid = 0
 	
 	_MemoryClose($d2handle)
-	$d2handle = _MemoryOpen($d2pid)
-	if (@error or not UpdateDllHandles()) then 
-		$d2pid = 0
-		return _Debug("Couldn't open Diablo II memory handle")
-	endif
-	$d2window = $hwnd
+	$d2handle = _MemoryOpen($pid)
+	if (@error) then return _Debug("Couldn't open Diablo II memory handle")
+	if (not UpdateDllHandles()) then return _Debug("Couldn't retrieve Dll addresses")
+	if (not InjectPrintFunction()) then return _Debug("Couldn't inject print function")
 	
-	$d2inject = $d2client + 0xCDE00
+	$d2pid = $pid
+	$d2window = $hwnd
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 	
 	return True
@@ -83,13 +80,6 @@ endfunc
 
 func IsIngame()
 	return _MemoryRead($d2client + 0x11BBFC, $d2handle) <> 0
-endfunc
-
-func UpdateALT($force = False)
-	if ($force or TimerDiff($hotkey_altU) >= 1000) then
-		$hotkey_altU = TimerInit()
-		if (UpdateHandle() and IsIngame()) then _MemoryWrite($d2client + 0xFADB4, $d2handle, $hotkey_alt ? 1 : 0, "byte")
-	endif
 endfunc
 
 #Region Hotkeys
@@ -133,15 +123,10 @@ endfunc
 
 func HotKey_ShowIlvl()
 	if (not HotKeyCheck()) then return False
-	if (not InjectCode()) then return _Debug("Failed to inject ilvl code")
-	
+
 	local $ilvl = GetIlvl()
-	if ($ilvl) then
-		local $ret = _MemoryWrite($d2inject + 0x2C, $d2handle, $ilvl, "wchar[2]")
-		if ($ret) then
-			_CreateRemoteThread($d2inject)
-		endif
-	endif
+	if ($ilvl) then return PrintString(StringFormat("ilvl: %02s", $ilvl))
+	return False
 endfunc
 
 func HotKey_WriteStatsToDisk()
@@ -159,12 +144,26 @@ func HotKey_WriteStatsToDisk()
 	FileWrite(@ScriptName & ".txt", $str)
 endfunc
 
-func HotKey_SimulateALT()
+func HotKey_ToggleShowItems()
 	if (not HotKeyCheck()) then return False
-	$hotkey_alt = not $hotkey_alt
-	UpdateALT(True)
+	
+	local $write1 = "0x9090909090"
+	local $write2 = "0x8335B4ADBA6F01E9B6000000"
+	local $write3 = "0xE93EFFFFFF90"
+	
+	local $restore = _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
+	if ($restore) then
+		$write1 = "0xA3B4ADBA6F"
+		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
+		$write3 = "0x891DB4ADBA6F"
+	endif
+	
+	_MemoryWrite($d2client + 0x3AECF, $d2handle, $write1, "byte[5]")
+	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
+	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
+	
+	PrintString($restore ? "Hold to show items" : "Toggle to show items", 3)
 endfunc
-
 #EndRegion
 
 #Region Stat reading
@@ -297,8 +296,6 @@ func Main()
 			case $btnAbout
 				MsgBox(4096 + 64, "About", $about)
 		endswitch
-		
-		if ($hotkey_alt) then UpdateALT()
 	wend
 endfunc
 
@@ -467,6 +464,18 @@ endfunc
 #EndRegion
 
 #Region Injection
+func PrintString($string, $color = 0)
+	if (not WriteWString($string)) then return False
+	_CreateRemoteThread($d2inject, $color)
+	return True
+endfunc
+	
+func WriteWString($string)
+	if (not UpdateHandle()) then return False
+	_MemoryWrite($d2inject + 0x10, $d2handle, $string, StringFormat("wchar[%s]", StringLen($string)+1))
+	return True
+endfunc
+
 func UpdateDllHandles()
 	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
 	if (not $gethandle) then return _Debug("Couldn't get GetModuleHandleA address")
@@ -488,6 +497,7 @@ func UpdateDllHandles()
 	$d2client = $handles[0]
 	$d2common = $handles[1]
 	$d2win = $handles[2]
+	$d2inject = $d2client + 0xCDE00
 
 	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
 	if (@error) then return _Debug("Failed to free memory")
@@ -495,18 +505,21 @@ func UpdateDllHandles()
 	return $ret
 endfunc
 
-func InjectCode()
-	if (not UpdateHandle()) then return False
-	local $checksum = 1465275221
+#cs
+D2Client.dll+CDE00 - 53                    - push ebx
+D2Client.dll+CDE01 - 68 10DEB76F           - push D2Client.dll+CDE10
+D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
+D2Client.dll+CDE08 - E8 43FAFAFF           - call D2Client.dll+7D850
+D2Client.dll+CDE0D - C3                    - ret 
+53 68 10 DE B7 6F 31 C0 E8 43 FA FA FF C3
+#ce
+
+func InjectPrintFunction()
+	local $sCode = "0x536810DEB76F31C0E843FAFAFFC3"
+	local $ret = _MemoryWrite($d2inject, $d2handle, $sCode, "byte[14]")
 	
 	local $injected = _MemoryRead($d2inject, $d2handle)
-	if ($injected == $checksum) then return True
-	
-	local $sCode = "0x5553565768000000006820DEB76F33C0BB50D8B26FFFD35F5E5B5DC30000000069006C0076006C003A002000300030000000"
-	local $ret = _MemoryWrite($d2inject, $d2handle, $sCode, "byte[50]")
-	
-	$injected = _MemoryRead($d2inject, $d2handle)
-	return $injected == $checksum
+	return $injected == 3725617235
 endfunc
 
 func _CreateRemoteThread($func, $var = 0) ; $var is in EBX register
@@ -545,31 +558,4 @@ Func _MemVirtualFreeEx($hProcess, $pAddress, $iSize, $iFreeType)
 	If @error Then Return SetError(@error, @extended, False)
 	Return $aResult[0]
 EndFunc   ;==>_MemVirtualFreeEx
-
-#cs
-
-6FB7DE00   . 55             PUSH EBP
-6FB7DE01   . 53             PUSH EBX
-6FB7DE02   . 56             PUSH ESI
-6FB7DE03   . 57             PUSH EDI
-6FB7DE04   . 68 00000000    PUSH 0
-6FB7DE09   . 68 20DEB76F    PUSH D2Client.6FB7DE20                   ;  UNICODE "ilvl: 00"
-6FB7DE0E   . 33C0           XOR EAX,EAX
-6FB7DE10   . BB 50D8B26F    MOV EBX,D2Client.6FB2D850                ;  Entry address
-6FB7DE15   . FFD3           CALL EBX
-6FB7DE17   . 5F             POP EDI
-6FB7DE18   . 5E             POP ESI
-6FB7DE19   . 5B             POP EBX
-6FB7DE1A   . 5D             POP EBP
-6FB7DE1B   . C3             RETN
-6FB7DE1C   . 00             DB 00
-6FB7DE1D     00             DB 00
-6FB7DE1E     00             DB 00
-6FB7DE1F     00             DB 00
-6FB7DE20   . 6900 6C00 7600>UNICODE "ilvl: 00"
-6FB7DE30   . 0000           UNICODE 0
-
-55 53 56 57 68 00 00 00 00 68 20 DE B7 6F 33 C0 BB 50 D8 B2 6F FF D3 5F 5E 5B 5D C3 00 00 00 00 69 00 6C 00 76 00 6C 00 3A 00 20 00 30 00 30 00 00 00
-
-#ce
 #EndRegion
