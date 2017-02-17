@@ -5,8 +5,8 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.3.1)
-#pragma compile(FileVersion, 0.3.3.1)
+#pragma compile(ProductVersion, 0.3.3.2)
+#pragma compile(FileVersion, 0.3.3.2)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -20,7 +20,7 @@ if (not IsAdmin()) then
 	exit
 endif
 
-global $version = "0.3.3.1 - [13.02.2017]"
+global $version = "0.3.3.2 - [17.02.2017]"
 global $about = StringFormat("D2Stats %s%sMade by Wojen and Kyromyr, using Shaggi's offsets.%s%sPress INSERT to copy item stats to clipboard and DELETE to display ilvl.%sPress HOME to switch Show Items between hold and toggle mode.", $version, @CRLF, @CRLF, @CRLF, @CRLF)
 
 OnAutoItExitRegister("_Exit")
@@ -44,7 +44,14 @@ CreateGUI()
 Main()
 
 func _Exit()
-	_MemoryClose($d2handle)
+	_CloseHandle()
+endfunc
+
+func _CloseHandle()
+	if ($d2handle) then
+		_MemoryClose($d2handle)
+		$d2handle = 0
+	endif
 endfunc
 
 func _Debug($msg)
@@ -56,8 +63,7 @@ func UpdateHandle()
 	local $hwnd = WinGetHandle("[CLASS:Diablo II]")
 	local $pid = WinGetProcess($hwnd)
 	if ($pid == -1) then
-		_MemoryClose($d2handle)
-		$d2handle = 0
+		_CloseHandle()
 		$d2pid = 0
 		return False
 	endif
@@ -65,11 +71,19 @@ func UpdateHandle()
 	if ($pid == $d2pid) then return True
 	$d2pid = 0
 	
-	_MemoryClose($d2handle)
+	_CloseHandle()
 	$d2handle = _MemoryOpen($pid)
 	if (@error) then return _Debug("Couldn't open Diablo II memory handle")
-	if (not UpdateDllHandles()) then return _Debug("Couldn't retrieve Dll addresses")
-	if (not InjectPrintFunction()) then return _Debug("Couldn't inject print function")
+	
+	if (not UpdateDllHandles()) then
+		_CloseHandle()
+		return _Debug("Couldn't retrieve Dll addresses")
+	endif
+	
+	if (not InjectPrintFunction()) then
+		_CloseHandle()
+		return _Debug("Couldn't inject print function")
+	endif
 	
 	$d2pid = $pid
 	$d2window = $hwnd
@@ -144,18 +158,51 @@ func HotKey_WriteStatsToDisk()
 	FileWrite(@ScriptName & ".txt", $str)
 endfunc
 
+#cs
+D2Client.dll+3AECF - A3 *                  - mov [D2Client.dll+FADB4],eax { [00000000] }
+-->
+D2Client.dll+3AECF - 90                    - nop 
+D2Client.dll+3AED0 - 90                    - nop 
+D2Client.dll+3AED1 - 90                    - nop 
+D2Client.dll+3AED2 - 90                    - nop 
+D2Client.dll+3AED3 - 90                    - nop 
+
+
+D2Client.dll+3B224 - CC                    - int 3 
+D2Client.dll+3B225 - CC                    - int 3 
+D2Client.dll+3B226 - CC                    - int 3 
+D2Client.dll+3B227 - CC                    - int 3 
+D2Client.dll+3B228 - CC                    - int 3 
+D2Client.dll+3B229 - CC                    - int 3 
+D2Client.dll+3B22A - CC                    - int 3 
+D2Client.dll+3B22B - CC                    - int 3 
+D2Client.dll+3B22C - CC                    - int 3 
+D2Client.dll+3B22D - CC                    - int 3 
+D2Client.dll+3B22E - CC                    - int 3 
+D2Client.dll+3B22F - CC                    - int 3 
+-->
+D2Client.dll+3B224 - 83 35 * 01            - xor dword ptr [D2Client.dll+FADB4],01 { [00000000] }
+D2Client.dll+3B22B - E9 B6000000           - jmp D2Client.dll+3B2E6
+
+
+D2Client.dll+3B2E1 - 89 1D *               - mov [D2Client.dll+FADB4],ebx { [00000000] }
+-->
+D2Client.dll+3B2E1 - E9 3EFFFFFF           - jmp D2Client.dll+3B224
+D2Client.dll+3B2E6 - 90                    - nop 
+#ce
+
 func HotKey_ToggleShowItems()
 	if (not HotKeyCheck()) then return False
 	
 	local $write1 = "0x9090909090"
-	local $write2 = "0x8335B4ADBA6F01E9B6000000"
+	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
 	local $write3 = "0xE93EFFFFFF90"
 	
 	local $restore = _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
 	if ($restore) then
-		$write1 = "0xA3B4ADBA6F"
+		$write1 = "0xA3" & GetOffsetAddress($d2client + 0xFADB4)
 		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
-		$write3 = "0x891DB4ADBA6F"
+		$write3 = "0x891D" & GetOffsetAddress($d2client + 0xFADB4)
 	endif
 	
 	_MemoryWrite($d2client + 0x3AECF, $d2handle, $write1, "byte[5]")
@@ -507,19 +554,22 @@ endfunc
 
 #cs
 D2Client.dll+CDE00 - 53                    - push ebx
-D2Client.dll+CDE01 - 68 10DEB76F           - push D2Client.dll+CDE10
+D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE10
 D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
 D2Client.dll+CDE08 - E8 43FAFAFF           - call D2Client.dll+7D850
 D2Client.dll+CDE0D - C3                    - ret 
-53 68 10 DE B7 6F 31 C0 E8 43 FA FA FF C3
 #ce
 
+func GetOffsetAddress($addr)
+	return StringFormat("%08s", StringLeft(Hex(Binary($addr)), 8))
+endfunc
+
 func InjectPrintFunction()
-	local $sCode = "0x536810DEB76F31C0E843FAFAFFC3"
+	local $sCode = "0x5368" & GetOffsetAddress($d2inject + 0x10) & "31C0E843FAFAFFC3"
 	local $ret = _MemoryWrite($d2inject, $d2handle, $sCode, "byte[14]")
 	
 	local $injected = _MemoryRead($d2inject, $d2handle)
-	return $injected == 3725617235
+	return Hex($injected, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
 endfunc
 
 func _CreateRemoteThread($func, $var = 0) ; $var is in EBX register
