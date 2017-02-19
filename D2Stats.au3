@@ -5,8 +5,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.3.2)
-#pragma compile(FileVersion, 0.3.3.2)
+#pragma compile(ProductVersion, 0.3.4.0)
+#pragma compile(FileVersion, 0.3.4.0)
+#pragma compile(Comments, 19.02.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -19,9 +20,6 @@ if (not IsAdmin()) then
 	MsgBox(4096, "Error", "Admin rights needed!")
 	exit
 endif
-
-global $version = "0.3.3.2 - [17.02.2017]"
-global $about = StringFormat("D2Stats %s%sMade by Wojen and Kyromyr, using Shaggi's offsets.%s%sPress INSERT to copy item stats to clipboard and DELETE to display ilvl.%sPress HOME to switch Show Items between hold and toggle mode.", $version, @CRLF, @CRLF, @CRLF, @CRLF)
 
 OnAutoItExitRegister("_Exit")
 
@@ -44,6 +42,7 @@ CreateGUI()
 Main()
 
 func _Exit()
+	GUIDelete()
 	_CloseHandle()
 endfunc
 
@@ -260,6 +259,10 @@ func UpdateStatValues()
 		UpdateStatValueMem(1)
 		FixStatVelocities()
 	endif
+	
+	; Poison damage to damage/second
+	$stats_cache[1][57] *= (25/256)
+	$stats_cache[1][58] *= (25/256)
 endfunc
 
 func FixStatVelocities() ; This game is stupid
@@ -328,7 +331,7 @@ endfunc
 func GetStatValue($istat)
 	local $ivector = $istat < 4 ? 0 : 1
 	local $val = $stats_cache[$ivector][$istat]
-	return $val ? $val : 0
+	return Floor($val ? $val : 0)
 endfunc
 #EndRegion
 
@@ -340,8 +343,6 @@ func Main()
 				exit
 			case $btnRead
 				ReadCharacterData()
-			case $btnAbout
-				MsgBox(4096 + 64, "About", $about)
 		endswitch
 	wend
 endfunc
@@ -351,30 +352,53 @@ func ReadCharacterData()
 	UpdateGUI()
 endfunc
 
-func NewLabel($text, $i)
-	local $width = 8*(StringLen($text)+3)
-	return GUICtrlCreateLabel($text, $gui[0][1]-$width/2, 4+15*$i, $width, 15, 0x1)
+func StringWidth($text)
+	return 2 + 7 * StringLen($text)
 endfunc
 
-func NewItem($statid, $i, $text, $tip = "", $clr = -1, $updatefunc = 0)
-	local $arrPos = $gui[0][0] + 1
-	$gui[$arrPos][0] = $statid
-	$gui[$arrPos][1] = $text
-	$gui[$arrPos][2] = NewLabel($text, $i)
+func NewTextBasic($line, $text, $centered = 1)
+	local $width = StringWidth($text)
+	local $x = $gui[0][1] - ($centered ? $width/2 : 0)
+	return GUICtrlCreateLabel($text, $x, 28+15*$line, $width, 15, $centered)
+endfunc
+
+func NewText($line, $text, $tip = "", $clr = -1)
+	local $width = StringWidth($text)
+	local $ret = NewTextBasic($line, $text)
+
+	; GUICtrlSetBkColor(-1, Random(0, 2147483647, 1))
 	if ($tip <> "") then
 		GUICtrlSetTip(-1, $tip)
 	endif
 	if ($clr >= 0) then
 		GUICtrlSetColor(-1, $clr)
 	endif
+	return $ret
+endfunc
+
+func NewItem($line, $text, $tip = "", $clr = -1)
+	local $arrPos = $gui[0][0] + 1
+	
+	$gui[$arrPos][0] = $text
+	$gui[$arrPos][1] = $gui[0][1]
+	$gui[$arrPos][2] = NewText($line, $text, $tip, $clr)
+
 	$gui[0][0] = $arrPos
 endfunc
 
 func UpdateGUI()
+	local $text, $matches, $match, $width
 	for $i = 1 to $gui[0][0]
-		local $val = GetStatValue($gui[$i][0])
-		local $text = StringReplace($gui[$i][1], "*", $val)
+		$text = $gui[$i][0]
+		$matches = StringRegExp($text, "{(\d+)}", 4)
+		for $j = 0 to UBound($matches)-1
+			$match = $matches[$j]
+			$text = StringReplace($text, $match[0], GetStatValue($match[1]))
+		next
 		GUICtrlSetData($gui[$i][2], $text)
+		
+		$width = StringWidth($text)
+		GUICtrlSetPos($gui[$i][2], $gui[$i][1]-$width/2, Default, $width, Default)
 	next
 endfunc
 
@@ -383,128 +407,144 @@ func CreateGUI()
 	local $clr_blue	= 0x0066CC
 	local $clr_gold	= 0x808000
 	local $clr_green= 0x008000
-	local $clr_purp	= 0xFF00FF
+	local $clr_pink	= 0xFF00FF
+	
+	local $groupLines = 14
+	local $groupWidth = 110
+	local $groupXStart = 8 + $groupWidth/2
 
-	GUICreate(StringFormat("D2Stats%s %s", @AutoItX64 ? "-64" : "", $version), 500, 250, 329, 143)
+	local $title = not @Compiled ? "Test" : StringFormat("D2Stats%s %s - [%s]", @AutoItX64 ? "-64" : "", FileGetVersion(@AutoItExe, "FileVersion"), FileGetVersion(@AutoItExe, "Comments"))
+	local $guiWidth = 16 + 4*$groupWidth
+	local $guiHeight = 34 + 15*$groupLines
+	GUICreate($title, $guiWidth, $guiHeight)
 	GUISetFont(9, 0, 0, "Courier New")
 	
-	global $btnRead = GUICtrlCreateButton("Read", 8, 192, 70, 25)
-	global $btnAbout = GUICtrlCreateButton("About", 8, 216, 70, 25)
+	global $btnRead = GUICtrlCreateButton("Read", $groupXStart-35, $guiHeight-31, 70, 25)
 
-	local $groupX1 = 42
-	local $groupX2 = 80+$groupX1
-	local $groupX3 = 80+$groupX2
-	local $groupX4 = 80+$groupX3
-	local $groupX5 = 80+$groupX4
-	local $groupX6 = 80+$groupX5
+	GUICtrlCreateTab(0, 0, $guiWidth, 0, 0x8000)
+	
+	GUICtrlCreateTabItem("Page 1")
+	$gui[0][1] = $groupXStart
+	NewText(00, "Base stats")
+	NewItem(01, "{000} Strength")
+	NewItem(02, "{002} Dexterity")
+	NewItem(03, "{003} Vitality")
+	NewItem(04, "{001} Energy")
+	
+	NewItem(06, "{080}% M.Find", "Magic Find")
+	NewItem(07, "{079}% Gold", "Extra Gold from Monsters")
+	NewItem(08, "{085}% Exp.Gain", "Experience gained")
+	NewItem(09, "{183} CP", "Crafting Points")
+	NewItem(10, "{185} Signets", "Signets of Learning")
+	NewItem(11, "{479} M.Skill", "Maximum Skill Level")
+	
+	
+	$gui[0][1] += $groupWidth
+	NewText(00, "Bonus stats")
+	NewItem(01, "{359}% Strength")
+	NewItem(02, "{360}% Dexterity")
+	NewItem(03, "{362}% Vitality")
+	NewItem(04, "{361}% Energy")
+	
+	NewText(06, "Item/Skill", "Speed from items and skills behave differently. Use SpeedCalc to find your breakpoints")
+	NewItem(07, "{093}%/{068}% IAS", "Increased Attack Speed")
+	NewItem(08, "{099}%/{069}% FHR", "Faster Hit Recovery")
+	NewItem(09, "{102}%/{069}% FBR", "Faster Block Rate")
+	NewItem(10, "{096}%/{067}% FRW", "Faster Run/Walk")
+	NewItem(11, "{105}% FCR", "Item Faster Cast Rate")
+	
+	
+	$gui[0][1] += $groupWidth
+	NewItem(00, "{076}% Life", "Maximum Life")
+	NewItem(01, "{077}% Mana", "Maximum Mana")
+	NewItem(02, "{025}% EWD", "Enchanced Weapon Damage")
+	NewItem(03, "{171}% TCD", "Total Character Defense")
+	NewItem(04, "{119}% AR", "Attack Rating")
+	NewItem(05, "{035} MDR", "Magic Damage Reduction")
+	NewItem(06, "{339}% Avoid")
+	NewItem(07, "{338}% Dodge", "Avoid melee attack")	
 
-	$gui[0][1] = $groupX1
-	NewLabel("Base stats", 0)
-	NewItem(000, 1, "* Str", "Strength")
-	NewItem(002, 2, "* Dex", "Dexterity")
-	NewItem(003, 3, "* Vit", "Vitality")
-	NewItem(001, 4, "* Ene", "Energy")
+	NewItem(09, "{136}% CB", "Crushing Blow")
+	NewItem(10, "{135}% OW", "Open Wounds")
+	NewItem(11, "{141}% DS", "Deadly Strike")
+	NewItem(12, "{164}% UA", "Uninterruptable Attack")
 	
-	NewItem(080, 6, "*% MF", "Magic Find")
-	NewItem(079, 7, "*% GF", "Gold Find")
-	NewItem(085, 8, "*% Exp", "Experience")
-	NewItem(183, 9, "* CP", "Crafting Points")
-	NewItem(185, 10, "* Sigs", "Signets of Learning")
-	NewItem(479, 11, "* M.Skill", "Maximum Skill Level")
 	
-	$gui[0][1] = $groupX2
-	NewItem(025, 0, "*% EWD", "Enchanced Weapon Damage")
-	NewItem(136, 1, "*% CB", "Crushing Blow")
-	NewItem(135, 2, "*% OW", "Open Wounds")
-	NewItem(141, 3, "*% DS", "Deadly Strike")
-	NewItem(119, 4, "*% AR", "Attack Rating")
+	$gui[0][1] += $groupWidth
+	NewText(00, "Res/Abs/Flat", "Resist / Absorb / Flat absorb")
+	NewItem(01, "{039}%/{142}%/{143}", "Fire", $clr_red)
+	NewItem(02, "{043}%/{148}%/{149}", "Cold", $clr_blue)
+	NewItem(03, "{041}%/{144}%/{145}", "Lightning", $clr_gold)
+	NewItem(04, "{045}%", "Poison resist", $clr_green)
+	NewItem(05, "{037}%/{146}%/{147}", "Magic", $clr_pink)
+	NewItem(06, "{036}%/{034}", "Physical (aka Damage Reduction)")
 	
-	NewItem(093, 6, "*% IAS", "Increased Attack Speed")
-	NewItem(099, 7, "*% FHR", "Faster Hit Recovery")
-	NewItem(102, 8, "*% FBR", "Faster Block Rate")
-	NewItem(096, 9, "*% FRW", "Faster Run/Walk")
-	NewItem(105, 10, "*% FCR", "Faster Cast Rate")
+	NewText(08, "Damage/Pierce", "Spell damage / -Enemy resist")
+	NewItem(09, "{329}%/{333}%", "Fire", $clr_red)
+	NewItem(10, "{331}%/{335}%", "Cold", $clr_blue)
+	NewItem(11, "{330}%/{334}%", "Lightning", $clr_gold)
+	NewItem(12, "{332}%/{336}%", "Poison", $clr_green)
+	NewItem(13, "{377}%/0%", "Physical/Magic", $clr_pink)
 	
-	NewItem(068, 12, "*% sIAS", "Skill IAS")
-	NewItem(069, 13, "*% sFBR", "Skill FBR")
-	NewItem(069, 14, "*% sFHR", "Skill FHR")
-	NewItem(067, 15, "*% sFRW", "Skill FRW")
 	
-	$gui[0][1] = $groupX3
-	NewItem(076, 0, "*% Life", "Max Life")
-	NewItem(077, 1, "*% Mana", "Max Mana")
+	GUICtrlCreateTabItem("Page 2")
+	$gui[0][1] = $groupXStart
+	NewItem(00, "{278} SF", "Strength Factor")
+	NewItem(01, "{485} EF", "Energy Factor")
+	NewItem(02, "{431}% PSD", "Poison Skill Duration")
+	NewItem(03, "{409}% Buff.Dur", "Buff/Debuff/Cold Skill Duration")
+	NewItem(04, "{27}% Mana.Reg", "Mana Regeneration")
+	NewItem(05, "{109}% CLR", "Curse Length Reduction")
+	NewItem(06, "{110}% PLR", "Poison Length Reduction")
+	NewItem(07, "{489} TTAD", "Target Takes Additional Damage")
 	
-	NewItem(171, 2, "*% TCD", "Total Character Defense")
-	NewItem(034, 3, "* DR", "Flat damage reduction")
-	NewItem(035, 4, "* MDR", "Flat magic damage reduction")
-	NewItem(036, 5, "*% DR", "Percent damage reduction")
-	NewItem(037, 6, "*% MR", "Magic Resist")
+	NewText(09, "Slow")
+	NewItem(10, "{150}%/{376}% Tgt.", "Slows Target / Slows Melee Target")
+	NewItem(11, "{363}%/{493}% Att.", "Slows Attacker / Slows Ranged Attacker")
 	
-	NewItem(339, 7, "*% Avoid")
-	NewItem(338, 8, "*% Dodge", "Avoid melee attack")
-	NewItem(164, 9, "*% UA", "Uninterruptable Attack")
-	NewItem(489, 10, "* TTAD", "Target Takes Additional Damage")
 	
-	NewItem(150, 12, "*% ST", "Slows Target")
-	NewItem(376, 13, "*% SMT", "Slows Melee Target")
-	NewItem(363, 14, "*% SA", "Slows Attacker")
-	NewItem(493, 15, "*% SRA", "Slows Ranged Attacker")
+	$gui[0][1] += $groupWidth
+	NewText(00, "Weapon Damage")
+	NewItem(01, "{048}-{049}", "Fire", $clr_red)
+	NewItem(02, "{054}-{055}", "Cold", $clr_blue)
+	NewItem(03, "{050}-{051}", "Lightning", $clr_gold)
+	NewItem(04, "{057}-{058}/s", "Poison/sec", $clr_green)
+	NewItem(05, "{052}-{053}", "Magic", $clr_pink)
 	
-	$gui[0][1] = $groupX4
-	NewLabel("Absorb", 0)
-	NewItem(142, 1, "*%", "Percent Fire Absorb", $clr_red)
-	NewItem(143, 2, "*", "Flat Fire Absorb", $clr_red)
-	NewItem(148, 3, "*%", "Percent Cold Absorb", $clr_blue)
-	NewItem(149, 4, "*", "Flat Cold Absorb", $clr_blue)
-	NewItem(144, 5, "*%", "Percent Light Absorb", $clr_gold)
-	NewItem(145, 6, "*", "Flat Light Absorb", $clr_gold)
+	NewText(07, "Life/Mana")
+	NewItem(08, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
+	NewItem(09, "{086}/{138} *aeK", "Life/Mana after each Kill")
+	NewItem(10, "{208}/{209} *oS", "Life/Mana on Striking")
+	NewItem(11, "{210}/{295} *oSiM", "Life/Mana on Striking in Melee")
 	
-	NewItem(060, 7, "*% LL", "Life Leech")
-	NewItem(086, 8, "* LaeK", "Life after each Kill")
-	NewItem(208, 9, "* LoS", "Life on Striking")
-	NewItem(210, 10, "* LoSiM", "Life on Striking in Melee")
+	$gui[0][1] += $groupWidth
+	NewText(00, "Minions")
+	NewItem(01, "{444}% Life")
+	NewItem(02, "{470}% Damage")
+	NewItem(03, "{487}% Resist")
+	NewItem(04, "{500}% AR", "Attack Rating")
 	
-	NewItem(062, 12, "*% ML", "Mana Leech")
-	NewItem(138, 13, "* MaeK", "Mana after each Kill")
-	NewItem(209, 14, "* MoS", "Mana on Striking")
-	NewItem(295, 15, "* MoSiM", "Mana on Striking in Melee")
+	; TODO
+	; $gui[0][1] += $groupWidth
+	; NewText(00, "Mercenary")
 	
-	$gui[0][1] = $groupX5
-	NewLabel("Resists", 0)
-	NewItem(039, 1, "*%", "", $clr_red)
-	NewItem(043, 2, "*%", "", $clr_blue)
-	NewItem(041, 3, "*%", "", $clr_gold)
-	NewItem(045, 4, "*%", "", $clr_green)
+
+	GUICtrlCreateTabItem("About")
+	$gui[0][1] = 8
+	NewTextBasic(00, "Made by Wojen and Kyromyr, using Shaggi's offsets.", 0)
+	NewTextBasic(01, "Layout help by krys.", 0)
+	NewTextBasic(02, "Additional help by suchbalance and Quirinus.", 0)
 	
-	NewLabel("Spell damage", 5)
-	NewItem(329, 6, "*%", "", $clr_red)
-	NewItem(331, 7, "*%", "", $clr_blue)
-	NewItem(330, 8, "*%", "", $clr_gold)
-	NewItem(332, 9, "*%", "", $clr_green)
-	NewItem(377, 10, "*%", "", $clr_purp)
+	NewTextBasic(04, "Press INSERT to copy item stats to clipboard.", 0)
+	NewTextBasic(05, "Press DELETE to display item ilvl.", 0)
+	NewTextBasic(06, "Press HOME to switch Show Items between hold and toggle mode.", 0)
 	
-	NewLabel("Pierce", 11)
-	NewItem(333, 12, "*%", "", $clr_red)
-	NewItem(335, 13, "*%", "", $clr_blue)
-	NewItem(334, 14, "*%", "", $clr_gold)
-	NewItem(336, 15, "*%", "", $clr_green)
+	NewTextBasic(08, "Known bugs:", 0)
+	NewTextBasic(09, "In rare cases weapon speed modifier counts towards skill IAS;", 0)
+	NewTextBasic(10, " swapping weapons (default: W key) should fix it.", 0)
+	NewTextBasic(11, "Dual wielding in general can mess with the stats. Swap to fix.", 0)
 	
-	$gui[0][1] = $groupX6
-	NewLabel("Minions", 0)
-	NewItem(444, 1, "*% Life")
-	NewItem(470, 2, "*% Damage")
-	NewItem(487, 3, "*% Resist")
-	NewItem(500, 4, "*% AR", "Attack Rating")
-	
-	NewItem(278, 6, "* SF", "Flat Strength Factor")
-	NewItem(485, 7, "* EF", "Flat Energy Factor")
-	NewItem(488, 8, "*% EF", "Percent Energy Factor")
-	NewItem(431, 9, "*% PSD", "Poison Skill Duration")
-	NewItem(409, 10, "*% Buff.Dur", "Buff/Debuff/Cold Skill Duration")
-	NewItem(027, 11, "*% Mana.Reg", "Mana Regeneration")
-	NewItem(109, 12, "*% CLR", "Curse Length Reduction")
-	NewItem(110, 13, "*% PLR", "Poison Length Reduction")
-	
+	GUICtrlCreateTabItem("")
 	UpdateGUI()
 	GUISetState(@SW_SHOW)
 endfunc
