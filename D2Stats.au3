@@ -361,7 +361,7 @@ func Main()
 			$timer = TimerInit()
 			
 			UpdateHandle()
-			HotKeyEnable(WinActive($d2window))
+			HotKeyEnable($d2window and WinActive($d2window))
 			if (IsIngame() and IsShowItemsToggle()) then
 				if ($options[3]) then
 					$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
