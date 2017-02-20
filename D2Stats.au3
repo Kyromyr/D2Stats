@@ -7,7 +7,7 @@
 #pragma compile(ProductName, D2Stats)
 #pragma compile(ProductVersion, 0.3.4.0)
 #pragma compile(FileVersion, 0.3.4.0)
-#pragma compile(Comments, 19.02.2017)
+#pragma compile(Comments, 20.02.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -25,18 +25,16 @@ OnAutoItExitRegister("_Exit")
 
 local $gui_event_close = -3
 local $gui[128][3] = [[0]]
+local $gui_opt[16][2] = [[0]]
 
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
 
-local $d2client, $d2common, $d2win
-local $d2window, $d2pid, $d2handle, $d2inject, $d2sgpt
+local $d2client, $d2common, $d2win, $d2inject, $d2sgpt
+local $d2window, $d2pid, $d2handle
 
-HotKeySet("+{INS}", "HotKey_WriteStatsToDisk")
-HotKeySet("{INS}", "HotKey_CopyItem")
-HotKeySet("{DEL}", "HotKey_ShowIlvl")
-HotKeySet("{HOME}", "HotKey_ToggleShowItems")
-local $hotkeyactive = True
+local $hotkey_enabled = False
+local $options[4] = [1, 1, 1, 1]
 
 CreateGUI()
 Main()
@@ -76,7 +74,7 @@ func UpdateHandle()
 	
 	if (not UpdateDllHandles()) then
 		_CloseHandle()
-		return _Debug("Couldn't retrieve Dll addresses")
+		return False
 	endif
 	
 	if (not InjectPrintFunction()) then
@@ -84,14 +82,15 @@ func UpdateHandle()
 		return _Debug("Couldn't inject print function")
 	endif
 	
-	$d2pid = $pid
 	$d2window = $hwnd
+	$d2pid = $pid
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 	
 	return True
 endfunc
 
 func IsIngame()
+	if (not $d2pid) then return False
 	return _MemoryRead($d2client + 0x11BBFC, $d2handle) <> 0
 endfunc
 
@@ -101,15 +100,34 @@ func GetIlvl()
 	return _MemoryPointerRead($d2client + 0x11BC38, $d2handle, $ilvl_offsets)
 endfunc
 
+func HotKeyEnable($enable)
+	if ($enable <> $hotkey_enabled) then
+		HotKeySet("+{INS}", ($enable and not @Compiled) ? "HotKey_WriteStatsToDisk" : null)
+		HotKeySet("{INS}", ($enable and $options[0]) ? "HotKey_CopyItem" : null)
+		HotKeySet("{DEL}", ($enable and $options[1]) ? "HotKey_ShowIlvl" : null)
+		HotKeySet("{HOME}", ($enable and $options[2]) ? "HotKey_ToggleShowItems" : null)
+		$hotkey_enabled = $enable
+	endif
+endfunc
+
 func HotKeyCheck()
-	if (not $hotkeyactive) then return False
-	if (UpdateHandle() and WinActive($d2window)) then return IsIngame()
+	if (not IsIngame()) then return _Debug("Enter a game first")
+	return True
+endfunc
+
+func HotKey_WriteStatsToDisk()
+	if (not HotKeyCheck()) then return False
 	
-	$hotkeyactive = False
-	ControlSend("[ACTIVE]", "", "", @HotKeyPressed)
-	$hotkeyactive = True
-	
-	return False
+	UpdateStatValues()
+	local $str = ""
+	for $i = 0 to $numStats-1
+		local $val = GetStatValue($i)
+		if ($val) then
+			$str &= StringFormat("%s = %s%s", $i, $val, @CRLF)
+		endif
+	next
+	FileDelete(@ScriptName & ".txt")
+	FileWrite(@ScriptName & ".txt", $str)
 endfunc
 
 func HotKey_CopyItem()
@@ -140,21 +158,6 @@ func HotKey_ShowIlvl()
 	local $ilvl = GetIlvl()
 	if ($ilvl) then return PrintString(StringFormat("ilvl: %02s", $ilvl))
 	return False
-endfunc
-
-func HotKey_WriteStatsToDisk()
-	if (not HotKeyCheck()) then return False
-	
-	UpdateStatValues()
-	local $str = ""
-	for $i = 0 to $numStats-1
-		local $val = GetStatValue($i)
-		if ($val) then
-			$str &= StringFormat("%s = %s%s", $i, $val, @CRLF)
-		endif
-	next
-	FileDelete(@ScriptName & ".txt")
-	FileWrite(@ScriptName & ".txt", $str)
 endfunc
 
 #cs
@@ -190,6 +193,10 @@ D2Client.dll+3B2E1 - E9 3EFFFFFF           - jmp D2Client.dll+3B224
 D2Client.dll+3B2E6 - 90                    - nop 
 #ce
 
+func IsShowItemsToggle()
+	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
+endfunc
+
 func HotKey_ToggleShowItems()
 	if (not HotKeyCheck()) then return False
 	
@@ -197,7 +204,7 @@ func HotKey_ToggleShowItems()
 	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
 	local $write3 = "0xE93EFFFFFF90"
 	
-	local $restore = _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
+	local $restore = IsShowItemsToggle()
 	if ($restore) then
 		$write1 = "0xA3" & GetOffsetAddress($d2client + 0xFADB4)
 		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
@@ -254,15 +261,15 @@ func UpdateStatValues()
 		$stats_cache[1][$i] = 0
 	next
 	
-	if (UpdateHandle() and IsIngame()) then
+	if (IsIngame()) then
 		UpdateStatValueMem(0)
 		UpdateStatValueMem(1)
 		FixStatVelocities()
+		
+		; Poison damage to damage/second
+		$stats_cache[1][57] *= (25/256)
+		$stats_cache[1][58] *= (25/256)
 	endif
-	
-	; Poison damage to damage/second
-	$stats_cache[1][57] *= (25/256)
-	$stats_cache[1][58] *= (25/256)
 endfunc
 
 func FixStatVelocities() ; This game is stupid
@@ -337,13 +344,32 @@ endfunc
 
 #Region GUI
 func Main()
+	local $timer = TimerInit()
+	local $showitems, $lastshowitems
+	
 	while 1
 		switch GUIGetMsg()
 			case $gui_event_close
 				exit
 			case $btnRead
 				ReadCharacterData()
+			case $gui_opt[1][1] to $gui_opt[$gui_opt[0][0]][1]
+				UpdateGUIOptions()
 		endswitch
+
+		if (TimerDiff($timer) > 250) then
+			$timer = TimerInit()
+			
+			UpdateHandle()
+			HotKeyEnable(WinActive($d2window))
+			if ($options[3] and IsIngame() and IsShowItemsToggle()) then
+				$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
+				if ($lastshowitems and not $showitems) then PrintString("Not showing items", 3)
+				$lastshowitems = $showitems
+			else
+				$lastshowitems = False
+			endif
+		endif
 	wend
 endfunc
 
@@ -356,10 +382,14 @@ func StringWidth($text)
 	return 2 + 7 * StringLen($text)
 endfunc
 
+func GetLineHeight($line)
+	return 28+15*$line
+endfunc
+
 func NewTextBasic($line, $text, $centered = 1)
 	local $width = StringWidth($text)
 	local $x = $gui[0][1] - ($centered ? $width/2 : 0)
-	return GUICtrlCreateLabel($text, $x, 28+15*$line, $width, 15, $centered)
+	return GUICtrlCreateLabel($text, $x, GetLineHeight($line), $width, 15, $centered)
 endfunc
 
 func NewText($line, $text, $tip = "", $clr = -1)
@@ -386,6 +416,17 @@ func NewItem($line, $text, $tip = "", $clr = -1)
 	$gui[0][0] = $arrPos
 endfunc
 
+func NewOption($line, $text)
+	local $arrPos = $gui_opt[0][0] + 1
+	local $ret = GUICtrlCreateCheckbox($text, 8, GetLineHeight($line)*2-GetLineHeight(0))
+	
+	$gui_opt[$arrPos][0] = $line
+	$gui_opt[$arrPos][1] = $ret
+	
+	$gui_opt[0][0] = $arrPos
+	return $ret
+endfunc
+
 func UpdateGUI()
 	local $text, $matches, $match, $width
 	for $i = 1 to $gui[0][0]
@@ -400,6 +441,19 @@ func UpdateGUI()
 		$width = StringWidth($text)
 		GUICtrlSetPos($gui[$i][2], $gui[$i][1]-$width/2, Default, $width, Default)
 	next
+endfunc
+
+func UpdateGUIOptions()
+	local $write = ""
+	local $optid, $checked
+	for $i = 1 to $gui_opt[0][0]
+		$optid = $gui_opt[$i][0]
+		$checked = GUICtrlRead($gui_opt[$i][1]) == 1 ? 1 : 0
+		$options[$optid] = $checked
+		$write &= StringFormat("%s=%s%s", $optid, $checked, @LF)
+	next
+
+	IniWriteSection(@AutoItExe & ".ini", "General", $write)
 endfunc
 
 func CreateGUI()
@@ -528,23 +582,39 @@ func CreateGUI()
 	; $gui[0][1] += $groupWidth
 	; NewText(00, "Mercenary")
 	
+	
+	GUICtrlCreateTabItem("Options")
+	NewOption(00, "Enable copy item stats (INSERT)")
+	NewOption(01, "Enable display ilvl (DELETE)")
+	NewOption(02, "Enable Show Items mode (HOME)")
+	NewOption(03, "Message when Show Items is disabled in toggle mode")
+	
 
 	GUICtrlCreateTabItem("About")
 	$gui[0][1] = 8
-	NewTextBasic(00, "Made by Wojen and Kyromyr, using Shaggi's offsets.", 0)
-	NewTextBasic(01, "Layout help by krys.", 0)
-	NewTextBasic(02, "Additional help by suchbalance and Quirinus.", 0)
+	NewTextBasic(00, "Made by Wojen and Kyromyr, using Shaggi's offsets.", False)
+	NewTextBasic(01, "Layout help by krys.", False)
+	NewTextBasic(02, "Additional help by suchbalance and Quirinus.", False)
 	
-	NewTextBasic(04, "Press INSERT to copy item stats to clipboard.", 0)
-	NewTextBasic(05, "Press DELETE to display item ilvl.", 0)
-	NewTextBasic(06, "Press HOME to switch Show Items between hold and toggle mode.", 0)
+	NewTextBasic(04, "If you're unsure what any of the abbreviations mean, all of", False)
+	NewTextBasic(05, " them should have a tooltip when hovered over.", False)
 	
-	NewTextBasic(08, "Known bugs:", 0)
-	NewTextBasic(09, "In rare cases weapon speed modifier counts towards skill IAS;", 0)
-	NewTextBasic(10, " swapping weapons (default: W key) should fix it.", 0)
-	NewTextBasic(11, "Dual wielding in general can mess with the stats. Swap to fix.", 0)
+	NewTextBasic(07, "Press INSERT to copy item stats to clipboard.", False)
+	NewTextBasic(08, "Press DELETE to display item ilvl.", False)
+	NewTextBasic(09, "Press HOME to switch Show Items between hold and toggle mode.", False)
 	
 	GUICtrlCreateTabItem("")
+	
+	local $ini = IniReadSection(@AutoItExe & ".ini", "General")
+	if (not @error) then
+		for $i = 1 to $ini[0][0]
+			$options[$ini[$i][0]] = $ini[$i][1]
+		next
+	endif
+	for $i = 1 to $gui_opt[0][0]
+		GUICtrlSetState($gui_opt[$i][1], $options[$gui_opt[$i][0]] == 1 ? 1 : 4)
+	next
+	
 	UpdateGUI()
 	GUISetState(@SW_SHOW)
 endfunc
@@ -558,14 +628,14 @@ func PrintString($string, $color = 0)
 endfunc
 	
 func WriteWString($string)
-	if (not UpdateHandle()) then return False
+	if (not IsIngame()) then return False
 	_MemoryWrite($d2inject + 0x10, $d2handle, $string, StringFormat("wchar[%s]", StringLen($string)+1))
 	return True
 endfunc
 
 func UpdateDllHandles()
-	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
-	if (not $gethandle) then return _Debug("Couldn't get GetModuleHandleA address")
+	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
+	if (not $gethandle) then return _Debug("Couldn't get LoadLibraryA address")
 	
 	local $addr = _MemVirtualAllocEx($d2handle[1], 0, 0x100, 0x3000, 0x40)
 	if (@error) then return _Debug("Failed to allocate memory")
@@ -584,12 +654,15 @@ func UpdateDllHandles()
 	$d2client = $handles[0]
 	$d2common = $handles[1]
 	$d2win = $handles[2]
+	
 	$d2inject = $d2client + 0xCDE00
+	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 
 	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
 	if (@error) then return _Debug("Failed to free memory")
+	if (not $ret) then return _Debug("Couldn't retrieve dll addresses")
 	
-	return $ret
+	return True
 endfunc
 
 #cs
