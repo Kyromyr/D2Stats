@@ -197,8 +197,8 @@ func IsShowItemsToggle()
 	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
 endfunc
 
-func HotKey_ToggleShowItems()
-	if (not HotKeyCheck()) then return False
+func HotKey_ToggleShowItems($skipcheck = False)
+	if (not IsDeclared("skipcheck") and not HotKeyCheck()) then return False
 	
 	local $write1 = "0x9090909090"
 	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
@@ -215,7 +215,7 @@ func HotKey_ToggleShowItems()
 	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
 	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
 	
-	PrintString($restore ? "Hold to show items" : "Toggle to show items", 3)
+	if (IsIngame()) then PrintString($restore ? "Hold to show items" : "Toggle to show items", 3)
 endfunc
 #EndRegion
 
@@ -362,10 +362,13 @@ func Main()
 			
 			UpdateHandle()
 			HotKeyEnable(WinActive($d2window))
-			if ($options[3] and IsIngame() and IsShowItemsToggle()) then
-				$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
-				if ($lastshowitems and not $showitems) then PrintString("Not showing items", 3)
-				$lastshowitems = $showitems
+			if (IsIngame() and IsShowItemsToggle()) then
+				if ($options[3]) then
+					$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
+					if ($lastshowitems and not $showitems) then PrintString("Not showing items", 3)
+					$lastshowitems = $showitems
+				endif
+				if (not $options[2]) then HotKey_ToggleShowItems(True)
 			else
 				$lastshowitems = False
 			endif
@@ -608,7 +611,7 @@ func CreateGUI()
 	local $ini = IniReadSection(@AutoItExe & ".ini", "General")
 	if (not @error) then
 		for $i = 1 to $ini[0][0]
-			$options[$ini[$i][0]] = $ini[$i][1]
+			$options[$ini[$i][0]] = Int($ini[$i][1])
 		next
 	endif
 	for $i = 1 to $gui_opt[0][0]
