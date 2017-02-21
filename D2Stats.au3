@@ -48,6 +48,8 @@ func _CloseHandle()
 	if ($d2handle) then
 		_MemoryClose($d2handle)
 		$d2handle = 0
+		$d2pid = 0
+		$d2window = 0
 	endif
 endfunc
 
@@ -59,23 +61,15 @@ endfunc
 func UpdateHandle()
 	local $hwnd = WinGetHandle("[CLASS:Diablo II]")
 	local $pid = WinGetProcess($hwnd)
-	if ($pid == -1) then
-		_CloseHandle()
-		$d2pid = 0
-		return False
-	endif
-
-	if ($pid == $d2pid) then return True
-	$d2pid = 0
 	
+	if ($pid == -1) then return _CloseHandle()
+	if ($pid == $d2pid) then return
+
 	_CloseHandle()
 	$d2handle = _MemoryOpen($pid)
 	if (@error) then return _Debug("Couldn't open Diablo II memory handle")
 	
-	if (not UpdateDllHandles()) then
-		_CloseHandle()
-		return False
-	endif
+	if (not UpdateDllHandles()) then return _CloseHandle()
 	
 	if (not InjectPrintFunction()) then
 		_CloseHandle()
@@ -85,8 +79,6 @@ func UpdateHandle()
 	$d2window = $hwnd
 	$d2pid = $pid
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
-	
-	return True
 endfunc
 
 func IsIngame()
@@ -116,7 +108,7 @@ func HotKeyCheck()
 endfunc
 
 func HotKey_WriteStatsToDisk()
-	if (not HotKeyCheck()) then return False
+	if (not HotKeyCheck()) then return
 	
 	UpdateStatValues()
 	local $str = ""
@@ -131,7 +123,7 @@ func HotKey_WriteStatsToDisk()
 endfunc
 
 func HotKey_CopyItem()
-	if (not HotKeyCheck() or GetIlvl() == 0) then return False
+	if (not HotKeyCheck() or GetIlvl() == 0) then return
 
 	local $timer = TimerInit()
 	local $text = ""
@@ -149,15 +141,13 @@ func HotKey_CopyItem()
 	next
 
 	ClipPut($text)
-	return True
 endfunc
 
 func HotKey_ShowIlvl()
-	if (not HotKeyCheck()) then return False
+	if (not HotKeyCheck()) then return
 
 	local $ilvl = GetIlvl()
-	if ($ilvl) then return PrintString(StringFormat("ilvl: %02s", $ilvl))
-	return False
+	if ($ilvl) then PrintString(StringFormat("ilvl: %02s", $ilvl))
 endfunc
 
 #cs
@@ -197,9 +187,7 @@ func IsShowItemsToggle()
 	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
 endfunc
 
-func HotKey_ToggleShowItems($skipcheck = False)
-	if (not IsDeclared("skipcheck") and not HotKeyCheck()) then return False
-	
+func ToggleShowItems()
 	local $write1 = "0x9090909090"
 	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
 	local $write3 = "0xE93EFFFFFF90"
@@ -216,6 +204,11 @@ func HotKey_ToggleShowItems($skipcheck = False)
 	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
 	
 	if (IsIngame()) then PrintString($restore ? "Hold to show items" : "Toggle to show items", 3)
+endfunc
+
+func HotKey_ToggleShowItems()
+	if (not HotKeyCheck()) then return
+	ToggleShowItems()
 endfunc
 #EndRegion
 
@@ -368,7 +361,7 @@ func Main()
 					if ($lastshowitems and not $showitems) then PrintString("Not showing items", 3)
 					$lastshowitems = $showitems
 				endif
-				if (not $options[2]) then HotKey_ToggleShowItems(True)
+				if (not $options[2]) then ToggleShowItems()
 			else
 				$lastshowitems = False
 			endif
@@ -646,12 +639,12 @@ func UpdateDllHandles()
 	local $nDlls = 3
 	local $dlls[$nDlls] = ["D2Client.dll", "D2Common.dll", "D2Win.dll"]
 	local $handles[$nDlls]
-	local $ret = True
+	local $failed = False
 	
 	for $i = 0 to $nDlls-1
 		_MemoryWrite($addr, $d2handle, $dlls[$i], StringFormat("char[%s]", StringLen($dlls[$i])+1))
 		$handles[$i] = _CreateRemoteThread($gethandle, $addr)
-		if ($handles[$i] == 0) then $ret = False
+		if ($handles[$i] == 0) then $failed = True
 	next
 	
 	$d2client = $handles[0]
@@ -663,7 +656,6 @@ func UpdateDllHandles()
 
 	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
 	if (@error) then return _Debug("Failed to free memory")
-	if (not $ret) then return _Debug("Couldn't retrieve dll addresses")
 	
 	return True
 endfunc
