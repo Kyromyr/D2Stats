@@ -656,6 +656,7 @@ func UpdateDllHandles()
 
 	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
 	if (@error) then return _Debug("Failed to free memory")
+	if ($failed) then return _Debug("Couldn't retrieve dll addresses")
 	
 	return True
 endfunc
