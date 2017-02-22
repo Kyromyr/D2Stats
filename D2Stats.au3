@@ -1,6 +1,7 @@
 #RequireAdmin
 #include <WinAPI.au3>
 #include <NomadMemory.au3>
+#include <Misc.au3>
 
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
@@ -16,6 +17,10 @@
 ;#pragma compile(LegalCopyright, Legal stuff here)
 ;#pragma compile(LegalTrademarks, '"Trademark something, and some text in "quotes" and stuff')
 
+if (not _Singleton("D2Stats-Singleton")) then
+	exit
+endif
+
 if (not IsAdmin()) then
 	MsgBox(4096, "Error", "Admin rights needed!")
 	exit
@@ -30,11 +35,13 @@ local $gui_opt[16][2] = [[0]]
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
 
-local $d2client, $d2common, $d2win, $d2inject, $d2sgpt
+local $d2client, $d2common, $d2win, $d2sgpt
 local $d2window, $d2pid, $d2handle
 
+local $d2inject_print, $d2inject_string
+
 local $hotkey_enabled = False
-local $options[4] = [1, 1, 1, 1]
+local $options[5] = [1, 1, 1, 1, 1]
 
 CreateGUI()
 Main()
@@ -75,7 +82,7 @@ func UpdateHandle()
 		_CloseHandle()
 		return _Debug("Couldn't inject print function")
 	endif
-	
+
 	$d2window = $hwnd
 	$d2pid = $pid
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
@@ -98,6 +105,7 @@ func HotKeyEnable($enable)
 		HotKeySet("{INS}", ($enable and $options[0]) ? "HotKey_CopyItem" : null)
 		HotKeySet("{DEL}", ($enable and $options[1]) ? "HotKey_ShowIlvl" : null)
 		HotKeySet("{HOME}", ($enable and $options[2]) ? "HotKey_ToggleShowItems" : null)
+		HotKeySet("+{HOME}", ($enable and $options[4]) ? "HotKey_DropFilter" : null)
 		$hotkey_enabled = $enable
 	endif
 endfunc
@@ -150,65 +158,30 @@ func HotKey_ShowIlvl()
 	if ($ilvl) then PrintString(StringFormat("ilvl: %02s", $ilvl))
 endfunc
 
-#cs
-D2Client.dll+3AECF - A3 *                  - mov [D2Client.dll+FADB4],eax { [00000000] }
--->
-D2Client.dll+3AECF - 90                    - nop 
-D2Client.dll+3AED0 - 90                    - nop 
-D2Client.dll+3AED1 - 90                    - nop 
-D2Client.dll+3AED2 - 90                    - nop 
-D2Client.dll+3AED3 - 90                    - nop 
-
-
-D2Client.dll+3B224 - CC                    - int 3 
-D2Client.dll+3B225 - CC                    - int 3 
-D2Client.dll+3B226 - CC                    - int 3 
-D2Client.dll+3B227 - CC                    - int 3 
-D2Client.dll+3B228 - CC                    - int 3 
-D2Client.dll+3B229 - CC                    - int 3 
-D2Client.dll+3B22A - CC                    - int 3 
-D2Client.dll+3B22B - CC                    - int 3 
-D2Client.dll+3B22C - CC                    - int 3 
-D2Client.dll+3B22D - CC                    - int 3 
-D2Client.dll+3B22E - CC                    - int 3 
-D2Client.dll+3B22F - CC                    - int 3 
--->
-D2Client.dll+3B224 - 83 35 * 01            - xor dword ptr [D2Client.dll+FADB4],01 { [00000000] }
-D2Client.dll+3B22B - E9 B6000000           - jmp D2Client.dll+3B2E6
-
-
-D2Client.dll+3B2E1 - 89 1D *               - mov [D2Client.dll+FADB4],ebx { [00000000] }
--->
-D2Client.dll+3B2E1 - E9 3EFFFFFF           - jmp D2Client.dll+3B224
-D2Client.dll+3B2E6 - 90                    - nop 
-#ce
-
-func IsShowItemsToggle()
-	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
-endfunc
-
-func ToggleShowItems()
-	local $write1 = "0x9090909090"
-	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
-	local $write3 = "0xE93EFFFFFF90"
-	
-	local $restore = IsShowItemsToggle()
-	if ($restore) then
-		$write1 = "0xA3" & GetOffsetAddress($d2client + 0xFADB4)
-		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
-		$write3 = "0x891D" & GetOffsetAddress($d2client + 0xFADB4)
-	endif
-	
-	_MemoryWrite($d2client + 0x3AECF, $d2handle, $write1, "byte[5]")
-	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
-	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
-	
-	if (IsIngame()) then PrintString($restore ? "Hold to show items" : "Toggle to show items", 3)
-endfunc
-
 func HotKey_ToggleShowItems()
 	if (not HotKeyCheck()) then return
 	ToggleShowItems()
+endfunc
+
+func HotKey_DropFilter()
+	if (not FileExists("DropFilter.dll")) then return PrintString("Couldn't find DropFilter.dll", 1)
+	if (not HotKeyCheck()) then return
+
+	local $handle = GetDropFilterHandle()
+
+	if ($handle) then
+		if (EjectDropFilter($handle)) then
+			PrintString("Ejected DropFilter", 10)
+		else
+			PrintString("Failed to eject DropFilter???", 1)
+		endif
+	else
+		if (InjectDropFilter()) then
+			PrintString("Injected DropFilter", 10)
+		else
+			PrintString("Failed to inject DropFilter", 1)
+		endif
+	endif
 endfunc
 #EndRegion
 
@@ -584,6 +557,7 @@ func CreateGUI()
 	NewOption(01, "Enable display ilvl (DELETE)")
 	NewOption(02, "Enable Show Items mode (HOME)")
 	NewOption(03, "Message when Show Items is disabled in toggle mode")
+	NewOption(04, "Enable DropFilter injector (Shift + HOME)")
 	
 
 	GUICtrlCreateTabItem("About")
@@ -598,6 +572,7 @@ func CreateGUI()
 	NewTextBasic(07, "Press INSERT to copy item stats to clipboard.", False)
 	NewTextBasic(08, "Press DELETE to display item ilvl.", False)
 	NewTextBasic(09, "Press HOME to switch Show Items between hold and toggle mode.", False)
+	NewTextBasic(10, "Press Shift + HOME to inject DropFilter.dll, if present", False)
 	
 	GUICtrlCreateTabItem("")
 	
@@ -619,19 +594,148 @@ endfunc
 #Region Injection
 func PrintString($string, $color = 0)
 	if (not WriteWString($string)) then return False
-	_CreateRemoteThread($d2inject, $color)
+	_CreateRemoteThread($d2inject_print, $color)
+	return True
+endfunc
+
+func WriteString($string)
+	if (not IsIngame()) then return False
+	_MemoryWrite($d2inject_string, $d2handle, $string, StringFormat("char[%s]", StringLen($string)+1))
 	return True
 endfunc
 	
 func WriteWString($string)
 	if (not IsIngame()) then return False
-	_MemoryWrite($d2inject + 0x10, $d2handle, $string, StringFormat("wchar[%s]", StringLen($string)+1))
+	_MemoryWrite($d2inject_string, $d2handle, $string, StringFormat("wchar[%s]", StringLen($string)+1))
 	return True
 endfunc
 
+func GetDropFilterHandle()
+	if (not WriteString("DropFilter.dll")) then return False
+	
+	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
+	if (not $gethandle) then return _Debug("Couldn't get GetModuleHandleA address")
+	
+	return _CreateRemoteThread($gethandle, $d2inject_string)
+endfunc
+
+func InjectDropFilter()
+	if (not WriteString(FileGetLongName("DropFilter.dll", 1))) then return _Debug("Failed to write DropFilter.dll path")
+	
+	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
+	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address")
+
+	local $ret = _CreateRemoteThread($loadlib, $d2inject_string)
+	if ($ret) then
+		local $handle = _WinAPI_LoadLibrary("DropFilter.dll")
+		if ($handle) then
+			local $addr = _WinAPI_GetProcAddress($handle, "_PATCH_DropFilter@0")
+			if ($addr) then
+				local $jmp = $addr - 0x5 - ($d2client + 0x5907E)
+				_MemoryWrite($d2client + 0x5907E, $d2handle, "0xE9" & GetOffsetAddress($jmp), "byte[5]")
+			else
+				$ret = False
+			endif
+			_WinAPI_FreeLibrary($handle)
+		else
+			$ret = False
+		endif
+	endif
+	
+	return $ret
+endfunc
+
+func EjectDropFilter($handle)
+	local $freelib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "FreeLibrary")
+	if (not $freelib) then return _Debug("Couldn't get FreeLibrary address")
+
+	local $ret = _CreateRemoteThread($freelib, $handle)
+	if ($ret) then
+		_MemoryWrite($d2client + 0x5907E, $d2handle, "0x833E040F85", "byte[5]")
+	endif
+	
+	return $ret
+endfunc
+
+func GetOffsetAddress($addr)
+	return StringFormat("%08s", StringLeft(Hex(Binary($addr)), 8))
+endfunc
+
+#cs
+D2Client.dll+3AECF - A3 *                  - mov [D2Client.dll+FADB4],eax { [00000000] }
+-->
+D2Client.dll+3AECF - 90                    - nop 
+D2Client.dll+3AED0 - 90                    - nop 
+D2Client.dll+3AED1 - 90                    - nop 
+D2Client.dll+3AED2 - 90                    - nop 
+D2Client.dll+3AED3 - 90                    - nop 
+
+
+D2Client.dll+3B224 - CC                    - int 3 
+D2Client.dll+3B225 - CC                    - int 3 
+D2Client.dll+3B226 - CC                    - int 3 
+D2Client.dll+3B227 - CC                    - int 3 
+D2Client.dll+3B228 - CC                    - int 3 
+D2Client.dll+3B229 - CC                    - int 3 
+D2Client.dll+3B22A - CC                    - int 3 
+D2Client.dll+3B22B - CC                    - int 3 
+D2Client.dll+3B22C - CC                    - int 3 
+D2Client.dll+3B22D - CC                    - int 3 
+D2Client.dll+3B22E - CC                    - int 3 
+D2Client.dll+3B22F - CC                    - int 3 
+-->
+D2Client.dll+3B224 - 83 35 * 01            - xor dword ptr [D2Client.dll+FADB4],01 { [00000000] }
+D2Client.dll+3B22B - E9 B6000000           - jmp D2Client.dll+3B2E6
+
+
+D2Client.dll+3B2E1 - 89 1D *               - mov [D2Client.dll+FADB4],ebx { [00000000] }
+-->
+D2Client.dll+3B2E1 - E9 3EFFFFFF           - jmp D2Client.dll+3B224
+D2Client.dll+3B2E6 - 90                    - nop 
+#ce
+
+func IsShowItemsToggle()
+	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
+endfunc
+
+func ToggleShowItems()
+	local $write1 = "0x9090909090"
+	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
+	local $write3 = "0xE93EFFFFFF90"
+	
+	local $restore = IsShowItemsToggle()
+	if ($restore) then
+		$write1 = "0xA3" & GetOffsetAddress($d2client + 0xFADB4)
+		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
+		$write3 = "0x891D" & GetOffsetAddress($d2client + 0xFADB4)
+	endif
+	
+	_MemoryWrite($d2client + 0x3AECF, $d2handle, $write1, "byte[5]")
+	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
+	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
+	
+	if (IsIngame()) then PrintString($restore ? "Hold to show items" : "Toggle to show items", 3)
+endfunc
+
+#cs
+D2Client.dll+CDE00 - 53                    - push ebx
+D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE10
+D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
+D2Client.dll+CDE08 - E8 43FAFAFF           - call D2Client.dll+7D850
+D2Client.dll+CDE0D - C3                    - ret 
+#ce
+
+func InjectPrintFunction()
+	local $sCode = "0x5368" & GetOffsetAddress($d2inject_string) & "31C0E843FAFAFFC3"
+	local $ret = _MemoryWrite($d2inject_print, $d2handle, $sCode, "byte[14]")
+	
+	local $injected = _MemoryRead($d2inject_print, $d2handle)
+	return Hex($injected, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
+endfunc
+
 func UpdateDllHandles()
-	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
-	if (not $gethandle) then return _Debug("Couldn't get LoadLibraryA address")
+	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
+	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address")
 	
 	local $addr = _MemVirtualAllocEx($d2handle[1], 0, 0x100, 0x3000, 0x40)
 	if (@error) then return _Debug("Failed to allocate memory")
@@ -643,7 +747,7 @@ func UpdateDllHandles()
 	
 	for $i = 0 to $nDlls-1
 		_MemoryWrite($addr, $d2handle, $dlls[$i], StringFormat("char[%s]", StringLen($dlls[$i])+1))
-		$handles[$i] = _CreateRemoteThread($gethandle, $addr)
+		$handles[$i] = _CreateRemoteThread($loadlib, $addr)
 		if ($handles[$i] == 0) then $failed = True
 	next
 	
@@ -651,7 +755,10 @@ func UpdateDllHandles()
 	$d2common = $handles[1]
 	$d2win = $handles[2]
 	
-	$d2inject = $d2client + 0xCDE00
+	local $d2inject = $d2client + 0xCDE00
+	$d2inject_print = $d2inject + 0x0
+	$d2inject_string = $d2inject + 0x10
+	
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 
 	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
@@ -659,26 +766,6 @@ func UpdateDllHandles()
 	if ($failed) then return _Debug("Couldn't retrieve dll addresses")
 	
 	return True
-endfunc
-
-#cs
-D2Client.dll+CDE00 - 53                    - push ebx
-D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE10
-D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
-D2Client.dll+CDE08 - E8 43FAFAFF           - call D2Client.dll+7D850
-D2Client.dll+CDE0D - C3                    - ret 
-#ce
-
-func GetOffsetAddress($addr)
-	return StringFormat("%08s", StringLeft(Hex(Binary($addr)), 8))
-endfunc
-
-func InjectPrintFunction()
-	local $sCode = "0x5368" & GetOffsetAddress($d2inject + 0x10) & "31C0E843FAFAFFC3"
-	local $ret = _MemoryWrite($d2inject, $d2handle, $sCode, "byte[14]")
-	
-	local $injected = _MemoryRead($d2inject, $d2handle)
-	return Hex($injected, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
 endfunc
 
 func _CreateRemoteThread($func, $var = 0) ; $var is in EBX register
