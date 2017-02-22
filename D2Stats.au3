@@ -572,7 +572,7 @@ func CreateGUI()
 	NewTextBasic(07, "Press INSERT to copy item stats to clipboard.", False)
 	NewTextBasic(08, "Press DELETE to display item ilvl.", False)
 	NewTextBasic(09, "Press HOME to switch Show Items between hold and toggle mode.", False)
-	NewTextBasic(10, "Press Shift + HOME to inject DropFilter.dll, if present", False)
+	NewTextBasic(10, "Press Shift + HOME to inject DropFilter.dll, if present.", False)
 	
 	GUICtrlCreateTabItem("")
 	
