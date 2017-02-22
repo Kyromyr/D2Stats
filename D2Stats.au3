@@ -96,7 +96,9 @@ endfunc
 #Region Hotkeys
 func GetIlvl()
 	local $ilvl_offsets[3] = [0, 0x14, 0x2C]
-	return _MemoryPointerRead($d2client + 0x11BC38, $d2handle, $ilvl_offsets)
+	local $ret = _MemoryPointerRead($d2client + 0x11BC38, $d2handle, $ilvl_offsets)
+	if (not $ret) then PrintString("Hover the cursor over an item first.", 1)
+	return $ret
 endfunc
 
 func HotKeyEnable($enable)
@@ -128,6 +130,7 @@ func HotKey_WriteStatsToDisk()
 	next
 	FileDelete(@ScriptName & ".txt")
 	FileWrite(@ScriptName & ".txt", $str)
+	PrintString("Stats written to disk")
 endfunc
 
 func HotKey_CopyItem()
@@ -149,6 +152,7 @@ func HotKey_CopyItem()
 	next
 
 	ClipPut($text)
+	PrintString("Item text copied")
 endfunc
 
 func HotKey_ShowIlvl()
@@ -173,7 +177,7 @@ func HotKey_DropFilter()
 		if (EjectDropFilter($handle)) then
 			PrintString("Ejected DropFilter", 10)
 		else
-			PrintString("Failed to eject DropFilter???", 1)
+			PrintString("Failed to eject DropFilter", 1)
 		endif
 	else
 		if (InjectDropFilter()) then
@@ -553,7 +557,7 @@ func CreateGUI()
 	
 	
 	GUICtrlCreateTabItem("Options")
-	NewOption(00, "Enable copy item stats (INSERT)")
+	NewOption(00, "Enable copy item text (INSERT)")
 	NewOption(01, "Enable display ilvl (DELETE)")
 	NewOption(02, "Enable Show Items mode (HOME)")
 	NewOption(03, "Message when Show Items is disabled in toggle mode")
@@ -569,7 +573,7 @@ func CreateGUI()
 	NewTextBasic(04, "If you're unsure what any of the abbreviations mean, all of", False)
 	NewTextBasic(05, " them should have a tooltip when hovered over.", False)
 	
-	NewTextBasic(07, "Press INSERT to copy item stats to clipboard.", False)
+	NewTextBasic(07, "Press INSERT to copy item text to clipboard.", False)
 	NewTextBasic(08, "Press DELETE to display item ilvl.", False)
 	NewTextBasic(09, "Press HOME to switch Show Items between hold and toggle mode.", False)
 	NewTextBasic(10, "Press Shift + HOME to inject DropFilter.dll, if present.", False)
@@ -618,6 +622,13 @@ func GetDropFilterHandle()
 	
 	return _CreateRemoteThread($gethandle, $d2inject_string)
 endfunc
+
+#cs
+D2Client.dll+5907E - 83 3E 04              - cmp dword ptr [esi],04 { 4 }
+D2Client.dll+59081 - 0F85
+-->
+D2Client.dll+5907E - E9 *           - jmp DropFilter.dll+15D0 { PATCH_DropFilter }
+#ce
 
 func InjectDropFilter()
 	if (not WriteString(FileGetLongName("DropFilter.dll", 1))) then return _Debug("Failed to write DropFilter.dll path")
@@ -701,7 +712,7 @@ endfunc
 func ToggleShowItems()
 	local $write1 = "0x9090909090"
 	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
-	local $write3 = "0xE93EFFFFFF90"
+	local $write3 = "0xE93EFFFFFF90" ; Jump within same DLL shouldn't require offset fixing
 	
 	local $restore = IsShowItemsToggle()
 	if ($restore) then
