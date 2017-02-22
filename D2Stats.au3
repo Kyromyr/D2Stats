@@ -74,13 +74,13 @@ func UpdateHandle()
 
 	_CloseHandle()
 	$d2handle = _MemoryOpen($pid)
-	if (@error) then return _Debug("Couldn't open Diablo II memory handle")
+	if (@error) then return _Debug("Couldn't open Diablo II memory handle.")
 	
 	if (not UpdateDllHandles()) then return _CloseHandle()
 	
 	if (not InjectPrintFunction()) then
 		_CloseHandle()
-		return _Debug("Couldn't inject print function")
+		return _Debug("Couldn't inject print function.")
 	endif
 
 	$d2window = $hwnd
@@ -113,7 +113,7 @@ func HotKeyEnable($enable)
 endfunc
 
 func HotKeyCheck()
-	if (not IsIngame()) then return _Debug("Enter a game first")
+	if (not IsIngame()) then return _Debug("Enter a game first.")
 	return True
 endfunc
 
@@ -130,7 +130,7 @@ func HotKey_WriteStatsToDisk()
 	next
 	FileDelete(@ScriptName & ".txt")
 	FileWrite(@ScriptName & ".txt", $str)
-	PrintString("Stats written to disk")
+	PrintString("Stats written to disk.")
 endfunc
 
 func HotKey_CopyItem()
@@ -152,7 +152,7 @@ func HotKey_CopyItem()
 	next
 
 	ClipPut($text)
-	PrintString("Item text copied")
+	PrintString("Item text copied.")
 endfunc
 
 func HotKey_ShowIlvl()
@@ -168,22 +168,22 @@ func HotKey_ToggleShowItems()
 endfunc
 
 func HotKey_DropFilter()
-	if (not FileExists("DropFilter.dll")) then return PrintString("Couldn't find DropFilter.dll", 1)
+	if (not FileExists("DropFilter.dll")) then return PrintString("Couldn't find DropFilter.dll.", 1)
 	if (not HotKeyCheck()) then return
 
 	local $handle = GetDropFilterHandle()
 
 	if ($handle) then
 		if (EjectDropFilter($handle)) then
-			PrintString("Ejected DropFilter", 10)
+			PrintString("Ejected DropFilter.", 10)
 		else
-			PrintString("Failed to eject DropFilter", 1)
+			PrintString("Failed to eject DropFilter.", 1)
 		endif
 	else
 		if (InjectDropFilter()) then
-			PrintString("Injected DropFilter", 10)
+			PrintString("Injected DropFilter.", 10)
 		else
-			PrintString("Failed to inject DropFilter", 1)
+			PrintString("Failed to inject DropFilter.", 1)
 		endif
 	endif
 endfunc
@@ -191,7 +191,7 @@ endfunc
 
 #Region Stat reading
 func UpdateStatValueMem($ivector)
-	if ($ivector <> 0 and $ivector <> 1) then _Debug("Invalid $ivector value")
+	if ($ivector <> 0 and $ivector <> 1) then _Debug("Invalid $ivector value.")
 	
 	local $ptr_offsets[3] = [0, 0x5C, ($ivector+1)*0x24]
 	local $ptr = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
@@ -335,7 +335,7 @@ func Main()
 			if (IsIngame() and IsShowItemsToggle()) then
 				if ($options[3]) then
 					$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
-					if ($lastshowitems and not $showitems) then PrintString("Not showing items", 3)
+					if ($lastshowitems and not $showitems) then PrintString("Not showing items.", 3)
 					$lastshowitems = $showitems
 				endif
 				if (not $options[2]) then ToggleShowItems()
@@ -618,7 +618,7 @@ func GetDropFilterHandle()
 	if (not WriteString("DropFilter.dll")) then return False
 	
 	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
-	if (not $gethandle) then return _Debug("Couldn't get GetModuleHandleA address")
+	if (not $gethandle) then return _Debug("Couldn't get GetModuleHandleA address.")
 	
 	return _CreateRemoteThread($gethandle, $d2inject_string)
 endfunc
@@ -631,10 +631,10 @@ D2Client.dll+5907E - E9 *           - jmp DropFilter.dll+15D0 { PATCH_DropFilter
 #ce
 
 func InjectDropFilter()
-	if (not WriteString(FileGetLongName("DropFilter.dll", 1))) then return _Debug("Failed to write DropFilter.dll path")
+	if (not WriteString(FileGetLongName("DropFilter.dll", 1))) then return _Debug("Failed to write DropFilter.dll path.")
 	
 	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
-	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address")
+	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address.")
 
 	local $ret = _CreateRemoteThread($loadlib, $d2inject_string)
 	if ($ret) then
@@ -658,7 +658,7 @@ endfunc
 
 func EjectDropFilter($handle)
 	local $freelib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "FreeLibrary")
-	if (not $freelib) then return _Debug("Couldn't get FreeLibrary address")
+	if (not $freelib) then return _Debug("Couldn't get FreeLibrary address.")
 
 	local $ret = _CreateRemoteThread($freelib, $handle)
 	if ($ret) then
@@ -725,7 +725,7 @@ func ToggleShowItems()
 	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
 	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
 	
-	if (IsIngame()) then PrintString($restore ? "Hold to show items" : "Toggle to show items", 3)
+	if (IsIngame()) then PrintString($restore ? "Hold to show items." : "Toggle to show items.", 3)
 endfunc
 
 #cs
@@ -746,10 +746,10 @@ endfunc
 
 func UpdateDllHandles()
 	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
-	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address")
+	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address.")
 	
 	local $addr = _MemVirtualAllocEx($d2handle[1], 0, 0x100, 0x3000, 0x40)
-	if (@error) then return _Debug("Failed to allocate memory")
+	if (@error) then return _Debug("Failed to allocate memory.")
 
 	local $nDlls = 3
 	local $dlls[$nDlls] = ["D2Client.dll", "D2Common.dll", "D2Win.dll"]
@@ -773,15 +773,15 @@ func UpdateDllHandles()
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 
 	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
-	if (@error) then return _Debug("Failed to free memory")
-	if ($failed) then return _Debug("Couldn't retrieve dll addresses")
+	if (@error) then return _Debug("Failed to free memory.")
+	if ($failed) then return _Debug("Couldn't retrieve dll addresses.")
 	
 	return True
 endfunc
 
 func _CreateRemoteThread($func, $var = 0) ; $var is in EBX register
 	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $func, "ptr", $var, "dword", 0, "ptr", 0)
-	if ($call[0] == 0) then return _Debug("Couldn't create remote thread")
+	if ($call[0] == 0) then return _Debug("Couldn't create remote thread.")
 	
 	_WinAPI_WaitForSingleObject($call[0])
 	local $ret = _GetExitCodeThread($call[0])
