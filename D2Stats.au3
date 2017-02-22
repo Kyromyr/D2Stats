@@ -168,7 +168,7 @@ func HotKey_ToggleShowItems()
 endfunc
 
 func HotKey_DropFilter()
-	if (not FileExists("DropFilter.dll")) then return PrintString("Couldn't find DropFilter.dll.", 1)
+	if (not FileExists("DropFilter.dll")) then return PrintString("Couldn't find DropFilter.dll. Make sure it's in the same folder as " & @ScriptName & ".", 1)
 	if (not HotKeyCheck()) then return
 
 	local $handle = GetDropFilterHandle()
@@ -637,7 +637,10 @@ func InjectDropFilter()
 	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address.")
 
 	local $ret = _CreateRemoteThread($loadlib, $d2inject_string)
-	if ($ret) then
+	local $injected = _MemoryRead($d2client + 0x5907E, $d2handle, "byte")
+	
+	; If the jmp is already there it means my DropFilter isn't used, and it'll will probably close D2Stats if we load it from here
+	if ($ret and $injected <> 233) then
 		local $handle = _WinAPI_LoadLibrary("DropFilter.dll")
 		if ($handle) then
 			local $addr = _WinAPI_GetProcAddress($handle, "_PATCH_DropFilter@0")
