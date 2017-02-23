@@ -2,12 +2,14 @@
 #include <WinAPI.au3>
 #include <NomadMemory.au3>
 #include <Misc.au3>
+#include <HotKey.au3>
+#include <HotKeyInput.au3>
 
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.5.1)
-#pragma compile(FileVersion, 0.3.5.1)
+#pragma compile(ProductVersion, 0.3.5.2)
+#pragma compile(FileVersion, 0.3.5.2)
 #pragma compile(Comments, 23.02.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -27,26 +29,30 @@ if (not IsAdmin()) then
 endif
 
 OnAutoItExitRegister("_Exit")
+if (not @Compiled) then HotKeySet("+{INS}", "HotKey_CopyStatsToClipboard")
+
+global const $HK_FLAG_D2STATS = BitOR($HK_FLAG_DEFAULT, $HK_FLAG_NOUNHOOK)
 
 local $gui_event_close = -3
 local $gui[128][3] = [[0]]
-local $gui_opt[16][2] = [[0]]
+local $gui_opt[16][3] = [[0]]
 
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
 
 local $d2client, $d2common, $d2win, $d2sgpt
-local $d2window, $d2pid, $d2handle
+local $d2pid, $d2handle
 
 local $d2inject_print, $d2inject_string
 
 local $hotkey_enabled = False
-local $options[5] = [1, 1, 1, 1, 1]
+local $options[5][3] = [["copy", 0x002D, "hk"], ["ilvl", 0x002E, "hk"], ["toggle", 0x0024, "hk"], ["toggleMsg", 1, "cb"], ["filter", 0x0124, "hk"]]
 
 CreateGUI()
 Main()
 
 func _Exit()
+	_GUICtrlHKI_Release()
 	GUIDelete()
 	_CloseHandle()
 endfunc
@@ -56,7 +62,6 @@ func _CloseHandle()
 		_MemoryClose($d2handle)
 		$d2handle = 0
 		$d2pid = 0
-		$d2window = 0
 	endif
 endfunc
 
@@ -83,7 +88,6 @@ func UpdateHandle()
 		return _Debug("Couldn't inject print function.")
 	endif
 
-	$d2window = $hwnd
 	$d2pid = $pid
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 endfunc
@@ -101,40 +105,50 @@ func GetIlvl()
 	return $ret
 endfunc
 
-func HotKeyEnable($enable)
+func UpdateHotkeys()
+	local $opt, $value, $old
+	for $i = 1 to $gui_opt[0][0]
+		$opt = $gui_opt[$i][0]
+
+		if (GetGUIOptionType($opt) == "hk") then
+			$old = GetGUIOption($opt)
+			$value = _GUICtrlHKI_GetHotKey($gui_opt[$i][1])
+			
+			if ($old <> $value) then
+				if ($old) then _HotKey_Assign($old, 0, $HK_FLAG_D2STATS)
+				if ($value) then _HotKey_Assign($value, $gui_opt[$i][2], $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
+			endif
+		endif
+	next
+	
+	local $enable = IsIngame()
 	if ($enable <> $hotkey_enabled) then
-		HotKeySet("+{INS}", ($enable and not @Compiled) ? "HotKey_WriteStatsToDisk" : null)
-		HotKeySet("{INS}", ($enable and $options[0]) ? "HotKey_CopyItem" : null)
-		HotKeySet("{DEL}", ($enable and $options[1]) ? "HotKey_ShowIlvl" : null)
-		HotKeySet("{HOME}", ($enable and $options[2]) ? "HotKey_ToggleShowItems" : null)
-		HotKeySet("+{HOME}", ($enable and $options[4]) ? "HotKey_DropFilter" : null)
+		if ($enable) then
+			_HotKey_Enable()
+		else
+			_HotKey_Disable($HK_FLAG_D2STATS)
+		endif
 		$hotkey_enabled = $enable
 	endif
 endfunc
 
-func HotKeyCheck()
-	if (not IsIngame()) then return False ; In case the player manages to exit the game and press a hotkey before HotKeyEnable is called
-	return True
-endfunc
-
-func HotKey_WriteStatsToDisk()
-	if (not HotKeyCheck()) then return
+func HotKey_CopyStatsToClipboard()
+	if (not IsIngame()) then return
 	
 	UpdateStatValues()
-	local $str = ""
+	local $ret = ""
 	for $i = 0 to $numStats-1
 		local $val = GetStatValue($i)
 		if ($val) then
-			$str &= StringFormat("%s = %s%s", $i, $val, @CRLF)
+			$ret &= StringFormat("%s = %s%s", $i, $val, @CRLF)
 		endif
 	next
-	FileDelete(@ScriptName & ".txt")
-	FileWrite(@ScriptName & ".txt", $str)
-	PrintString("Stats written to disk.")
+	ClipPut($ret)
+	PrintString("Stats copied to clipboard.")
 endfunc
 
 func HotKey_CopyItem()
-	if (not HotKeyCheck() or GetIlvl() == 0) then return
+	if (not IsIngame() or GetIlvl() == 0) then return
 
 	local $timer = TimerInit()
 	local $text = ""
@@ -156,20 +170,20 @@ func HotKey_CopyItem()
 endfunc
 
 func HotKey_ShowIlvl()
-	if (not HotKeyCheck()) then return
+	if (not IsIngame()) then return
 
 	local $ilvl = GetIlvl()
 	if ($ilvl) then PrintString(StringFormat("ilvl: %02s", $ilvl))
 endfunc
 
 func HotKey_ToggleShowItems()
-	if (not HotKeyCheck()) then return
+	if (not IsIngame()) then return
 	ToggleShowItems()
 endfunc
 
 func HotKey_DropFilter()
 	if (not FileExists("DropFilter.dll")) then return PrintString("Couldn't find DropFilter.dll. Make sure it's in the same folder as " & @ScriptName & ".", 1)
-	if (not HotKeyCheck()) then return
+	if (not IsIngame()) then return
 
 	local $handle = GetDropFilterHandle()
 
@@ -314,6 +328,8 @@ endfunc
 
 #Region GUI
 func Main()
+	_HotKey_Disable($HK_FLAG_D2STATS)
+
 	local $timer = TimerInit()
 	local $showitems, $lastshowitems
 	
@@ -323,22 +339,22 @@ func Main()
 				exit
 			case $btnRead
 				ReadCharacterData()
-			case $gui_opt[1][1] to $gui_opt[$gui_opt[0][0]][1]
-				UpdateGUIOptions()
 		endswitch
-
+		
 		if (TimerDiff($timer) > 250) then
 			$timer = TimerInit()
 			
 			UpdateHandle()
-			HotKeyEnable($d2window and WinActive($d2window) and IsIngame())
+			UpdateHotkeys()
+			UpdateGUIOptions() ; Must update options after hotkeys
+
 			if (IsIngame() and IsShowItemsToggle()) then
-				if ($options[3]) then
+				if (GetGUIOption("toggleMsg")) then
 					$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
 					if ($lastshowitems and not $showitems) then PrintString("Not showing items.", 3)
 					$lastshowitems = $showitems
 				endif
-				if (not $options[2]) then ToggleShowItems()
+				if (not GetGUIOption("toggle")) then ToggleShowItems()
 			else
 				$lastshowitems = False
 			endif
@@ -389,15 +405,42 @@ func NewItem($line, $text, $tip = "", $clr = -1)
 	$gui[0][0] = $arrPos
 endfunc
 
-func NewOption($line, $text)
+func NewOption($line, $opt, $text, $extra = 0)
 	local $arrPos = $gui_opt[0][0] + 1
-	local $ret = GUICtrlCreateCheckbox($text, 8, GetLineHeight($line)*2-GetLineHeight(0))
+	local $y = GetLineHeight($line)*2 - GetLineHeight(0)
 	
-	$gui_opt[$arrPos][0] = $line
-	$gui_opt[$arrPos][1] = $ret
+	local $control
+	local $type = GetGUIOptionType($opt)
+	if ($type == null) then
+		_Debug("Invalid option '" & $opt & "'")
+		exit
+	elseif ($type == "hk") then
+		if (not $extra) then
+			_Debug("No hotkey function for option '" & $opt & "'")
+			exit
+		endif
+		
+		local $key = GetGUIOption($opt)
+		if ($key) then
+			_KeyLock($key)
+			_HotKey_Assign($key, $extra, $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
+		endif
+		
+		$control = _GUICtrlHKI_Create($key, 8, $y, 120, 25)
+		GUICtrlCreateLabel($text, 120+12, $y+4)
+	elseif ($type == "cb") then
+		$control = GUICtrlCreateCheckbox($text, 8, $y)
+		GUICtrlSetState(-1, GetGUIOption($opt) ? 1 : 4)
+	else
+		_Debug("Invalid option type '" & $type & "'")
+		exit
+	endif
+	
+	$gui_opt[$arrPos][0] = $opt
+	$gui_opt[$arrPos][1] = $control
+	$gui_opt[$arrPos][2] = $extra
 	
 	$gui_opt[0][0] = $arrPos
-	return $ret
 endfunc
 
 func UpdateGUI()
@@ -416,17 +459,66 @@ func UpdateGUI()
 	next
 endfunc
 
+func SetGUIOption($name, $value)
+	for $i = 0 to UBound($options)-1
+		if ($options[$i][0] == $name) then
+			$options[$i][1] = $value
+			return
+		endif
+	next
+endfunc
+
+func GetGUIOption($name)
+	for $i = 0 to UBound($options)-1
+		if ($options[$i][0] == $name) then return $options[$i][1]
+	next
+	return null
+endfunc
+
+func GetGUIOptionType($name)
+	for $i = 0 to UBound($options)-1
+		if ($options[$i][0] == $name) then return $options[$i][2]
+	next
+	return null
+endfunc
+
 func UpdateGUIOptions()
-	local $write = ""
-	local $optid, $checked
+	local $save = False
+	local $opt, $type, $value
 	for $i = 1 to $gui_opt[0][0]
-		$optid = $gui_opt[$i][0]
-		$checked = GUICtrlRead($gui_opt[$i][1]) == 1 ? 1 : 0
-		$options[$optid] = $checked
-		$write &= StringFormat("%s=%s%s", $optid, $checked, @LF)
+		$opt = $gui_opt[$i][0]
+		$type = GetGUIOptionType($opt)
+		
+		if ($type == "hk") then
+			$value = _GUICtrlHKI_GetHotKey($gui_opt[$i][1])
+		elseif ($type == "cb") then
+			$value = (GUICtrlRead($gui_opt[$i][1]) == 1) ? 1 : 0
+		endif
+		
+		if (GetGUIOption($opt) <> $value) then
+			$save = True
+			SetGUIOption($opt, $value)
+		endif
 	next
 
+	if ($save) then SaveGUIOptions()
+endfunc
+
+func SaveGUIOptions()
+	local $write = ""
+	for $i = 0 to UBound($options)-1
+		$write &= StringFormat("%s=%s%s", $options[$i][0], $options[$i][1], @LF)
+	next
 	IniWriteSection(@AutoItExe & ".ini", "General", $write)
+endfunc
+
+func LoadGUIOptions()
+	local $ini = IniReadSection(@AutoItExe & ".ini", "General")
+	if (not @error) then
+		for $i = 1 to $ini[0][0]
+			SetGUIOption($ini[$i][0], Int($ini[$i][1]))
+		next
+	endif
 endfunc
 
 func CreateGUI()
@@ -556,12 +648,13 @@ func CreateGUI()
 	; NewText(00, "Mercenary")
 	
 	
+	LoadGUIOptions()
 	GUICtrlCreateTabItem("Options")
-	NewOption(00, "Enable copy item text (INSERT)")
-	NewOption(01, "Enable display ilvl (DELETE)")
-	NewOption(02, "Enable Show Items mode (HOME)")
-	NewOption(03, "Message when Show Items is disabled in toggle mode")
-	NewOption(04, "Enable DropFilter injector (Shift + HOME)")
+	NewOption(00, "copy", "Copy item text", "HotKey_CopyItem")
+	NewOption(01, "ilvl", "Display item ilvl", "HotKey_ShowIlvl")
+	NewOption(02, "toggle", "Show Items mode", "HotKey_ToggleShowItems")
+	NewOption(03, "toggleMsg", "Message when Show Items is disabled in toggle mode")
+	NewOption(04, "filter", "Inject/eject DropFilter", "HotKey_DropFilter")
 	
 
 	GUICtrlCreateTabItem("About")
@@ -573,23 +666,9 @@ func CreateGUI()
 	NewTextBasic(04, "If you're unsure what any of the abbreviations mean, all of", False)
 	NewTextBasic(05, " them should have a tooltip when hovered over.", False)
 	
-	NewTextBasic(07, "Press INSERT to copy item text to clipboard.", False)
-	NewTextBasic(08, "Press DELETE to display item ilvl.", False)
-	NewTextBasic(09, "Press HOME to switch Show Items between hold and toggle mode.", False)
-	NewTextBasic(10, "Press Shift + HOME to inject DropFilter.dll, if present.", False)
+	NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
 	
 	GUICtrlCreateTabItem("")
-	
-	local $ini = IniReadSection(@AutoItExe & ".ini", "General")
-	if (not @error) then
-		for $i = 1 to $ini[0][0]
-			$options[$ini[$i][0]] = Int($ini[$i][1])
-		next
-	endif
-	for $i = 1 to $gui_opt[0][0]
-		GUICtrlSetState($gui_opt[$i][1], $options[$gui_opt[$i][0]] == 1 ? 1 : 4)
-	next
-	
 	UpdateGUI()
 	GUISetState(@SW_SHOW)
 endfunc
@@ -728,7 +807,10 @@ func ToggleShowItems()
 	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
 	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
 	
-	if (IsIngame()) then PrintString($restore ? "Hold to show items." : "Toggle to show items.", 3)
+	if (IsIngame()) then
+		_MemoryWrite($d2client + 0xFADB4, $d2handle, 0)
+		PrintString($restore ? "Hold to show items." : "Toggle to show items.", 3)
+	endif
 endfunc
 
 #cs
