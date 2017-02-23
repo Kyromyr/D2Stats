@@ -6,9 +6,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.5.0)
-#pragma compile(FileVersion, 0.3.5.0)
-#pragma compile(Comments, 22.02.2017)
+#pragma compile(ProductVersion, 0.3.5.1)
+#pragma compile(FileVersion, 0.3.5.1)
+#pragma compile(Comments, 23.02.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -113,7 +113,7 @@ func HotKeyEnable($enable)
 endfunc
 
 func HotKeyCheck()
-	if (not IsIngame()) then return _Debug("Enter a game first.")
+	if (not IsIngame()) then return False ; In case the player manages to exit the game and press a hotkey before HotKeyEnable is called
 	return True
 endfunc
 
@@ -331,7 +331,7 @@ func Main()
 			$timer = TimerInit()
 			
 			UpdateHandle()
-			HotKeyEnable($d2window and WinActive($d2window))
+			HotKeyEnable($d2window and WinActive($d2window) and IsIngame())
 			if (IsIngame() and IsShowItemsToggle()) then
 				if ($options[3]) then
 					$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
