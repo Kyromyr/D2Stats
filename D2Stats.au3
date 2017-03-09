@@ -8,9 +8,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.5.2)
-#pragma compile(FileVersion, 0.3.5.2)
-#pragma compile(Comments, 23.02.2017)
+#pragma compile(ProductVersion, 0.3.5.3)
+#pragma compile(FileVersion, 0.3.5.3)
+#pragma compile(Comments, 09.03.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -580,13 +580,14 @@ func CreateGUI()
 	NewItem(03, "{171}% TCD", "Total Character Defense")
 	NewItem(04, "{119}% AR", "Attack Rating")
 	NewItem(05, "{035} MDR", "Magic Damage Reduction")
-	NewItem(06, "{339}% Avoid")
-	NewItem(07, "{338}% Dodge", "Avoid melee attack")	
+	NewItem(06, "{338}% Dodge", "Chance to avoid melee attacks while standing still")
+	NewItem(07, "{339}% Avoid", "Chance to avoid projectiles while standing still")
+	NewItem(08, "{340}% Evade", "Chance to avoid any attack while moving")
 
-	NewItem(09, "{136}% CB", "Crushing Blow")
-	NewItem(10, "{135}% OW", "Open Wounds")
-	NewItem(11, "{141}% DS", "Deadly Strike")
-	NewItem(12, "{164}% UA", "Uninterruptable Attack")
+	NewItem(10, "{136}% CB", "Crushing Blow")
+	NewItem(11, "{135}% OW", "Open Wounds")
+	NewItem(12, "{141}% DS", "Deadly Strike")
+	NewItem(13, "{164}% UA", "Uninterruptable Attack")
 	
 	
 	$gui[0][1] += $groupWidth
