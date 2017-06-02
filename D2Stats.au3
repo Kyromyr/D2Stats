@@ -8,9 +8,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.5.3)
-#pragma compile(FileVersion, 0.3.5.3)
-#pragma compile(Comments, 09.03.2017)
+#pragma compile(ProductVersion, 0.3.6.0)
+#pragma compile(FileVersion, 0.3.6.0)
+#pragma compile(Comments, 02.06.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -40,13 +40,13 @@ local $gui_opt[16][3] = [[0]]
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
 
-local $d2client, $d2common, $d2win, $d2sgpt
+local $d2client, $d2common, $d2win, $d2lang, $d2sgpt
 local $d2pid, $d2handle
 
 local $d2inject_print, $d2inject_string
 
 local $hotkey_enabled = False
-local $options[5][3] = [["copy", 0x002D, "hk"], ["ilvl", 0x002E, "hk"], ["toggle", 0x0024, "hk"], ["toggleMsg", 1, "cb"], ["filter", 0x0124, "hk"]]
+local $options[7][3] = [["copy", 0x002D, "hk"], ["ilvl", 0x002E, "hk"], ["toggle", 0x0024, "hk"], ["toggleMsg", 1, "cb"], ["filter", 0x0124, "hk"], ["nopickup", 0, "cb"], ["itemcolor", 0, "cb"]]
 
 CreateGUI()
 Main()
@@ -331,7 +331,7 @@ func Main()
 	_HotKey_Disable($HK_FLAG_D2STATS)
 
 	local $timer = TimerInit()
-	local $showitems, $lastshowitems
+	local $ingame, $showitems, $lastshowitems, $lastitemcolor
 	
 	while 1
 		switch GUIGetMsg()
@@ -339,6 +339,8 @@ func Main()
 				exit
 			case $btnRead
 				ReadCharacterData()
+			case $tab
+				GUICtrlSetState($btnRead, GUICtrlRead($tab) < 2 ? 16 : 32)
 		endswitch
 		
 		if (TimerDiff($timer) > 250) then
@@ -357,6 +359,20 @@ func Main()
 				if (not GetGUIOption("toggle")) then ToggleShowItems()
 			else
 				$lastshowitems = False
+			endif
+			
+			if (IsIngame()) then
+				if (not $ingame or $lastitemcolor <> GetGUIOption("itemcolor")) then
+					if (GetGUIOption("nopickup")) then
+						_MemoryWrite($d2client + 0x11C2F0, $d2handle, 1, "byte")
+					endif
+					
+					$lastitemcolor = GetGUIOption("itemcolor")
+					ChangeItemColors()
+				endif
+				$ingame = True
+			else
+				$ingame = False
 			endif
 		endif
 	wend
@@ -540,7 +556,7 @@ func CreateGUI()
 	
 	global $btnRead = GUICtrlCreateButton("Read", $groupXStart-35, $guiHeight-31, 70, 25)
 
-	GUICtrlCreateTab(0, 0, $guiWidth, 0, 0x8000)
+	global $tab = GUICtrlCreateTab(0, 0, $guiWidth, 0, 0x8000)
 	
 	GUICtrlCreateTabItem("Page 1")
 	$gui[0][1] = $groupXStart
@@ -553,9 +569,8 @@ func CreateGUI()
 	NewItem(06, "{080}% M.Find", "Magic Find")
 	NewItem(07, "{079}% Gold", "Extra Gold from Monsters")
 	NewItem(08, "{085}% Exp.Gain", "Experience gained")
-	NewItem(09, "{183} CP", "Crafting Points")
-	NewItem(10, "{185} Signets", "Signets of Learning")
-	NewItem(11, "{479} M.Skill", "Maximum Skill Level")
+	NewItem(09, "{185} Signets", "Signets of Learning")
+	NewItem(10, "{479} M.Skill", "Maximum Skill Level")
 	
 	
 	$gui[0][1] += $groupWidth
@@ -570,7 +585,7 @@ func CreateGUI()
 	NewItem(08, "{099}%/{069}% FHR", "Faster Hit Recovery")
 	NewItem(09, "{102}%/{069}% FBR", "Faster Block Rate")
 	NewItem(10, "{096}%/{067}% FRW", "Faster Run/Walk")
-	NewItem(11, "{105}% FCR", "Item Faster Cast Rate")
+	NewItem(11, "{105}%/0% FCR", "Faster Cast Rate")
 	
 	
 	$gui[0][1] += $groupWidth
@@ -584,9 +599,9 @@ func CreateGUI()
 	NewItem(07, "{339}% Avoid", "Chance to avoid projectiles while standing still")
 	NewItem(08, "{340}% Evade", "Chance to avoid any attack while moving")
 
-	NewItem(10, "{136}% CB", "Crushing Blow")
-	NewItem(11, "{135}% OW", "Open Wounds")
-	NewItem(12, "{141}% DS", "Deadly Strike")
+	NewItem(10, "{136}% CB", "Crushing Blow. Chance to deal physical damage based on target's current health")
+	NewItem(11, "{135}% OW", "Open Wounds. Chance to disable target's natural health regen for 8 seconds")
+	NewItem(12, "{141}% DS", "Deadly Strike. Chance to double physical damage of attack")
 	NewItem(13, "{164}% UA", "Uninterruptable Attack")
 	
 	
@@ -595,7 +610,7 @@ func CreateGUI()
 	NewItem(01, "{039}%/{142}%/{143}", "Fire", $clr_red)
 	NewItem(02, "{043}%/{148}%/{149}", "Cold", $clr_blue)
 	NewItem(03, "{041}%/{144}%/{145}", "Lightning", $clr_gold)
-	NewItem(04, "{045}%", "Poison resist", $clr_green)
+	NewItem(04, "{045}%/0%/0", "Poison", $clr_green)
 	NewItem(05, "{037}%/{146}%/{147}", "Magic", $clr_pink)
 	NewItem(06, "{036}%/{034}", "Physical (aka Damage Reduction)")
 	
@@ -656,6 +671,8 @@ func CreateGUI()
 	NewOption(02, "toggle", "Show Items mode", "HotKey_ToggleShowItems")
 	NewOption(03, "toggleMsg", "Message when Show Items is disabled in toggle mode")
 	NewOption(04, "filter", "Inject/eject DropFilter", "HotKey_DropFilter")
+	NewOption(05, "nopickup", "Automatically enable /nopickup")
+	NewOption(06, "itemcolor", "Change name color of great runes and elemental essences")
 	
 
 	GUICtrlCreateTabItem("About")
@@ -692,6 +709,22 @@ func WriteWString($string)
 	if (not IsIngame()) then return False
 	_MemoryWrite($d2inject_string, $d2handle, $string, StringFormat("wchar[%s]", StringLen($string)+1))
 	return True
+endfunc
+
+func ChangeItemColors()
+	if (not IsIngame()) then return False
+	
+	local $color = GetGUIOption("itemcolor") ? 0x31 : 0x3B
+	
+	local $ptr_tbl = _MemoryRead($d2lang + 0x10A70, $d2handle)
+	local $essences[6] = [0xA168, 0xA178, 0xA1B0, 0xA1A8, 0xA198, 0xA190]
+	local $greatrunes[6] = [0x7978, 0x797C, 0x7980, 0x79EC, 0x79FC, 0x7A54]
+	
+	_MemoryWrite(_MemoryRead($ptr_tbl + 0x8B50, $d2handle) + 34, $d2handle, $color, "byte") ; Runestone
+	for $i = 0 to 5
+		_MemoryWrite(_MemoryRead($ptr_tbl + $essences[$i], $d2handle) + 4, $d2handle, $color, "byte")
+		_MemoryWrite(_MemoryRead($ptr_tbl + $greatrunes[$i], $d2handle) + 32, $d2handle, $color, "byte")
+	next
 endfunc
 
 func GetDropFilterHandle()
@@ -837,8 +870,8 @@ func UpdateDllHandles()
 	local $addr = _MemVirtualAllocEx($d2handle[1], 0, 0x100, 0x3000, 0x40)
 	if (@error) then return _Debug("Failed to allocate memory.")
 
-	local $nDlls = 3
-	local $dlls[$nDlls] = ["D2Client.dll", "D2Common.dll", "D2Win.dll"]
+	local $nDlls = 4
+	local $dlls[$nDlls] = ["D2Client.dll", "D2Common.dll", "D2Win.dll", "D2Lang.dll"]
 	local $handles[$nDlls]
 	local $failed = False
 	
@@ -851,6 +884,7 @@ func UpdateDllHandles()
 	$d2client = $handles[0]
 	$d2common = $handles[1]
 	$d2win = $handles[2]
+	$d2lang = $handles[3]
 	
 	local $d2inject = $d2client + 0xCDE00
 	$d2inject_print = $d2inject + 0x0
