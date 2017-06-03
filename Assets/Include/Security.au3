@@ -202,12 +202,12 @@ EndFunc   ;==>_Security__OpenProcessToken
 Func _Security__OpenThreadToken($iAccess, $hThread = 0, $bOpenAsSelf = False)
 	If $hThread = 0 Then
 		Local $aResult = DllCall("kernel32.dll", "handle", "GetCurrentThread")
-		If @error Then Return SetError(@error + 10, @extended, 0)
+		If @error Then Return PrintError(@error + 10, @extended, 0, 11)
 		$hThread = $aResult[0]
 	EndIf
 
 	Local $aCall = DllCall("advapi32.dll", "bool", "OpenThreadToken", "handle", $hThread, "dword", $iAccess, "bool", $bOpenAsSelf, "handle*", 0)
-	If @error Or Not $aCall[0] Then Return SetError(@error, @extended, 0)
+	If @error Or Not $aCall[0] Then Return PrintError(@error, @extended, 0, 12)
 
 	Return $aCall[4] ; Token
 EndFunc   ;==>_Security__OpenThreadToken
@@ -220,10 +220,10 @@ Func _Security__OpenThreadTokenEx($iAccess, $hThread = 0, $bOpenAsSelf = False)
 	Local $hToken = _Security__OpenThreadToken($iAccess, $hThread, $bOpenAsSelf)
 	If $hToken = 0 Then
 		Local Const $ERROR_NO_TOKEN = 1008
-		If _WinAPI_GetLastError() <> $ERROR_NO_TOKEN Then Return SetError(20, _WinAPI_GetLastError(), 0)
-		If Not _Security__ImpersonateSelf() Then Return SetError(@error + 10, _WinAPI_GetLastError(), 0)
+		If _WinAPI_GetLastError() <> $ERROR_NO_TOKEN Then Return PrintError(20, _WinAPI_GetLastError(), 0, 21)
+		If Not _Security__ImpersonateSelf() Then Return PrintError(@error + 10, _WinAPI_GetLastError(), 0, 22)
 		$hToken = _Security__OpenThreadToken($iAccess, $hThread, $bOpenAsSelf)
-		If $hToken = 0 Then Return SetError(@error, _WinAPI_GetLastError(), 0)
+		If $hToken = 0 Then Return PrintError(@error, _WinAPI_GetLastError(), 0, 23)
 	EndIf
 
 	Return $hToken

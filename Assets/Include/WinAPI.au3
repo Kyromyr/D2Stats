@@ -2422,6 +2422,14 @@ Func _WinAPI_MultiByteToWideCharEx($sText, $pText, $iCodePage = 0, $iFlags = 0)
 	Return $aResult[0]
 EndFunc   ;==>_WinAPI_MultiByteToWideCharEx
 
+func PrintError($err = @error, $ext = @extended, $ret = 0, $where = 0)
+	$printErr &= StringFormat("Where: %s%sError: %s%sExtended: %s%sReturn: %s%sMessage: %s%s%s", Int($where), @CRLF, Int($err), @CRLF, Int($ext), @CRLF, Int($ret), @CRLF, _WinAPI_GetLastErrorMessage(), @CRLF, @CRLF)
+	return SetError($err, $ext, $ret)
+	; ClipPut($msg)
+	; MsgBox(0, "Debug", $msg)
+	; exit
+endfunc
+
 ; #FUNCTION# ====================================================================================================================
 ; Author ........: Paul Campbell (PaulIA)
 ; Modified.......: jpm
@@ -2429,13 +2437,13 @@ EndFunc   ;==>_WinAPI_MultiByteToWideCharEx
 Func _WinAPI_OpenProcess($iAccess, $bInherit, $iPID, $bDebugPriv = False)
 	; Attempt to open process with standard security priviliges
 	Local $aResult = DllCall("kernel32.dll", "handle", "OpenProcess", "dword", $iAccess, "bool", $bInherit, "dword", $iPID)
-	If @error Then Return SetError(@error, @extended, 0)
+	If @error Then Return PrintError(@error, @extended, 0, 1)
 	If $aResult[0] Then Return $aResult[0]
-	If Not $bDebugPriv Then Return SetError(100, 0, 0)
+	If Not $bDebugPriv Then Return PrintError(100, 0, 0, 2)
 
 	; Enable debug privileged mode
 	Local $hToken = _Security__OpenThreadTokenEx(BitOR($TOKEN_ADJUST_PRIVILEGES, $TOKEN_QUERY))
-	If @error Then Return SetError(@error + 10, @extended, 0)
+	If @error Then Return PrintError(@error + 10, @extended, 0, 3)
 	_Security__SetPrivilege($hToken, "SeDebugPrivilege", True)
 	Local $iError = @error
 	Local $iExtended = @extended
@@ -2458,7 +2466,7 @@ Func _WinAPI_OpenProcess($iAccess, $bInherit, $iPID, $bDebugPriv = False)
 	EndIf
 	_WinAPI_CloseHandle($hToken)
 
-	Return SetError($iError, $iExtended, $iRet)
+	Return PrintError($iError, $iExtended, $iRet, 4)
 EndFunc   ;==>_WinAPI_OpenProcess
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================

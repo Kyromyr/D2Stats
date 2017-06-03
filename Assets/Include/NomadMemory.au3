@@ -40,24 +40,26 @@
 Func _MemoryOpen($iv_Pid, $iv_DesiredAccess = 0x1F0FFF, $if_InheritHandle = 1)
 	
 	If Not ProcessExists($iv_Pid) Then
-		SetError(1)
-        Return 0
+        Return SetError(@error, @extended, 1)
 	EndIf
 	
 	Local $ah_Handle[2] = [DllOpen('kernel32.dll')]
 	
 	If @Error Then
-        SetError(2)
-        Return 0
+        Return SetError(@error, @extended, 2)
     EndIf
 	
+	global $printErr = ""
 	; Local $av_OpenProcess = DllCall($ah_Handle[0], 'int', 'OpenProcess', 'int', $iv_DesiredAccess, 'int', $if_InheritHandle, 'int', $iv_Pid)
 	Local $av_OpenProcess = _WinAPI_OpenProcess($iv_DesiredAccess, $if_InheritHandle, $iv_Pid, True)
+	; MsgBox(0, "Debug", @error & " " & @extended & @CRLF & _WinAPI_GetLastErrorMessage())
+	ClipPut($printErr)
+	MsgBox(0, "Debug", $printErr)
 	
 	If @Error Then
+		local $err = @error, $ext = @extended 
         DllClose($ah_Handle[0])
-        SetError(3)
-        Return 0
+        Return SetError($err, $ext, 3)
     EndIf
 	
 	$ah_Handle[1] = $av_OpenProcess

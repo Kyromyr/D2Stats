@@ -79,7 +79,10 @@ func UpdateHandle()
 
 	_CloseHandle()
 	$d2handle = _MemoryOpen($pid)
-	if (@error) then return _Debug("Couldn't open Diablo II memory handle.")
+	if (not IsArray($d2handle)) then
+		_Debug("Couldn't open Diablo II memory handle. Error: " & StringFormat("%s - %s - %s", $d2handle, @error, @extended))
+		exit
+	endif
 	
 	if (not UpdateDllHandles()) then return _CloseHandle()
 	
