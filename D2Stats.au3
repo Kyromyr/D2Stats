@@ -8,9 +8,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.6.0)
-#pragma compile(FileVersion, 0.3.6.0)
-#pragma compile(Comments, 02.06.2017)
+#pragma compile(ProductVersion, 0.3.6.1)
+#pragma compile(FileVersion, 0.3.6.1)
+#pragma compile(Comments, 07.06.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -403,7 +403,7 @@ func NewText($line, $text, $tip = "", $clr = -1)
 
 	; GUICtrlSetBkColor(-1, Random(0, 2147483647, 1))
 	if ($tip <> "") then
-		GUICtrlSetTip(-1, $tip)
+		GUICtrlSetTip(-1, StringReplace($tip, "|", @LF), default, default, 2)
 	endif
 	if ($clr >= 0) then
 		GUICtrlSetColor(-1, $clr)
@@ -460,15 +460,40 @@ func NewOption($line, $opt, $text, $extra = 0)
 endfunc
 
 func UpdateGUI()
+	local $clr_red	= 0xFF0000
+	local $clr_gold	= 0x808000
+	local $clr_green= 0x008000
+	
 	local $text, $matches, $match, $width
+	local $color, $val
+	
 	for $i = 1 to $gui[0][0]
 		$text = $gui[$i][0]
+		$color = 0
+		
+		$matches = StringRegExp($text, "\[(\d+):(\d+)/(\d+)\]", 4)
+		for $j = 0 to UBound($matches)-1
+			$match = $matches[$j]
+			$text = StringReplace($text, $match[0], "")
+			$color = $clr_red
+			
+			$val = GetStatValue($match[1])
+			if ($val >= $match[2]) then
+				$color = $clr_green
+			elseif ($val >= $match[3]) then
+				$color = $clr_gold
+			endif
+		next
+		
 		$matches = StringRegExp($text, "{(\d+)}", 4)
 		for $j = 0 to UBound($matches)-1
 			$match = $matches[$j]
 			$text = StringReplace($text, $match[0], GetStatValue($match[1]))
 		next
+		
+		$text = StringStripWS($text, 7)
 		GUICtrlSetData($gui[$i][2], $text)
+		if ($color <> 0) then GUICtrlSetColor($gui[$i][2], $color)
 		
 		$width = StringWidth($text)
 		GUICtrlSetPos($gui[$i][2], $gui[$i][1]-$width/2, Default, $width, Default)
@@ -658,6 +683,14 @@ func CreateGUI()
 	NewItem(02, "{470}% Damage")
 	NewItem(03, "{487}% Resist")
 	NewItem(04, "{500}% AR", "Attack Rating")
+	
+	$gui[0][1] += $groupWidth
+	NewText(00, "Minigames")
+	NewItem(01, "Witch Queen [400:1/1]", "Slay the Countess or any of her minions on Terror difficulty to receive a red swirly overlay||[Class Charm] + Eth Rune → returns [Class Charm] with added bonuses| Maximum Skill Level Increased by 1")
+	NewItem(02, "Mirror, Mirror [314:1/1]", "Do the Baal fight on Terror or Destruction difficulty and instead of killing Baal, kill|his Shardspawn minions. Each kill brings a 1% chance to gain a red swirly overlay||[Class Charm] + Lem Rune → returns [Class Charm] with added bonuses| Maximum Skill Level Increased by 1")
+	NewItem(03, "Veteran tokens [219:1/1]", "On Terror and Destruction difficulty, you can find veteran monsters near the end of|each Act. There are five types of veteran monsters, one for each Act||[Class Charm] + each of the 5 tokens → returns [Class Charm] with added bonuses| +1 to [Your class] Skill Levels| +20% to Experience Gained")
+	NewItem(04, "Dogmas {186}/3 [186:3/1]", "On Terror or Destruction difficulty, kill Act bosses to receive a 'Dogma' token||Each of the 5 tokens → Signet of Skill")
+	NewItem(05, "Bremmtown [491:1/1]", "Defeat the Dark Star Dragon on Destruction difficulty within three minutes|after entering the level and without dying||[Class Charm] + Arcane Crystal → [Class Charm] with added bonuses| (Varies by class; see documentation)")
 	
 	; TODO
 	; $gui[0][1] += $groupWidth
