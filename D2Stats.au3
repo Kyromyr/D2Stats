@@ -719,6 +719,20 @@ func CreateGUI()
 	
 	NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
 	
+
+	GUICtrlCreateTabItem("Drop filter")
+	$gui[0][1] = 8
+	NewTextBasic(00, "The drop filter hides:", False)
+	NewTextBasic(01, " White/magic/rare tiered equipment with no filled sockets.", False)
+	NewTextBasic(02, " Runes below Ko.", False)
+	NewTextBasic(03, " Gems below Flawless.", False)
+	NewTextBasic(04, " Gold stacks below 2,000.", False)
+	NewTextBasic(05, " Magic rings and amulets.", False)
+	NewTextBasic(06, " White/magic quivers.", False)
+	NewTextBasic(07, " Elixirs of Experience/Greed/Concentration.", False)
+	NewTextBasic(08, " Various junk (mana potions, TP/ID scrolls and tomes, keys).", False)
+	NewTextBasic(09, " Health potions below Greater.", False)
+	
 	GUICtrlCreateTabItem("")
 	UpdateGUI()
 	GUISetState(@SW_SHOW)
