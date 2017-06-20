@@ -165,7 +165,7 @@ func _Debug($function, $msg, $error = @error, $extended = @extended)
 endfunc
 
 func _Log($function, $msg, $error = @error, $extended = @extended)
-	$logstr &= StringFormat("[%s] %s (error: %s; extended: %s)", $function, $msg, $error, $extended)
+	$logstr &= StringFormat("[%s] %s (error: %s; extended: %s)%s", $function, $msg, $error, $extended, @CRLF)
 	
 	if ($failCounter >= 10) then
 		MsgBox(0, "D2Stats Error", "Failed too many times in a row. Check log for details. Closing D2Stats...")
