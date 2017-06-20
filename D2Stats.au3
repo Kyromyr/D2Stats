@@ -5,12 +5,14 @@
 #include <HotKey.au3>
 #include <HotKeyInput.au3>
 
+#include "notifier\notify_list.au3"
+
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.6.2)
-#pragma compile(FileVersion, 0.3.6.2)
-#pragma compile(Comments, 09.06.2017)
+#pragma compile(ProductVersion, 0.3.7.0)
+#pragma compile(FileVersion, 0.3.7.0)
+#pragma compile(Comments, 20.06.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -40,21 +42,78 @@ local $gui_opt[16][3] = [[0]]
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
 
-local $d2client, $d2common, $d2win, $d2lang, $d2sgpt
-local $d2pid, $d2handle
+local $dlls[] = ["D2Client.dll", "D2Common.dll", "D2Win.dll"]
+local $d2client, $d2common, $d2win, $d2sgpt
+local $d2pid, $d2handle, $failCounter
+local $lastUpdate = TimerInit()
 
 local $d2inject_print, $d2inject_string
 
+local $logstr = ""
+
 local $hotkey_enabled = False
-local $options[7][3] = [["copy", 0x002D, "hk"], ["ilvl", 0x002E, "hk"], ["toggle", 0x0024, "hk"], ["toggleMsg", 1, "cb"], ["filter", 0x0124, "hk"], ["nopickup", 0, "cb"], ["itemcolor", 0, "cb"]]
+
+local $opts_general = 4
+local $opts_notify = 6
+
+local $options[][5] = [ _
+["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
+["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
+["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
+["nopickup", 0, "cb", "Automatically enable /nopickup", 0], _
+["notify-enabled", 1, "cb", "Enable drop notifier", 0], _
+["notify-tiered", 1, "cb", "Tiered uniques", 0], _
+["notify-sacred", 1, "cb", "Sacred uniques / jewelry", 0], _
+["notify-set", 1, "cb", "Set items", 0], _
+["notify-shrine", 1, "cb", "Shrines", 0], _
+["notify-respec", 1, "cb", "Belladonna Extract", 0] ]
+
 
 CreateGUI()
 Main()
+
+#Region Main
+func Main()
+	_HotKey_Disable($HK_FLAG_D2STATS)
+
+	local $timer = TimerInit()
+	local $ingame
+	
+	while 1
+		switch GUIGetMsg()
+			case $gui_event_close
+				exit
+			case $btnRead
+				ReadCharacterData()
+			case $tab
+				GUICtrlSetState($btnRead, GUICtrlRead($tab) < 2 ? 16 : 32)
+		endswitch
+		
+		if (TimerDiff($timer) > 250) then
+			$timer = TimerInit()
+			
+			UpdateHandle()
+			UpdateHotkeys()
+			UpdateGUIOptions() ; Must update options after hotkeys
+			
+			if (IsIngame()) then
+				if (GetGUIOption("nopickup") and not $ingame) then _MemoryWrite($d2client + 0x11C2F0, $d2handle, 1, "byte")
+				
+				if (GetGUIOption("notify-enabled")) then DropNotifier()
+				
+				$ingame = True
+			else
+				$ingame = False
+			endif
+		endif
+	wend
+endfunc
 
 func _Exit()
 	_GUICtrlHKI_Release()
 	GUIDelete()
 	_CloseHandle()
+	_LogSave()
 endfunc
 
 func _CloseHandle()
@@ -65,12 +124,10 @@ func _CloseHandle()
 	endif
 endfunc
 
-func _Debug($msg)
-	MsgBox(4096, "Error", $msg)
-	return False
-endfunc
-
 func UpdateHandle()
+	if (TimerDiff($lastUpdate) < 100) then return
+	$lastUpdate = TimerInit()
+	
 	local $hwnd = WinGetHandle("[CLASS:Diablo II]")
 	local $pid = WinGetProcess($hwnd)
 	
@@ -78,16 +135,21 @@ func UpdateHandle()
 	if ($pid == $d2pid) then return
 
 	_CloseHandle()
+	$failCounter += 1
 	$d2handle = _MemoryOpen($pid)
-	if (@error) then return _Debug("Couldn't open Diablo II memory handle.")
+	if (@error) then return _Debug("UpdateHandle", "Couldn't open Diablo II memory handle.")
 	
-	if (not UpdateDllHandles()) then return _CloseHandle()
+	if (not UpdateDllHandles()) then
+		_CloseHandle()
+		return _Debug("UpdateHandle", "Couldn't update dll handles.")
+	endif
 	
 	if (not InjectPrintFunction()) then
 		_CloseHandle()
-		return _Debug("Couldn't inject print function.")
+		return _Debug("UpdateHandle", "Couldn't inject print function.")
 	endif
 
+	$failCounter = 0
 	$d2pid = $pid
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 endfunc
@@ -96,6 +158,31 @@ func IsIngame()
 	if (not $d2pid) then return False
 	return _MemoryRead($d2client + 0x11BBFC, $d2handle) <> 0
 endfunc
+
+func _Debug($function, $msg, $error = @error, $extended = @extended)
+	_Log($function, $msg, $error, $extended)
+	PrintString($msg, 1)
+endfunc
+
+func _Log($function, $msg, $error = @error, $extended = @extended)
+	$logstr &= StringFormat("[%s] %s (error: %s; extended: %s)", $function, $msg, $error, $extended)
+	
+	if ($failCounter >= 10) then
+		MsgBox(0, "D2Stats Error", "Failed too many times in a row. Check log for details. Closing D2Stats...")
+		exit
+	endif
+endfunc
+
+func _LogSave()
+	if ($logstr <> "") then
+		local $file = FileOpen("D2Stats-log.txt", 2)
+		FileWrite($file, $logstr)
+		FileFlush($file)
+		FileClose($file)
+	endif
+endfunc
+
+#EndRegion
 
 #Region Hotkeys
 func GetIlvl()
@@ -176,13 +263,7 @@ func HotKey_ShowIlvl()
 	if ($ilvl) then PrintString(StringFormat("ilvl: %02s", $ilvl))
 endfunc
 
-func HotKey_ToggleShowItems()
-	if (not IsIngame()) then return
-	ToggleShowItems()
-endfunc
-
 func HotKey_DropFilter()
-	if (not FileExists("DropFilter.dll")) then return PrintString("Couldn't find DropFilter.dll. Make sure it's in the same folder as " & @ScriptName & ".", 1)
 	if (not IsIngame()) then return
 
 	local $handle = GetDropFilterHandle()
@@ -190,14 +271,16 @@ func HotKey_DropFilter()
 	if ($handle) then
 		if (EjectDropFilter($handle)) then
 			PrintString("Ejected DropFilter.", 10)
+			_Log("HotKey_DropFilter", "Ejected DropFilter.")
 		else
-			PrintString("Failed to eject DropFilter.", 1)
+			_Debug("HotKey_DropFilter", "Failed to eject DropFilter.")
 		endif
 	else
 		if (InjectDropFilter()) then
 			PrintString("Injected DropFilter.", 10)
+			_Log("HotKey_DropFilter", "Injected DropFilter.")
 		else
-			PrintString("Failed to inject DropFilter.", 1)
+			_Debug("HotKey_DropFilter", "Failed to inject DropFilter.")
 		endif
 	endif
 endfunc
@@ -205,7 +288,7 @@ endfunc
 
 #Region Stat reading
 func UpdateStatValueMem($ivector)
-	if ($ivector <> 0 and $ivector <> 1) then _Debug("Invalid $ivector value.")
+	if ($ivector <> 0 and $ivector <> 1) then _Debug("UpdateStatValueMem", "Invalid $ivector value.")
 	
 	local $ptr_offsets[3] = [0, 0x5C, ($ivector+1)*0x24]
 	local $ptr = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
@@ -326,58 +409,67 @@ func GetStatValue($istat)
 endfunc
 #EndRegion
 
-#Region GUI
-func Main()
-	_HotKey_Disable($HK_FLAG_D2STATS)
-
-	local $timer = TimerInit()
-	local $ingame, $showitems, $lastshowitems, $lastitemcolor
+#Region Drop notifier
+func DropNotifier()
+	local $ptr_offsets[4] = [0, 0x2C, 0x1C, 0x0]
+	local $pPaths = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
 	
-	while 1
-		switch GUIGetMsg()
-			case $gui_event_close
-				exit
-			case $btnRead
-				ReadCharacterData()
-			case $tab
-				GUICtrlSetState($btnRead, GUICtrlRead($tab) < 2 ? 16 : 32)
-		endswitch
+	$ptr_offsets[3] = 0x24
+	local $nPaths = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
+	
+	if (not $pPaths or not $nPaths) then return
+	
+	local $path, $unit, $data
+	local $type, $class, $quality, $notify, $group, $text, $clr
+	
+	for $i = 0 to $nPaths-1
+		$path = _MemoryRead($pPaths + 4*$i, $d2handle)
+		$unit = _MemoryRead($path + 0x74, $d2handle)
 		
-		if (TimerDiff($timer) > 250) then
-			$timer = TimerInit()
+		while $unit
+			$type = _MemoryRead($unit + 0x0, $d2handle)
 			
-			UpdateHandle()
-			UpdateHotkeys()
-			UpdateGUIOptions() ; Must update options after hotkeys
-
-			if (IsIngame() and IsShowItemsToggle()) then
-				if (GetGUIOption("toggleMsg")) then
-					$showitems = _MemoryRead($d2client + 0xFADB4, $d2handle) == 1
-					if ($lastshowitems and not $showitems) then PrintString("Not showing items.", 3)
-					$lastshowitems = $showitems
-				endif
-				if (not GetGUIOption("toggle")) then ToggleShowItems()
-			else
-				$lastshowitems = False
-			endif
-			
-			if (IsIngame()) then
-				if (not $ingame or $lastitemcolor <> GetGUIOption("itemcolor")) then
-					if (GetGUIOption("nopickup")) then
-						_MemoryWrite($d2client + 0x11C2F0, $d2handle, 1, "byte")
-					endif
+			if ($type == 4) then
+				$class = _MemoryRead($unit + 0x4, $d2handle)
+				$data = _MemoryRead($unit + 0x14, $d2handle)
+				
+				$notify = $notify_list[$class][0]
+				$group = $notify_list[$class][1]
+				
+				$clr = 8 ; Orange
+				if ($group <> "") then
+					$quality = _MemoryRead($data + 0x0, $d2handle)
 					
-					$lastitemcolor = GetGUIOption("itemcolor")
-					ChangeItemColors()
+					if ($quality == 5) then
+						$notify = GetGUIOption("notify-set")
+						$clr = 2 ; Green
+					elseif ($quality == 7 or ($group <> "tiered" and $group <> "sacred")) then
+						$notify = GetGUIOption("notify-" & $group)
+						$clr = $quality == 7 ? 4 : $clr  ; Gold or Orange
+					else
+						$notify = 0
+					endif
 				endif
-				$ingame = True
-			else
-				$ingame = False
-			endif
-		endif
-	wend
-endfunc
 
+				if ($notify and _MemoryRead($data + 0x48, $d2handle, "byte") == 0) then
+					; Using the ear level field to check if we've seen this item on the ground before
+					; Resets when the item is picked up or we move too far away
+					_MemoryWrite($data + 0x48, $d2handle, 1, "byte")
+					
+					$text = $notify_list[$class][2]
+					if ($text == "") then $text = "<Unknown>"
+
+					PrintString("- " & $text, $clr)
+				endif
+			endif
+			
+			$unit = _MemoryRead($unit + 0xE8, $d2handle)
+		wend
+	next
+endfunc
+#EndRegion
+
+#Region GUI
 func ReadCharacterData()
 	UpdateStatValues()
 	UpdateGUI()
@@ -421,44 +513,6 @@ func NewItem($line, $text, $tip = "", $clr = -1)
 	$gui[0][0] = $arrPos
 endfunc
 
-func NewOption($line, $opt, $text, $extra = 0)
-	local $arrPos = $gui_opt[0][0] + 1
-	local $y = GetLineHeight($line)*2 - GetLineHeight(0)
-	
-	local $control
-	local $type = GetGUIOptionType($opt)
-	if ($type == null) then
-		_Debug("Invalid option '" & $opt & "'")
-		exit
-	elseif ($type == "hk") then
-		if (not $extra) then
-			_Debug("No hotkey function for option '" & $opt & "'")
-			exit
-		endif
-		
-		local $key = GetGUIOption($opt)
-		if ($key) then
-			_KeyLock($key)
-			_HotKey_Assign($key, $extra, $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
-		endif
-		
-		$control = _GUICtrlHKI_Create($key, 8, $y, 120, 25)
-		GUICtrlCreateLabel($text, 120+12, $y+4)
-	elseif ($type == "cb") then
-		$control = GUICtrlCreateCheckbox($text, 8, $y)
-		GUICtrlSetState(-1, GetGUIOption($opt) ? 1 : 4)
-	else
-		_Debug("Invalid option type '" & $type & "'")
-		exit
-	endif
-	
-	$gui_opt[$arrPos][0] = $opt
-	$gui_opt[$arrPos][1] = $control
-	$gui_opt[$arrPos][2] = $extra
-	
-	$gui_opt[0][0] = $arrPos
-endfunc
-
 func UpdateGUI()
 	local $clr_red	= 0xFF0000
 	local $clr_gold	= 0x808000
@@ -498,68 +552,6 @@ func UpdateGUI()
 		$width = StringWidth($text)
 		GUICtrlSetPos($gui[$i][2], $gui[$i][1]-$width/2, Default, $width, Default)
 	next
-endfunc
-
-func SetGUIOption($name, $value)
-	for $i = 0 to UBound($options)-1
-		if ($options[$i][0] == $name) then
-			$options[$i][1] = $value
-			return
-		endif
-	next
-endfunc
-
-func GetGUIOption($name)
-	for $i = 0 to UBound($options)-1
-		if ($options[$i][0] == $name) then return $options[$i][1]
-	next
-	return null
-endfunc
-
-func GetGUIOptionType($name)
-	for $i = 0 to UBound($options)-1
-		if ($options[$i][0] == $name) then return $options[$i][2]
-	next
-	return null
-endfunc
-
-func UpdateGUIOptions()
-	local $save = False
-	local $opt, $type, $value
-	for $i = 1 to $gui_opt[0][0]
-		$opt = $gui_opt[$i][0]
-		$type = GetGUIOptionType($opt)
-		
-		if ($type == "hk") then
-			$value = _GUICtrlHKI_GetHotKey($gui_opt[$i][1])
-		elseif ($type == "cb") then
-			$value = (GUICtrlRead($gui_opt[$i][1]) == 1) ? 1 : 0
-		endif
-		
-		if (GetGUIOption($opt) <> $value) then
-			$save = True
-			SetGUIOption($opt, $value)
-		endif
-	next
-
-	if ($save) then SaveGUIOptions()
-endfunc
-
-func SaveGUIOptions()
-	local $write = ""
-	for $i = 0 to UBound($options)-1
-		$write &= StringFormat("%s=%s%s", $options[$i][0], $options[$i][1], @LF)
-	next
-	IniWriteSection(@AutoItExe & ".ini", "General", $write)
-endfunc
-
-func LoadGUIOptions()
-	local $ini = IniReadSection(@AutoItExe & ".ini", "General")
-	if (not @error) then
-		for $i = 1 to $ini[0][0]
-			SetGUIOption($ini[$i][0], Int($ini[$i][1]))
-		next
-	endif
 endfunc
 
 func CreateGUI()
@@ -677,12 +669,14 @@ func CreateGUI()
 	NewItem(10, "{208}/{209} *oS", "Life/Mana on Striking")
 	NewItem(11, "{210}/{295} *oSiM", "Life/Mana on Striking in Melee")
 	
+	
 	$gui[0][1] += $groupWidth
 	NewText(00, "Minions")
 	NewItem(01, "{444}% Life")
 	NewItem(02, "{470}% Damage")
 	NewItem(03, "{487}% Resist")
 	NewItem(04, "{500}% AR", "Attack Rating")
+	
 	
 	$gui[0][1] += $groupWidth
 	NewText(00, "Minigames")
@@ -692,22 +686,39 @@ func CreateGUI()
 	NewItem(04, "Dogmas {186}/3 [186:3/1]", "On Terror or Destruction difficulty, kill Act bosses to receive a 'Dogma' token||Each of the 5 tokens → Signet of Skill")
 	NewItem(05, "Bremmtown [491:1/1]", "Defeat the Dark Star Dragon on Destruction difficulty within three minutes|after entering the level and without dying||[Class Charm] + Arcane Crystal → [Class Charm] with added bonuses| (Varies by class; see documentation)")
 	
-	; TODO
-	; $gui[0][1] += $groupWidth
-	; NewText(00, "Mercenary")
-	
-	
+
 	LoadGUIOptions()
 	GUICtrlCreateTabItem("Options")
-	NewOption(00, "copy", "Copy item text", "HotKey_CopyItem")
-	NewOption(01, "ilvl", "Display item ilvl", "HotKey_ShowIlvl")
-	NewOption(02, "toggle", "Show Items mode", "HotKey_ToggleShowItems")
-	NewOption(03, "toggleMsg", "Message when Show Items is disabled in toggle mode")
-	NewOption(04, "filter", "Inject/eject DropFilter", "HotKey_DropFilter")
-	NewOption(05, "nopickup", "Automatically enable /nopickup")
-	NewOption(06, "itemcolor", "Change name color of great runes and elemental essences")
+	$gui[0][1] = 8
+	
+	local $i = 0
+	for $j = 1 to $opts_general
+		NewOption($j-1, $options[$i][0], $options[$i][3], $options[$i][4])
+		$i += 1
+	next
+	
+	
+	GUICtrlCreateTabItem("Drop notifier")
+	for $j = 1 to $opts_notify
+		$gui[0][1] = $j == 1 ? 8 : 16
+		NewOption($j-1, $options[$i][0], $options[$i][3], $options[$i][4])
+		$i += 1
+	next
 	
 
+	GUICtrlCreateTabItem("Drop filter")
+	$gui[0][1] = 8
+	NewTextBasic(00, "The latest drop filter hides:", False)
+	NewTextBasic(01, " White/magic/rare tiered equipment with no filled sockets.", False)
+	NewTextBasic(02, " Runes below and including Zod.", False)
+	NewTextBasic(03, " Gems below Perfect.", False)
+	NewTextBasic(04, " Gold stacks below 2,000.", False)
+	NewTextBasic(05, " Magic rings, amulets and quivers.", False)
+	NewTextBasic(06, " Elixirs of Experience/Greed/Concentration.", False)
+	NewTextBasic(07, " Various junk (mana potions, TP/ID scrolls and tomes, keys).", False)
+	NewTextBasic(08, " Health potions below Greater.", False)
+	
+	
 	GUICtrlCreateTabItem("About")
 	$gui[0][1] = 8
 	NewTextBasic(00, "Made by Wojen and Kyromyr, using Shaggi's offsets.", False)
@@ -719,19 +730,6 @@ func CreateGUI()
 	
 	NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
 	
-
-	GUICtrlCreateTabItem("Drop filter")
-	$gui[0][1] = 8
-	NewTextBasic(00, "The drop filter hides:", False)
-	NewTextBasic(01, " White/magic/rare tiered equipment with no filled sockets.", False)
-	NewTextBasic(02, " Runes below Ko.", False)
-	NewTextBasic(03, " Gems below Flawless.", False)
-	NewTextBasic(04, " Gold stacks below 2,000.", False)
-	NewTextBasic(05, " Magic rings and amulets.", False)
-	NewTextBasic(06, " White/magic quivers.", False)
-	NewTextBasic(07, " Elixirs of Experience/Greed/Concentration.", False)
-	NewTextBasic(08, " Various junk (mana potions, TP/ID scrolls and tomes, keys).", False)
-	NewTextBasic(09, " Health potions below Greater.", False)
 	
 	GUICtrlCreateTabItem("")
 	UpdateGUI()
@@ -739,46 +737,141 @@ func CreateGUI()
 endfunc
 #EndRegion
 
+#Region GUI-options
+func NewOption($line, $opt, $text, $extra = 0)
+	local $arrPos = $gui_opt[0][0] + 1
+	local $y = GetLineHeight($line)*2 - GetLineHeight(0)
+	
+	local $control
+	local $type = GetGUIOptionType($opt)
+	if ($type == null) then
+		_Log("NewOption", "Invalid option '" & $opt & "'")
+		exit
+	elseif ($type == "hk") then
+		if (not $extra) then
+			_Log("NewOption", "No hotkey function for option '" & $opt & "'")
+			exit
+		endif
+		
+		local $key = GetGUIOption($opt)
+		if ($key) then
+			_KeyLock($key)
+			_HotKey_Assign($key, $extra, $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
+		endif
+		
+		$control = _GUICtrlHKI_Create($key, $gui[0][1], $y, 120, 25)
+		GUICtrlCreateLabel($text, $gui[0][1] + 124, $y+4)
+	elseif ($type == "cb") then
+		$control = GUICtrlCreateCheckbox($text, $gui[0][1], $y)
+		GUICtrlSetState(-1, GetGUIOption($opt) ? 1 : 4)
+	else
+		_Log("NewOption", "Invalid option type '" & $type & "'")
+		exit
+	endif
+	
+	$gui_opt[$arrPos][0] = $opt
+	$gui_opt[$arrPos][1] = $control
+	$gui_opt[$arrPos][2] = $extra
+	
+	$gui_opt[0][0] = $arrPos
+endfunc
+
+func SetGUIOption($name, $value)
+	for $i = 0 to UBound($options)-1
+		if ($options[$i][0] == $name) then
+			$options[$i][1] = $value
+			return
+		endif
+	next
+endfunc
+
+func GetGUIOption($name)
+	for $i = 0 to UBound($options)-1
+		if ($options[$i][0] == $name) then return $options[$i][1]
+	next
+	return null
+endfunc
+
+func GetGUIOptionType($name)
+	for $i = 0 to UBound($options)-1
+		if ($options[$i][0] == $name) then return $options[$i][2]
+	next
+	return null
+endfunc
+
+func UpdateGUIOptions()
+	local $save = False
+	local $opt, $type, $value
+	for $i = 1 to $gui_opt[0][0]
+		$opt = $gui_opt[$i][0]
+		$type = GetGUIOptionType($opt)
+		
+		if ($type == "hk") then
+			$value = _GUICtrlHKI_GetHotKey($gui_opt[$i][1])
+		elseif ($type == "cb") then
+			$value = (GUICtrlRead($gui_opt[$i][1]) == 1) ? 1 : 0
+		endif
+		
+		if (GetGUIOption($opt) <> $value) then
+			$save = True
+			SetGUIOption($opt, $value)
+		endif
+	next
+
+	if ($save) then SaveGUIOptions()
+endfunc
+
+func SaveGUIOptions()
+	local $write = ""
+	for $i = 0 to UBound($options)-1
+		$write &= StringFormat("%s=%s%s", $options[$i][0], $options[$i][1], @LF)
+	next
+	IniWriteSection(@AutoItExe & ".ini", "General", $write)
+endfunc
+
+func LoadGUIOptions()
+	local $ini = IniReadSection(@AutoItExe & ".ini", "General")
+	if (not @error) then
+		for $i = 1 to $ini[0][0]
+			SetGUIOption($ini[$i][0], Int($ini[$i][1]))
+		next
+	endif
+endfunc
+#EndRegion
+
 #Region Injection
 func PrintString($string, $color = 0)
-	if (not WriteWString($string)) then return False
+	if (not WriteWString($string)) then return _Log("PrintString", "Failed to write string.")
+	
 	_CreateRemoteThread($d2inject_print, $color)
+	if (@error) then return _Log("PrintString", "Failed to create remote thread.")
+	
 	return True
 endfunc
 
 func WriteString($string)
-	if (not IsIngame()) then return False
+	if (not IsIngame()) then return _Log("WriteString", "Not ingame.")
+	
 	_MemoryWrite($d2inject_string, $d2handle, $string, StringFormat("char[%s]", StringLen($string)+1))
+	if (@error) then return _Log("WriteString", "Failed to write string.")
+	
 	return True
 endfunc
 	
 func WriteWString($string)
-	if (not IsIngame()) then return False
+	if (not IsIngame()) then return _Log("WriteWString", "Not ingame.")
+	
 	_MemoryWrite($d2inject_string, $d2handle, $string, StringFormat("wchar[%s]", StringLen($string)+1))
+	if (@error) then return _Log("WriteWString", "Failed to write string.")
+	
 	return True
 endfunc
 
-func ChangeItemColors()
-	if (not IsIngame()) then return False
-	
-	local $color = GetGUIOption("itemcolor") ? 0x31 : 0x3B
-	
-	local $ptr_tbl = _MemoryRead($d2lang + 0x10A70, $d2handle)
-	local $essences[6] = [0xA168, 0xA178, 0xA1B0, 0xA1A8, 0xA198, 0xA190]
-	local $greatrunes[6] = [0x7978, 0x797C, 0x7980, 0x79EC, 0x79FC, 0x7A54]
-	
-	_MemoryWrite(_MemoryRead($ptr_tbl + 0x8B50, $d2handle) + 34, $d2handle, $color, "byte") ; Runestone
-	for $i = 0 to 5
-		_MemoryWrite(_MemoryRead($ptr_tbl + $essences[$i], $d2handle) + 4, $d2handle, $color, "byte")
-		_MemoryWrite(_MemoryRead($ptr_tbl + $greatrunes[$i], $d2handle) + 32, $d2handle, $color, "byte")
-	next
-endfunc
-
 func GetDropFilterHandle()
-	if (not WriteString("DropFilter.dll")) then return False
+	if (not WriteString("DropFilter.dll")) then return _Debug("GetDropFilterHandle", "Failed to write string.")
 	
 	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
-	if (not $gethandle) then return _Debug("Couldn't get GetModuleHandleA address.")
+	if (not $gethandle) then return _Debug("GetDropFilterHandle", "Couldn't retrieve GetModuleHandleA address.")
 	
 	return _CreateRemoteThread($gethandle, $d2inject_string)
 endfunc
@@ -791,12 +884,16 @@ D2Client.dll+5907E - E9 *           - jmp DropFilter.dll+15D0 { PATCH_DropFilter
 #ce
 
 func InjectDropFilter()
-	if (not WriteString(FileGetLongName("DropFilter.dll", 1))) then return _Debug("Failed to write DropFilter.dll path.")
+	local $path = FileGetLongName("DropFilter.dll", 1)
+	if (not FileExists($path)) then return _Debug("InjectDropFilter", "Couldn't find DropFilter.dll. Make sure it's in the same folder as " & @ScriptName & ".")
+	if (not WriteString($path)) then return _Debug("InjectDropFilter", "Failed to write DropFilter.dll path.")
 	
 	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
-	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address.")
+	if (not $loadlib) then return _Debug("InjectDropFilter", "Couldn't retrieve LoadLibraryA address.")
 
 	local $ret = _CreateRemoteThread($loadlib, $d2inject_string)
+	if (@error) then return _Debug("InjectDropFilter", "Failed to create remote thread.")
+	
 	local $injected = _MemoryRead($d2client + 0x5907E, $d2handle, "byte")
 	
 	; If the jmp is already there it means my DropFilter isn't used, and it'll will probably close D2Stats if we load it from here
@@ -808,10 +905,12 @@ func InjectDropFilter()
 				local $jmp = $addr - 0x5 - ($d2client + 0x5907E)
 				_MemoryWrite($d2client + 0x5907E, $d2handle, "0xE9" & GetOffsetAddress($jmp), "byte[5]")
 			else
+				_Debug("InjectDropFilter", "Couldn't find DropFilter.dll entry point.")
 				$ret = False
 			endif
 			_WinAPI_FreeLibrary($handle)
 		else
+			_Debug("InjectDropFilter", "Failed to load DropFilter.dll.")
 			$ret = False
 		endif
 	endif
@@ -821,77 +920,18 @@ endfunc
 
 func EjectDropFilter($handle)
 	local $freelib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "FreeLibrary")
-	if (not $freelib) then return _Debug("Couldn't get FreeLibrary address.")
+	if (not $freelib) then return _Debug("EjectDropFilter", "Couldn't retrieve FreeLibrary address.")
 
 	local $ret = _CreateRemoteThread($freelib, $handle)
-	if ($ret) then
-		_MemoryWrite($d2client + 0x5907E, $d2handle, "0x833E040F85", "byte[5]")
-	endif
+	if (@error) then return _Debug("EjectDropFilter", "Failed to create remote thread.")
+	
+	if ($ret) then _MemoryWrite($d2client + 0x5907E, $d2handle, "0x833E040F85", "byte[5]")
 	
 	return $ret
 endfunc
 
 func GetOffsetAddress($addr)
 	return StringFormat("%08s", StringLeft(Hex(Binary($addr)), 8))
-endfunc
-
-#cs
-D2Client.dll+3AECF - A3 *                  - mov [D2Client.dll+FADB4],eax { [00000000] }
--->
-D2Client.dll+3AECF - 90                    - nop 
-D2Client.dll+3AED0 - 90                    - nop 
-D2Client.dll+3AED1 - 90                    - nop 
-D2Client.dll+3AED2 - 90                    - nop 
-D2Client.dll+3AED3 - 90                    - nop 
-
-
-D2Client.dll+3B224 - CC                    - int 3 
-D2Client.dll+3B225 - CC                    - int 3 
-D2Client.dll+3B226 - CC                    - int 3 
-D2Client.dll+3B227 - CC                    - int 3 
-D2Client.dll+3B228 - CC                    - int 3 
-D2Client.dll+3B229 - CC                    - int 3 
-D2Client.dll+3B22A - CC                    - int 3 
-D2Client.dll+3B22B - CC                    - int 3 
-D2Client.dll+3B22C - CC                    - int 3 
-D2Client.dll+3B22D - CC                    - int 3 
-D2Client.dll+3B22E - CC                    - int 3 
-D2Client.dll+3B22F - CC                    - int 3 
--->
-D2Client.dll+3B224 - 83 35 * 01            - xor dword ptr [D2Client.dll+FADB4],01 { [00000000] }
-D2Client.dll+3B22B - E9 B6000000           - jmp D2Client.dll+3B2E6
-
-
-D2Client.dll+3B2E1 - 89 1D *               - mov [D2Client.dll+FADB4],ebx { [00000000] }
--->
-D2Client.dll+3B2E1 - E9 3EFFFFFF           - jmp D2Client.dll+3B224
-D2Client.dll+3B2E6 - 90                    - nop 
-#ce
-
-func IsShowItemsToggle()
-	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
-endfunc
-
-func ToggleShowItems()
-	local $write1 = "0x9090909090"
-	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
-	local $write3 = "0xE93EFFFFFF90" ; Jump within same DLL shouldn't require offset fixing
-	
-	local $restore = IsShowItemsToggle()
-	if ($restore) then
-		$write1 = "0xA3" & GetOffsetAddress($d2client + 0xFADB4)
-		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
-		$write3 = "0x891D" & GetOffsetAddress($d2client + 0xFADB4)
-	endif
-	
-	_MemoryWrite($d2client + 0x3AECF, $d2handle, $write1, "byte[5]")
-	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
-	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
-	
-	if (IsIngame()) then
-		_MemoryWrite($d2client + 0xFADB4, $d2handle, 0)
-		PrintString($restore ? "Hold to show items." : "Toggle to show items.", 3)
-	endif
 endfunc
 
 #cs
@@ -912,13 +952,12 @@ endfunc
 
 func UpdateDllHandles()
 	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
-	if (not $loadlib) then return _Debug("Couldn't get LoadLibraryA address.")
+	if (not $loadlib) then return _Debug("UpdateDllHandles", "Couldn't retrieve LoadLibraryA address.")
 	
 	local $addr = _MemVirtualAllocEx($d2handle[1], 0, 0x100, 0x3000, 0x40)
-	if (@error) then return _Debug("Failed to allocate memory.")
+	if (@error) then return _Debug("UpdateDllHandles", "Failed to allocate memory.")
 
-	local $nDlls = 4
-	local $dlls[$nDlls] = ["D2Client.dll", "D2Common.dll", "D2Win.dll", "D2Lang.dll"]
+	local $nDlls = UBound($dlls)
 	local $handles[$nDlls]
 	local $failed = False
 	
@@ -931,7 +970,6 @@ func UpdateDllHandles()
 	$d2client = $handles[0]
 	$d2common = $handles[1]
 	$d2win = $handles[2]
-	$d2lang = $handles[3]
 	
 	local $d2inject = $d2client + 0xCDE00
 	$d2inject_print = $d2inject + 0x0
@@ -940,15 +978,15 @@ func UpdateDllHandles()
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 
 	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
-	if (@error) then return _Debug("Failed to free memory.")
-	if ($failed) then return _Debug("Couldn't retrieve dll addresses.")
+	if (@error) then return _Debug("UpdateDllHandles", "Failed to free memory.")
+	if ($failed) then return _Debug("UpdateDllHandles", "Couldn't retrieve dll addresses.")
 	
 	return True
 endfunc
 
 func _CreateRemoteThread($func, $var = 0) ; $var is in EBX register
 	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $func, "ptr", $var, "dword", 0, "ptr", 0)
-	if ($call[0] == 0) then return _Debug("Couldn't create remote thread.")
+	if ($call[0] == 0) then return _Debug("UpdateDllHandles", "Couldn't create remote thread.")
 	
 	_WinAPI_WaitForSingleObject($call[0])
 	local $ret = _GetExitCodeThread($call[0])

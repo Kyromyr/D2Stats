@@ -1,0 +1,2376 @@
+{weapons}
+[gps ] <Rancid Gas Potion>
+[ops ] <Oil Potion>
+[gpm ] <Choking Gas Potion>
+[opm ] <Exploding Potion>
+[gpl ] <Strangling Gas Potion>
+[opl ] <Fulminating Potion>
+[d33 ] <Decoy Gidbinn>
+[g33 ] <The Gidbinn>
+[leg ] <Wirt's Leg>
+[hdm ] <Horadric Malus>
+[hfh ] <Hell Forge Hammer>
+[hst ] <Horadric Staff>
+[msf ] <Shaft of the Horadric Staff>
+[qf1 ] <Khalim's Flail>
+[qf2 ] <Khalim's Will>
+[tax ] <Throwing Axe>
+[bsd ] <Broad Sword>
+[vou ] <Voulge>
+[4@A ] <Angel Star (1)>
+[5@A ] <Angel Star (2)>
+[6@A ] <Angel Star (3)>
+[7@A ] <Angel Star (4)>
+[8@A ] <Angel Star (5)>
+[9@A ] <Angel Star (6)>
+[1@B ] <Angel Star (Sacred)>
+[115 ] <Axe (1)>
+[183 ] <Axe (2)>
+[251 ] <Axe (3)>
+[319 ] <Axe (4)>
+[387 ] <Axe (5)>
+[455 ] <Axe (6)>
+[16@ ] <Axe (Sacred)>
+[7@5 ] <Backsword (1)>
+[8@5 ] <Backsword (2)>
+[9@5 ] <Backsword (3)>
+[1@6 ] <Backsword (4)>
+[2@6 ] <Backsword (5)>
+[3@6 ] <Backsword (6)>
+[4@6 ] <Backsword (Sacred)>
+[150 ] <Balanced Axe (1)>
+[218 ] <Balanced Axe (2)>
+[286 ] <Balanced Axe (3)>
+[354 ] <Balanced Axe (4)>
+[422 ] <Balanced Axe (5)>
+[490 ] <Balanced Axe (6)>
+[51@ ] <Balanced Axe (Sacred)>
+[148 ] <Balanced Knife (1)>
+[216 ] <Balanced Knife (2)>
+[284 ] <Balanced Knife (3)>
+[352 ] <Balanced Knife (4)>
+[420 ] <Balanced Knife (5)>
+[488 ] <Balanced Knife (6)>
+[49@ ] <Balanced Knife (Sacred)>
+[156 ] <Bardiche (1)>
+[224 ] <Bardiche (2)>
+[292 ] <Bardiche (3)>
+[360 ] <Bardiche (4)>
+[428 ] <Bardiche (5)>
+[496 ] <Bardiche (6)>
+[57@ ] <Bardiche (Sacred)>
+[110 ] <Bastard Sword (1)>
+[178 ] <Bastard Sword (2)>
+[246 ] <Bastard Sword (3)>
+[314 ] <Bastard Sword (4)>
+[382 ] <Bastard Sword (5)>
+[450 ] <Bastard Sword (6)>
+[11@ ] <Bastard Sword (Sacred)>
+[121 ] <Battle Axe (1)>
+[189 ] <Battle Axe (2)>
+[257 ] <Battle Axe (3)>
+[325 ] <Battle Axe (4)>
+[393 ] <Battle Axe (5)>
+[461 ] <Battle Axe (6)>
+[22@ ] <Battle Axe (Sacred)>
+[154 ] <Battle Staff (1)>
+[222 ] <Battle Staff (2)>
+[290 ] <Battle Staff (3)>
+[358 ] <Battle Staff (4)>
+[426 ] <Battle Staff (5)>
+[494 ] <Battle Staff (6)>
+[55@ ] <Battle Staff (Sacred)>
+[145 ] <Blade (1)>
+[213 ] <Blade (2)>
+[281 ] <Blade (3)>
+[349 ] <Blade (4)>
+[417 ] <Blade (5)>
+[485 ] <Blade (6)>
+[46@ ] <Blade (Sacred)>
+[j25 ] <Blade Talons (1)>
+[j42 ] <Blade Talons (2)>
+[j59 ] <Blade Talons (3)>
+[j76 ] <Blade Talons (4)>
+[j93 ] <Blade Talons (5)>
+[o20 ] <Blade Talons (6)>
+[95@ ] <Blade Talons (Sacred)>
+[l12 ] <Bone Wand (1)>
+[l16 ] <Bone Wand (2)>
+[l20 ] <Bone Wand (3)>
+[l24 ] <Bone Wand (4)>
+[l28 ] <Bone Wand (5)>
+[l32 ] <Bone Wand (6)>
+[71@ ] <Bone Wand (Sacred)>
+[8@8 ] <Bonebreaker (1)>
+[9@8 ] <Bonebreaker (2)>
+[1@9 ] <Bonebreaker (3)>
+[2@9 ] <Bonebreaker (4)>
+[3@9 ] <Bonebreaker (5)>
+[4@9 ] <Bonebreaker (6)>
+[5@9 ] <Bonebreaker (Sacred)>
+[!15 ] <Bonesplitter (1)>
+[!16 ] <Bonesplitter (2)>
+[!17 ] <Bonesplitter (3)>
+[!18 ] <Bonesplitter (4)>
+[!19 ] <Bonesplitter (5)>
+[!20 ] <Bonesplitter (6)>
+[!21 ] <Bonesplitter (Sacred)>
+[139 ] <Brandistock (1)>
+[207 ] <Brandistock (2)>
+[275 ] <Brandistock (3)>
+[343 ] <Brandistock (4)>
+[411 ] <Brandistock (5)>
+[479 ] <Brandistock (6)>
+[40@ ] <Brandistock (Sacred)>
+[120 ] <Broad Axe (1)>
+[188 ] <Broad Axe (2)>
+[256 ] <Broad Axe (3)>
+[324 ] <Broad Axe (4)>
+[392 ] <Broad Axe (5)>
+[460 ] <Broad Axe (6)>
+[21@ ] <Broad Axe (Sacred)>
+[104 ] <Broad Sword (1)>
+[172 ] <Broad Sword (2)>
+[240 ] <Broad Sword (3)>
+[308 ] <Broad Sword (4)>
+[376 ] <Broad Sword (5)>
+[444 ] <Broad Sword (6)>
+[05@ ] <Broad Sword (Sacred)>
+[3@7 ] <Bronze Sword (1)>
+[4@7 ] <Bronze Sword (2)>
+[5@7 ] <Bronze Sword (3)>
+[6@7 ] <Bronze Sword (4)>
+[7@7 ] <Bronze Sword (5)>
+[8@7 ] <Bronze Sword (6)>
+[9@7 ] <Bronze Sword (Sacred)>
+[j23 ] <Cestus (1)>
+[j40 ] <Cestus (2)>
+[j57 ] <Cestus (3)>
+[j74 ] <Cestus (4)>
+[j91 ] <Cestus (5)>
+[o18 ] <Cestus (6)>
+[93@ ] <Cestus (Sacred)>
+[j13 ] <Clasped Orb (1)>
+[j30 ] <Clasped Orb (2)>
+[j47 ] <Clasped Orb (3)>
+[j64 ] <Clasped Orb (4)>
+[j81 ] <Clasped Orb (5)>
+[j98 ] <Clasped Orb (6)>
+[83@ ] <Clasped Orb (Sacred)>
+[j24 ] <Claws (1)>
+[j41 ] <Claws (2)>
+[j58 ] <Claws (3)>
+[j75 ] <Claws (4)>
+[j92 ] <Claws (5)>
+[o19 ] <Claws (6)>
+[94@ ] <Claws (Sacred)>
+[108 ] <Claymore (1)>
+[176 ] <Claymore (2)>
+[244 ] <Claymore (3)>
+[312 ] <Claymore (4)>
+[380 ] <Claymore (5)>
+[448 ] <Claymore (6)>
+[09@ ] <Claymore (Sacred)>
+[124 ] <Club (1)>
+[192 ] <Club (2)>
+[260 ] <Club (3)>
+[328 ] <Club (4)>
+[396 ] <Club (5)>
+[464 ] <Club (6)>
+[25@ ] <Club (Sacred)>
+[163 ] <Composite Bow (1)>
+[231 ] <Composite Bow (2)>
+[299 ] <Composite Bow (3)>
+[367 ] <Composite Bow (4)>
+[435 ] <Composite Bow (5)>
+[503 ] <Composite Bow (6)>
+[64@ ] <Composite Bow (Sacred)>
+[1@1 ] <Compound Bow (1)>
+[2@1 ] <Compound Bow (2)>
+[3@1 ] <Compound Bow (3)>
+[4@1 ] <Compound Bow (4)>
+[5@1 ] <Compound Bow (5)>
+[6@1 ] <Compound Bow (6)>
+[7@1 ] <Compound Bow (Sacred)>
+[l53 ] <Crossbow (1)>
+[l57 ] <Crossbow (2)>
+[l61 ] <Crossbow (3)>
+[l65 ] <Crossbow (4)>
+[l69 ] <Crossbow (5)>
+[l73 ] <Crossbow (6)>
+[77@ ] <Crossbow (Sacred)>
+[113 ] <Crystal Sword (1)>
+[181 ] <Crystal Sword (2)>
+[249 ] <Crystal Sword (3)>
+[317 ] <Crystal Sword (4)>
+[385 ] <Crystal Sword (5)>
+[453 ] <Crystal Sword (6)>
+[14@ ] <Crystal Sword (Sacred)>
+[142 ] <Dagger (1)>
+[210 ] <Dagger (2)>
+[278 ] <Dagger (3)>
+[346 ] <Dagger (4)>
+[414 ] <Dagger (5)>
+[482 ] <Dagger (6)>
+[43@ ] <Dagger (Sacred)>
+[5@D ] <Dart Thrower (1)>
+[6@D ] <Dart Thrower (2)>
+[7@D ] <Dart Thrower (3)>
+[8@D ] <Dart Thrower (4)>
+[9@D ] <Dart Thrower (5)>
+[1@E ] <Dart Thrower (6)>
+[2@E ] <Dart Thrower (Sacred)>
+[143 ] <Dirk (1)>
+[211 ] <Dirk (2)>
+[279 ] <Dirk (3)>
+[347 ] <Dirk (4)>
+[415 ] <Dirk (5)>
+[483 ] <Dirk (6)>
+[44@ ] <Dirk (Sacred)>
+[116 ] <Double Axe (1)>
+[184 ] <Double Axe (2)>
+[252 ] <Double Axe (3)>
+[320 ] <Double Axe (4)>
+[388 ] <Double Axe (5)>
+[456 ] <Double Axe (6)>
+[17@ ] <Double Axe (Sacred)>
+[j14 ] <Jared's Stone (1)>
+[j31 ] <Jared's Stone (2)>
+[j48 ] <Jared's Stone (3)>
+[j65 ] <Jared's Stone (4)>
+[j82 ] <Jared's Stone (5)>
+[j99 ] <Jared's Stone (6)>
+[84@ ] <Jared's Stone (Sacred)>
+[j10 ] <Eagle Orb (1)>
+[j27 ] <Eagle Orb (2)>
+[j44 ] <Eagle Orb (3)>
+[j61 ] <Eagle Orb (4)>
+[j78 ] <Eagle Orb (5)>
+[j95 ] <Eagle Orb (6)>
+[80@ ] <Eagle Orb (Sacred)>
+[103 ] <Falchion (1)>
+[171 ] <Falchion (2)>
+[239 ] <Falchion (3)>
+[307 ] <Falchion (4)>
+[375 ] <Falchion (5)>
+[443 ] <Falchion (6)>
+[04@ ] <Falchion (Sacred)>
+[128 ] <Flail (1)>
+[196 ] <Flail (2)>
+[264 ] <Flail (3)>
+[332 ] <Flail (4)>
+[400 ] <Flail (5)>
+[468 ] <Flail (6)>
+[29@ ] <Flail (Sacred)>
+[111 ] <Flamberge (1)>
+[179 ] <Flamberge (2)>
+[247 ] <Flamberge (3)>
+[315 ] <Flamberge (4)>
+[383 ] <Flamberge (5)>
+[451 ] <Flamberge (6)>
+[12@ ] <Flamberge (Sacred)>
+[!56 ] <Flamen Staff (1)>
+[!57 ] <Flamen Staff (2)>
+[!58 ] <Flamen Staff (3)>
+[!59 ] <Flamen Staff (4)>
+[!60 ] <Flamen Staff (5)>
+[!61 ] <Flamen Staff (6)>
+[!62 ] <Flamen Staff (Sacred)>
+[147 ] <Flying Knife (1)>
+[215 ] <Flying Knife (2)>
+[283 ] <Flying Knife (3)>
+[351 ] <Flying Knife (4)>
+[419 ] <Flying Knife (5)>
+[487 ] <Flying Knife (6)>
+[48@ ] <Flying Knife (Sacred)>
+[123 ] <Giant Axe (1)>
+[191 ] <Giant Axe (2)>
+[259 ] <Giant Axe (3)>
+[327 ] <Giant Axe (4)>
+[395 ] <Giant Axe (5)>
+[463 ] <Giant Axe (6)>
+[24@ ] <Giant Axe (Sacred)>
+[109 ] <Giant Sword (1)>
+[177 ] <Giant Sword (2)>
+[245 ] <Giant Sword (3)>
+[313 ] <Giant Sword (4)>
+[381 ] <Giant Sword (5)>
+[449 ] <Giant Sword (6)>
+[10@ ] <Giant Sword (Sacred)>
+[135 ] <Glaive (1)>
+[203 ] <Glaive (2)>
+[271 ] <Glaive (3)>
+[339 ] <Glaive (4)>
+[407 ] <Glaive (5)>
+[475 ] <Glaive (6)>
+[36@ ] <Glaive (Sacred)>
+[153 ] <Gnarled Staff (1)>
+[221 ] <Gnarled Staff (2)>
+[289 ] <Gnarled Staff (3)>
+[357 ] <Gnarled Staff (4)>
+[425 ] <Gnarled Staff (5)>
+[493 ] <Gnarled Staff (6)>
+[54@ ] <Gnarled Staff (Sacred)>
+[6@9 ] <Goedendag (1)>
+[7@9 ] <Goedendag (2)>
+[8@9 ] <Goedendag (3)>
+[9@9 ] <Goedendag (4)>
+[1@A ] <Goedendag (5)>
+[2@A ] <Goedendag (6)>
+[3@A ] <Goedendag (Sacred)>
+[130 ] <Grand Scepter (1)>
+[198 ] <Grand Scepter (2)>
+[266 ] <Grand Scepter (3)>
+[334 ] <Grand Scepter (4)>
+[402 ] <Grand Scepter (5)>
+[470 ] <Grand Scepter (6)>
+[31@ ] <Grand Scepter (Sacred)>
+[122 ] <Great Axe (1)>
+[190 ] <Great Axe (2)>
+[258 ] <Great Axe (3)>
+[326 ] <Great Axe (4)>
+[394 ] <Great Axe (5)>
+[462 ] <Great Axe (6)>
+[23@ ] <Great Axe (Sacred)>
+[l36 ] <Great Maul (1)>
+[l39 ] <Great Maul (2)>
+[l42 ] <Great Maul (3)>
+[l45 ] <Great Maul (4)>
+[l48 ] <Great Maul (5)>
+[l51 ] <Great Maul (6)>
+[75@ ] <Great Maul (Sacred)>
+[112 ] <Great Sword (1)>
+[180 ] <Great Sword (2)>
+[248 ] <Great Sword (3)>
+[316 ] <Great Sword (4)>
+[384 ] <Great Sword (5)>
+[452 ] <Great Sword (6)>
+[13@ ] <Great Sword (Sacred)>
+[l13 ] <Grim Wand (1)>
+[l17 ] <Grim Wand (2)>
+[l21 ] <Grim Wand (3)>
+[l25 ] <Grim Wand (4)>
+[l29 ] <Grim Wand (5)>
+[l33 ] <Grim Wand (6)>
+[72@ ] <Grim Wand (Sacred)>
+[159 ] <Halberd (1)>
+[227 ] <Halberd (2)>
+[295 ] <Halberd (3)>
+[363 ] <Halberd (4)>
+[431 ] <Halberd (5)>
+[499 ] <Halberd (6)>
+[60@ ] <Halberd (Sacred)>
+[19@ ] <Hammerhead Axe (1)>
+[!29 ] <Hammerhead Axe (2)>
+[!30 ] <Hammerhead Axe (3)>
+[!31 ] <Hammerhead Axe (4)>
+[!32 ] <Hammerhead Axe (5)>
+[!33 ] <Hammerhead Axe (6)>
+[!34 ] <Hammerhead Axe (Sacred)>
+[114 ] <Hand Axe (1)>
+[182 ] <Hand Axe (2)>
+[250 ] <Hand Axe (3)>
+[318 ] <Hand Axe (4)>
+[386 ] <Hand Axe (5)>
+[454 ] <Hand Axe (6)>
+[15@ ] <Hand Axe (Sacred)>
+[9@B ] <Hand of God (1)>
+[1@C ] <Hand of God (2)>
+[2@C ] <Hand of God (3)>
+[3@C ] <Hand of God (4)>
+[4@C ] <Hand of God (5)>
+[5@C ] <Hand of God (6)>
+[6@C ] <Hand of God (Sacred)>
+[j22 ] <Hatchet Hands (1)>
+[j39 ] <Hatchet Hands (2)>
+[j56 ] <Hatchet Hands (3)>
+[j73 ] <Hatchet Hands (4)>
+[j90 ] <Hatchet Hands (5)>
+[o17 ] <Hatchet Hands (6)>
+[92@ ] <Hatchet Hands (Sacred)>
+[l54 ] <Heavy Crossbow (1)>
+[l58 ] <Heavy Crossbow (2)>
+[l62 ] <Heavy Crossbow (3)>
+[l66 ] <Heavy Crossbow (4)>
+[l70 ] <Heavy Crossbow (5)>
+[l74 ] <Heavy Crossbow (6)>
+[78@ ] <Heavy Crossbow (Sacred)>
+[!70 ] <Hexblade (1)>
+[!71 ] <Hexblade (2)>
+[!72 ] <Hexblade (3)>
+[!73 ] <Hexblade (4)>
+[!74 ] <Hexblade (5)>
+[!75 ] <Hexblade (6)>
+[!76 ] <Hexblade (Sacred)>
+[!84 ] <Holy Lance (1)>
+[!85 ] <Holy Lance (2)>
+[!86 ] <Holy Lance (3)>
+[!87 ] <Holy Lance (4)>
+[!88 ] <Holy Lance (5)>
+[!89 ] <Holy Lance (6)>
+[!90 ] <Holy Lance (Sacred)>
+[161 ] <Hunter's Bow (1)>
+[229 ] <Hunter's Bow (2)>
+[297 ] <Hunter's Bow (3)>
+[365 ] <Hunter's Bow (4)>
+[433 ] <Hunter's Bow (5)>
+[501 ] <Hunter's Bow (6)>
+[62@ ] <Hunter's Bow (Sacred)>
+[5@6 ] <Ida (1)>
+[6@6 ] <Ida (2)>
+[7@6 ] <Ida (3)>
+[8@6 ] <Ida (4)>
+[9@6 ] <Ida (5)>
+[1@7 ] <Ida (6)>
+[2@7 ] <Ida (Sacred)>
+[132 ] <Javelin (1)>
+[200 ] <Javelin (2)>
+[268 ] <Javelin (3)>
+[336 ] <Javelin (4)>
+[404 ] <Javelin (5)>
+[472 ] <Javelin (6)>
+[33@ ] <Javelin (Sacred)>
+[j20 ] <Katar (1)>
+[j37 ] <Katar (2)>
+[j54 ] <Katar (3)>
+[j71 ] <Katar (4)>
+[j88 ] <Katar (5)>
+[o15 ] <Katar (6)>
+[90@ ] <Katar (Sacred)>
+[1@8 ] <Kriegsmesser (1)>
+[2@8 ] <Kriegsmesser (2)>
+[3@8 ] <Kriegsmesser (3)>
+[4@8 ] <Kriegsmesser (4)>
+[5@8 ] <Kriegsmesser (5)>
+[6@8 ] <Kriegsmesser (6)>
+[7@8 ] <Kriegsmesser (Sacred)>
+[144 ] <Kriss (1)>
+[212 ] <Kriss (2)>
+[280 ] <Kriss (3)>
+[348 ] <Kriss (4)>
+[416 ] <Kriss (5)>
+[484 ] <Kriss (6)>
+[45@ ] <Kriss (Sacred)>
+[!49 ] <Labrys (1)>
+[!50 ] <Labrys (2)>
+[!51 ] <Labrys (3)>
+[!52 ] <Labrys (4)>
+[!53 ] <Labrys (5)>
+[!54 ] <Labrys (6)>
+[!55 ] <Labrys (Sacred)>
+[119 ] <Large Axe (1)>
+[187 ] <Large Axe (2)>
+[255 ] <Large Axe (3)>
+[323 ] <Large Axe (4)>
+[391 ] <Large Axe (5)>
+[459 ] <Large Axe (6)>
+[20@ ] <Large Axe (Sacred)>
+[l52 ] <Light Crossbow (1)>
+[l56 ] <Light Crossbow (2)>
+[l60 ] <Light Crossbow (3)>
+[l64 ] <Light Crossbow (4)>
+[l68 ] <Light Crossbow (5)>
+[l72 ] <Light Crossbow (6)>
+[76@ ] <Light Crossbow (Sacred)>
+[165 ] <Long Battle Bow (1)>
+[233 ] <Long Battle Bow (2)>
+[301 ] <Long Battle Bow (3)>
+[369 ] <Long Battle Bow (4)>
+[437 ] <Long Battle Bow (5)>
+[505 ] <Long Battle Bow (6)>
+[66@ ] <Long Battle Bow (Sacred)>
+[162 ] <Long Bow (1)>
+[230 ] <Long Bow (2)>
+[298 ] <Long Bow (3)>
+[366 ] <Long Bow (4)>
+[434 ] <Long Bow (5)>
+[502 ] <Long Bow (6)>
+[63@ ] <Long Bow (Sacred)>
+[152 ] <Long Staff (1)>
+[220 ] <Long Staff (2)>
+[288 ] <Long Staff (3)>
+[356 ] <Long Staff (4)>
+[424 ] <Long Staff (5)>
+[492 ] <Long Staff (6)>
+[53@ ] <Long Staff (Sacred)>
+[105 ] <Long Sword (1)>
+[173 ] <Long Sword (2)>
+[241 ] <Long Sword (3)>
+[309 ] <Long Sword (4)>
+[377 ] <Long Sword (5)>
+[445 ] <Long Sword (6)>
+[06@ ] <Long Sword (Sacred)>
+[167 ] <Long War Bow (1)>
+[235 ] <Long War Bow (2)>
+[303 ] <Long War Bow (3)>
+[371 ] <Long War Bow (4)>
+[439 ] <Long War Bow (5)>
+[507 ] <Long War Bow (6)>
+[68@ ] <Long War Bow (Sacred)>
+[126 ] <Mace (1)>
+[194 ] <Mace (2)>
+[262 ] <Mace (3)>
+[330 ] <Mace (4)>
+[398 ] <Mace (5)>
+[466 ] <Mace (6)>
+[27@ ] <Mace (Sacred)>
+[j19 ] <Maiden Javelin (1)>
+[j36 ] <Maiden Javelin (2)>
+[j53 ] <Maiden Javelin (3)>
+[j70 ] <Maiden Javelin (4)>
+[j87 ] <Maiden Javelin (5)>
+[o14 ] <Maiden Javelin (6)>
+[89@ ] <Maiden Javelin (Sacred)>
+[j18 ] <Maiden Pike (1)>
+[j35 ] <Maiden Pike (2)>
+[j52 ] <Maiden Pike (3)>
+[j69 ] <Maiden Pike (4)>
+[j86 ] <Maiden Pike (5)>
+[o13 ] <Maiden Pike (6)>
+[88@ ] <Maiden Pike (Sacred)>
+[j17 ] <Maiden Spear (1)>
+[x34 ] <Maiden Spear (2)>
+[j51 ] <Maiden Spear (3)>
+[j68 ] <Maiden Spear (4)>
+[j85 ] <Maiden Spear (5)>
+[o12 ] <Maiden Spear (6)>
+[87@ ] <Maiden Spear (Sacred)>
+[!22 ] <Mammen Axe (1)>
+[!23 ] <Mammen Axe (2)>
+[!24 ] <Mammen Axe (3)>
+[!25 ] <Mammen Axe (4)>
+[!26 ] <Mammen Axe (5)>
+[!27 ] <Mammen Axe (6)>
+[!28 ] <Mammen Axe (Sacred)>
+[6@2 ] <Maple Bow (1)>
+[7@2 ] <Maple Bow (2)>
+[8@2 ] <Maple Bow (3)>
+[9@2 ] <Maple Bow (4)>
+[1@3 ] <Maple Bow (5)>
+[2@3 ] <Maple Bow (6)>
+[3@3 ] <Maple Bow (Sacred)>
+[!63 ] <Marrow Staff (1)>
+[!64 ] <Marrow Staff (2)>
+[!65 ] <Marrow Staff (3)>
+[!66 ] <Marrow Staff (4)>
+[!67 ] <Marrow Staff (5)>
+[!68 ] <Marrow Staff (6)>
+[!69 ] <Marrow Staff (Sacred)>
+[l35 ] <Maul (1)>
+[l38 ] <Maul (2)>
+[l41 ] <Maul (3)>
+[l44 ] <Maul (4)>
+[l47 ] <Maul (5)>
+[l50 ] <Maul (6)>
+[74@ ] <Maul (Sacred)>
+[117 ] <Military Pick (1)>
+[185 ] <Military Pick (2)>
+[253 ] <Military Pick (3)>
+[321 ] <Military Pick (4)>
+[389 ] <Military Pick (5)>
+[457 ] <Military Pick (6)>
+[18@ ] <Military Pick (Sacred)>
+[127 ] <Morning Star (1)>
+[195 ] <Morning Star (2)>
+[263 ] <Morning Star (3)>
+[331 ] <Morning Star (4)>
+[399 ] <Morning Star (5)>
+[467 ] <Morning Star (6)>
+[28@ ] <Morning Star (Sacred)>
+[!01 ] <Naginata (1)>
+[!02 ] <Naginata (2)>
+[!03 ] <Naginata (3)>
+[!04 ] <Naginata (4)>
+[!05 ] <Naginata (5)>
+[!06 ] <Naginata (6)>
+[!07 ] <Naginata (Sacred)>
+[7@C ] <Needle Crossbow (1)>
+[8@C ] <Needle Crossbow (2)>
+[9@C ] <Needle Crossbow (3)>
+[1@D ] <Needle Crossbow (4)>
+[2@D ] <Needle Crossbow (5)>
+[3@D ] <Needle Crossbow (6)>
+[4@D ] <Needle Crossbow (Sacred)>
+[!35 ] <Ono (1)>
+[!36 ] <Ono (2)>
+[!37 ] <Ono (3)>
+[!38 ] <Ono (4)>
+[!39 ] <Ono (5)>
+[!40 ] <Ono (6)>
+[!41 ] <Ono (Sacred)>
+[141 ] <Pike (1)>
+[209 ] <Pike (2)>
+[277 ] <Pike (3)>
+[345 ] <Pike (4)>
+[413 ] <Pike (5)>
+[481 ] <Pike (6)>
+[42@ ] <Pike (Sacred)>
+[133 ] <Pilum (1)>
+[201 ] <Pilum (2)>
+[269 ] <Pilum (3)>
+[337 ] <Pilum (4)>
+[405 ] <Pilum (5)>
+[473 ] <Pilum (6)>
+[34@ ] <Pilum (Sacred)>
+[!08 ] <Raptor Scythe (1)>
+[!09 ] <Raptor Scythe (2)>
+[!10 ] <Raptor Scythe (3)>
+[!11 ] <Raptor Scythe (4)>
+[!12 ] <Raptor Scythe (5)>
+[!13 ] <Raptor Scythe (6)>
+[!14 ] <Raptor Scythe (Sacred)>
+[2@4 ] <Recurve Bow (1)>
+[3@4 ] <Recurve Bow (2)>
+[4@4 ] <Recurve Bow (3)>
+[5@4 ] <Recurve Bow (4)>
+[6@4 ] <Recurve Bow (5)>
+[7@4 ] <Recurve Bow (6)>
+[8@4 ] <Recurve Bow (Sacred)>
+[j16 ] <Reflex Bow (1)>
+[j33 ] <Reflex Bow (2)>
+[j50 ] <Reflex Bow (3)>
+[j67 ] <Reflex Bow (4)>
+[j84 ] <Reflex Bow (5)>
+[o11 ] <Reflex Bow (6)>
+[86@ ] <Reflex Bow (Sacred)>
+[l55 ] <Repeating Crossbow (1)>
+[l59 ] <Repeating Crossbow (2)>
+[l63 ] <Repeating Crossbow (3)>
+[l67 ] <Repeating Crossbow (4)>
+[l71 ] <Repeating Crossbow (5)>
+[l75 ] <Repeating Crossbow (6)>
+[79@ ] <Repeating Crossbow (Sacred)>
+[102 ] <Saber (1)>
+[170 ] <Saber (2)>
+[238 ] <Saber (3)>
+[306 ] <Saber (4)>
+[374 ] <Saber (5)>
+[442 ] <Saber (6)>
+[03@ ] <Saber (Sacred)>
+[j11 ] <Sacred Globe (1)>
+[j28 ] <Sacred Globe (2)>
+[j45 ] <Sacred Globe (3)>
+[j62 ] <Sacred Globe (4)>
+[j79 ] <Sacred Globe (5)>
+[j96 ] <Sacred Globe (6)>
+[81@ ] <Sacred Globe (Sacred)>
+[129 ] <Scepter (1)>
+[197 ] <Scepter (2)>
+[265 ] <Scepter (3)>
+[333 ] <Scepter (4)>
+[401 ] <Scepter (5)>
+[469 ] <Scepter (6)>
+[30@ ] <Scepter (Sacred)>
+[101 ] <Scimitar (1)>
+[169 ] <Scimitar (2)>
+[237 ] <Scimitar (3)>
+[305 ] <Scimitar (4)>
+[373 ] <Scimitar (5)>
+[441 ] <Scimitar (6)>
+[02@ ] <Scimitar (Sacred)>
+[j26 ] <Scissors Katar (1)>
+[j43 ] <Scissors Katar (2)>
+[j60 ] <Scissors Katar (3)>
+[j77 ] <Scissors Katar (4)>
+[j94 ] <Scissors Katar (5)>
+[o21 ] <Scissors Katar (6)>
+[96@ ] <Scissors Katar (Sacred)>
+[158 ] <Scythe (1)>
+[226 ] <Scythe (2)>
+[294 ] <Scythe (3)>
+[362 ] <Scythe (4)>
+[430 ] <Scythe (5)>
+[498 ] <Scythe (6)>
+[59@ ] <Scythe (Sacred)>
+[8@1 ] <Serpent Bow (1)>
+[9@1 ] <Serpent Bow (2)>
+[1@2 ] <Serpent Bow (3)>
+[2@2 ] <Serpent Bow (4)>
+[3@2 ] <Serpent Bow (5)>
+[4@2 ] <Serpent Bow (6)>
+[5@2 ] <Serpent Bow (Sacred)>
+[164 ] <Short Battle Bow (1)>
+[232 ] <Short Battle Bow (2)>
+[300 ] <Short Battle Bow (3)>
+[368 ] <Short Battle Bow (4)>
+[436 ] <Short Battle Bow (5)>
+[504 ] <Short Battle Bow (6)>
+[65@ ] <Short Battle Bow (Sacred)>
+[160 ] <Short Bow (1)>
+[228 ] <Short Bow (2)>
+[296 ] <Short Bow (3)>
+[364 ] <Short Bow (4)>
+[432 ] <Short Bow (5)>
+[500 ] <Short Bow (6)>
+[61@ ] <Short Bow (Sacred)>
+[134 ] <Short Spear (1)>
+[202 ] <Short Spear (2)>
+[270 ] <Short Spear (3)>
+[338 ] <Short Spear (4)>
+[406 ] <Short Spear (5)>
+[474 ] <Short Spear (6)>
+[35@ ] <Short Spear (Sacred)>
+[151 ] <Short Staff (1)>
+[219 ] <Short Staff (2)>
+[287 ] <Short Staff (3)>
+[355 ] <Short Staff (4)>
+[423 ] <Short Staff (5)>
+[491 ] <Short Staff (6)>
+[52@ ] <Short Staff (Sacred)>
+[100 ] <Short Sword (1)>
+[168 ] <Short Sword (2)>
+[236 ] <Short Sword (3)>
+[304 ] <Short Sword (4)>
+[372 ] <Short Sword (5)>
+[440 ] <Short Sword (6)>
+[01@ ] <Short Sword (Sacred)>
+[166 ] <Short War Bow (1)>
+[234 ] <Short War Bow (2)>
+[302 ] <Short War Bow (3)>
+[370 ] <Short War Bow (4)>
+[438 ] <Short War Bow (5)>
+[506 ] <Short War Bow (6)>
+[67@ ] <Short War Bow (Sacred)>
+[j12 ] <Smoked Sphere (1)>
+[j29 ] <Smoked Sphere (2)>
+[j46 ] <Smoked Sphere (3)>
+[j63 ] <Smoked Sphere (4)>
+[j80 ] <Smoked Sphere (5)>
+[j97 ] <Smoked Sphere (6)>
+[82@ ] <Smoked Sphere (Sacred)>
+[9@4 ] <Spatha (1)>
+[1@5 ] <Spatha (2)>
+[2@5 ] <Spatha (3)>
+[3@5 ] <Spatha (4)>
+[4@5 ] <Spatha (5)>
+[5@5 ] <Spatha (6)>
+[6@5 ] <Spatha (Sacred)>
+[137 ] <Spear (1)>
+[205 ] <Spear (2)>
+[273 ] <Spear (3)>
+[341 ] <Spear (4)>
+[409 ] <Spear (5)>
+[477 ] <Spear (6)>
+[38@ ] <Spear (Sacred)>
+[140 ] <Spetum (1)>
+[208 ] <Spetum (2)>
+[276 ] <Spetum (3)>
+[344 ] <Spetum (4)>
+[412 ] <Spetum (5)>
+[480 ] <Spetum (6)>
+[41@ ] <Spetum (Sacred)>
+[125 ] <Spiked Club (1)>
+[193 ] <Spiked Club (2)>
+[261 ] <Spiked Club (3)>
+[329 ] <Spiked Club (4)>
+[397 ] <Spiked Club (5)>
+[465 ] <Spiked Club (6)>
+[26@ ] <Spiked Club (Sacred)>
+[!77 ] <Spirit Edge (1)>
+[!78 ] <Spirit Edge (2)>
+[!79 ] <Spirit Edge (3)>
+[!80 ] <Spirit Edge (4)>
+[!81 ] <Spirit Edge (5)>
+[!82 ] <Spirit Edge (6)>
+[!83 ] <Spirit Edge (Sacred)>
+[j15 ] <Stag Bow (1)>
+[j32 ] <Stag Bow (2)>
+[j49 ] <Stag Bow (3)>
+[j66 ] <Stag Bow (4)>
+[j83 ] <Stag Bow (5)>
+[o10 ] <Stag Bow (6)>
+[85@ ] <Stag Bow (Sacred)>
+[3@E ] <Stinger Crossbow (1)>
+[4@E ] <Stinger Crossbow (2)>
+[5@E ] <Stinger Crossbow (3)>
+[6@E ] <Stinger Crossbow (4)>
+[7@E ] <Stinger Crossbow (5)>
+[8@E ] <Stinger Crossbow (6)>
+[9@E ] <Stinger Crossbow (Sacred)>
+[!91 ] <Tepoztopilli (1)>
+[!92 ] <Tepoztopilli (2)>
+[!93 ] <Tepoztopilli (3)>
+[!94 ] <Tepoztopilli (4)>
+[!95 ] <Tepoztopilli (5)>
+[!96 ] <Tepoztopilli (6)>
+[!97 ] <Tepoztopilli (Sacred)>
+[149 ] <Throwing Axe (1)>
+[217 ] <Throwing Axe (2)>
+[285 ] <Throwing Axe (3)>
+[353 ] <Throwing Axe (4)>
+[421 ] <Throwing Axe (5)>
+[489 ] <Throwing Axe (6)>
+[50@ ] <Throwing Axe (Sacred)>
+[146 ] <Throwing Knife (1)>
+[214 ] <Throwing Knife (2)>
+[282 ] <Throwing Knife (3)>
+[350 ] <Throwing Knife (4)>
+[418 ] <Throwing Knife (5)>
+[486 ] <Throwing Knife (6)>
+[47@ ] <Throwing Knife (Sacred)>
+[136 ] <Throwing Spear (1)>
+[204 ] <Throwing Spear (2)>
+[272 ] <Throwing Spear (3)>
+[340 ] <Throwing Spear (4)>
+[408 ] <Throwing Spear (5)>
+[476 ] <Throwing Spear (6)>
+[37@ ] <Throwing Spear (Sacred)>
+[1@F ] <Trebuchet (1)>
+[2@F ] <Trebuchet (2)>
+[3@F ] <Trebuchet (3)>
+[4@F ] <Trebuchet (4)>
+[5@F ] <Trebuchet (5)>
+[6@F ] <Trebuchet (6)>
+[7@F ] <Trebuchet (Sacred)>
+[138 ] <Trident (1)>
+[206 ] <Trident (2)>
+[274 ] <Trident (3)>
+[342 ] <Trident (4)>
+[410 ] <Trident (5)>
+[478 ] <Trident (6)>
+[39@ ] <Trident (Sacred)>
+[107 ] <Two-Handed Sword (1)>
+[175 ] <Two-Handed Sword (2)>
+[243 ] <Two-Handed Sword (3)>
+[311 ] <Two-Handed Sword (4)>
+[379 ] <Two-Handed Sword (5)>
+[447 ] <Two-Handed Sword (6)>
+[08@ ] <Two-Handed Sword (Sacred)>
+[!42 ] <Valaska (1)>
+[!43 ] <Valaska (2)>
+[!44 ] <Valaska (3)>
+[!45 ] <Valaska (4)>
+[!46 ] <Valaska (5)>
+[!47 ] <Valaska (6)>
+[!48 ] <Valaska (Sacred)>
+[4@3 ] <Viper Bow (1)>
+[5@3 ] <Viper Bow (2)>
+[6@3 ] <Viper Bow (3)>
+[7@3 ] <Viper Bow (4)>
+[8@3 ] <Viper Bow (5)>
+[9@3 ] <Viper Bow (6)>
+[1@4 ] <Viper Bow (Sacred)>
+[157 ] <Voulge (1)>
+[225 ] <Voulge (2)>
+[293 ] <Voulge (3)>
+[361 ] <Voulge (4)>
+[429 ] <Voulge (5)>
+[497 ] <Voulge (6)>
+[58@ ] <Voulge (Sacred)>
+[l10 ] <Wand (1)>
+[l14 ] <Wand (2)>
+[l18 ] <Wand (3)>
+[l22 ] <Wand (4)>
+[l26 ] <Wand (5)>
+[l30 ] <Wand (6)>
+[69@ ] <Wand (Sacred)>
+[118 ] <War Axe (1)>
+[186 ] <War Axe (2)>
+[254 ] <War Axe (3)>
+[322 ] <War Axe (4)>
+[390 ] <War Axe (5)>
+[458 ] <War Axe (6)>
+[1@@ ] <War Axe (Sacred)>
+[l34 ] <War Hammer (1)>
+[l37 ] <War Hammer (2)>
+[l40 ] <War Hammer (3)>
+[l43 ] <War Hammer (4)>
+[l46 ] <War Hammer (5)>
+[l49 ] <War Hammer (6)>
+[73@ ] <War Hammer (Sacred)>
+[131 ] <War Scepter (1)>
+[199 ] <War Scepter (2)>
+[267 ] <War Scepter (3)>
+[335 ] <War Scepter (4)>
+[403 ] <War Scepter (5)>
+[471 ] <War Scepter (6)>
+[32@ ] <War Scepter (Sacred)>
+[155 ] <War Staff (1)>
+[223 ] <War Staff (2)>
+[291 ] <War Staff (3)>
+[359 ] <War Staff (4)>
+[427 ] <War Staff (5)>
+[495 ] <War Staff (6)>
+[56@ ] <War Staff (Sacred)>
+[106 ] <War Sword (1)>
+[174 ] <War Sword (2)>
+[242 ] <War Sword (3)>
+[310 ] <War Sword (4)>
+[378 ] <War Sword (5)>
+[446 ] <War Sword (6)>
+[07@ ] <War Sword (Sacred)>
+[!98 ] <Warp Blade (1)>
+[!99 ] <Warp Blade (2)>
+[!1! ] <Warp Blade (3)>
+[!2! ] <Warp Blade (4)>
+[!3! ] <Warp Blade (5)>
+[!4! ] <Warp Blade (6)>
+[!5! ] <Warp Blade (Sacred)>
+[j21 ] <Wrist Blade (1)>
+[j38 ] <Wrist Blade (2)>
+[j55 ] <Wrist Blade (3)>
+[j72 ] <Wrist Blade (4)>
+[j89 ] <Wrist Blade (5)>
+[o16 ] <Wrist Blade (6)>
+[91@ ] <Wrist Blade (Sacred)>
+[l11 ] <Yew Wand (1)>
+[l15 ] <Yew Wand (2)>
+[l19 ] <Yew Wand (3)>
+[l23 ] <Yew Wand (4)>
+[l27 ] <Yew Wand (5)>
+[l31 ] <Yew Wand (6)>
+[70@ ] <Yew Wand (Sacred)>
+[v#X ] <Sacred Bow>
+[Ysh3] <Mystical Blade>
+{armor}
+[crn ] <Crown>
+[fld ] <Field Plate>
+[hbt ] <Greaves>
+[hgl ] <Gauntlets>
+[tow ] <Tower Shield>
+[w23 ] <Aerin Shield (1)>
+[w43 ] <Aerin Shield (2)>
+[w63 ] <Aerin Shield (3)>
+[w83 ] <Aerin Shield (4)>
+[e13 ] <Aerin Shield (5)>
+[e33 ] <Aerin Shield (6)>
+[@60 ] <Aerin Shield (Sacred)>
+[614 ] <Ancient Armor (1)>
+[660 ] <Ancient Armor (2)>
+[706 ] <Ancient Armor (3)>
+[752 ] <Ancient Armor (4)>
+[798 ] <Ancient Armor (5)>
+[844 ] <Ancient Armor (6)>
+[@15 ] <Ancient Armor (Sacred)>
+[w12 ] <Antlers (1)>
+[w32 ] <Antlers (2)>
+[w52 ] <Antlers (3)>
+[w72 ] <Antlers (4)>
+[w92 ] <Antlers (5)>
+[e22 ] <Antlers (6)>
+[@49 ] <Antlers (Sacred)>
+[8@N ] <Aspis (1)>
+[9@N ] <Aspis (2)>
+[1@O ] <Aspis (3)>
+[2@O ] <Aspis (4)>
+[3@O ] <Aspis (5)>
+[4@O ] <Aspis (6)>
+[5@O ] <Aspis (Sacred)>
+[w18 ] <Assault Helmet (1)>
+[w38 ] <Assault Helmet (2)>
+[w58 ] <Assault Helmet (3)>
+[w78 ] <Assault Helmet (4)>
+[w98 ] <Assault Helmet (5)>
+[e28 ] <Assault Helmet (6)>
+[@55 ] <Assault Helmet (Sacred)>
+[01! ] <Athulua's Hand (1)>
+[02! ] <Athulua's Hand (2)>
+[03! ] <Athulua's Hand (3)>
+[04! ] <Athulua's Hand (4)>
+[05! ] <Athulua's Hand (5)>
+[06! ] <Athulua's Hand (6)>
+[07! ] <Athulua's Hand (Sacred)>
+[w19 ] <Avenger Guard (1)>
+[w39 ] <Avenger Guard (2)>
+[w59 ] <Avenger Guard (3)>
+[w79 ] <Avenger Guard (4)>
+[w99 ] <Avenger Guard (5)>
+[e29 ] <Avenger Guard (6)>
+[@56 ] <Avenger Guard (Sacred)>
+[4@I ] <Banded Plate (1)>
+[5@I ] <Banded Plate (2)>
+[6@I ] <Banded Plate (3)>
+[7@I ] <Banded Plate (4)>
+[8@I ] <Banded Plate (5)>
+[9@I ] <Banded Plate (6)>
+[1@J ] <Banded Plate (Sacred)>
+[629 ] <Belt (1)>
+[675 ] <Belt (2)>
+[721 ] <Belt (3)>
+[767 ] <Belt (4)>
+[813 ] <Belt (5)>
+[859 ] <Belt (6)>
+[@30 ] <Belt (Sacred)>
+[50! ] <Blackguard Helm (1)>
+[51! ] <Blackguard Helm (2)>
+[52! ] <Blackguard Helm (3)>
+[53! ] <Blackguard Helm (4)>
+[54! ] <Blackguard Helm (5)>
+[55! ] <Blackguard Helm (6)>
+[56! ] <Blackguard Helm (Sacred)>
+[4@P ] <Bladed Shield (1)>
+[5@P ] <Bladed Shield (2)>
+[6@P ] <Bladed Shield (3)>
+[7@P ] <Bladed Shield (4)>
+[8@P ] <Bladed Shield (5)>
+[9@P ] <Bladed Shield (6)>
+[1@Q ] <Bladed Shield (Sacred)>
+[645 ] <Bone Helm (1)>
+[691 ] <Bone Helm (2)>
+[737 ] <Bone Helm (3)>
+[783 ] <Bone Helm (4)>
+[829 ] <Bone Helm (5)>
+[875 ] <Bone Helm (6)>
+[@46 ] <Bone Helm (Sacred)>
+[642 ] <Bone Shield (1)>
+[688 ] <Bone Shield (2)>
+[734 ] <Bone Shield (3)>
+[780 ] <Bone Shield (4)>
+[826 ] <Bone Shield (5)>
+[872 ] <Bone Shield (6)>
+[@43 ] <Bone Shield (Sacred)>
+[637 ] <Boots (1)>
+[683 ] <Boots (2)>
+[729 ] <Boots (3)>
+[775 ] <Boots (4)>
+[821 ] <Boots (5)>
+[867 ] <Boots (6)>
+[@38 ] <Boots (Sacred)>
+[607 ] <Breast Plate (1)>
+[653 ] <Breast Plate (2)>
+[699 ] <Breast Plate (3)>
+[745 ] <Breast Plate (4)>
+[791 ] <Breast Plate (5)>
+[837 ] <Breast Plate (6)>
+[@08 ] <Breast Plate (Sacred)>
+[29! ] <Bronze Shield (1)>
+[30! ] <Bronze Shield (2)>
+[31! ] <Bronze Shield (3)>
+[32! ] <Bronze Shield (4)>
+[33! ] <Bronze Shield (5)>
+[34! ] <Bronze Shield (6)>
+[35! ] <Bronze Shield (Sacred)>
+[621 ] <Buckler (1)>
+[667 ] <Buckler (2)>
+[713 ] <Buckler (3)>
+[759 ] <Buckler (4)>
+[805 ] <Buckler (5)>
+[851 ] <Buckler (6)>
+[@22 ] <Buckler (Sacred)>
+[22! ] <Bull Shield (1)>
+[23! ] <Bull Shield (2)>
+[24! ] <Bull Shield (3)>
+[25! ] <Bull Shield (4)>
+[26! ] <Bull Shield (5)>
+[27! ] <Bull Shield (6)>
+[28! ] <Bull Shield (Sacred)>
+[615 ] <Cap (1)>
+[661 ] <Cap (2)>
+[707 ] <Cap (3)>
+[753 ] <Cap (4)>
+[799 ] <Cap (5)>
+[845 ] <Cap (6)>
+[@16 ] <Cap (Sacred)>
+[2@J ] <Ceremonial Armor (1)>
+[3@J ] <Ceremonial Armor (2)>
+[4@J ] <Ceremonial Armor (3)>
+[5@J ] <Ceremonial Armor (4)>
+[6@J ] <Ceremonial Armor (5)>
+[7@J ] <Ceremonial Armor (6)>
+[8@J ] <Ceremonial Armor (Sacred)>
+[7@K ] <Cervelliere (1)>
+[8@K ] <Cervelliere (2)>
+[9@K ] <Cervelliere (3)>
+[1@L ] <Cervelliere (4)>
+[2@L ] <Cervelliere (5)>
+[3@L ] <Cervelliere (6)>
+[4@L ] <Cervelliere (Sacred)>
+[639 ] <Chain Boots (1)>
+[685 ] <Chain Boots (2)>
+[731 ] <Chain Boots (3)>
+[777 ] <Chain Boots (4)>
+[823 ] <Chain Boots (5)>
+[869 ] <Chain Boots (6)>
+[@40 ] <Chain Boots (Sacred)>
+[634 ] <Chain Gloves (1)>
+[680 ] <Chain Gloves (2)>
+[726 ] <Chain Gloves (3)>
+[772 ] <Chain Gloves (4)>
+[818 ] <Chain Gloves (5)>
+[864 ] <Chain Gloves (6)>
+[@35 ] <Chain Gloves (Sacred)>
+[606 ] <Chain Mail (1)>
+[652 ] <Chain Mail (2)>
+[698 ] <Chain Mail (3)>
+[744 ] <Chain Mail (4)>
+[790 ] <Chain Mail (5)>
+[836 ] <Chain Mail (6)>
+[@07 ] <Chain Mail (Sacred)>
+[k01 ] <Circlet (1)>
+[k05 ] <Circlet (2)>
+[k09 ] <Circlet (3)>
+[k13 ] <Circlet (4)>
+[k17 ] <Circlet (5)>
+[k21 ] <Circlet (6)>
+[@67 ] <Circlet (Sacred)>
+[k02 ] <Coronet (1)>
+[k06 ] <Coronet (2)>
+[k10 ] <Coronet (3)>
+[k14 ] <Coronet (4)>
+[k18 ] <Coronet (5)>
+[k22 ] <Coronet (6)>
+[@68 ] <Coronet (Sacred)>
+[620 ] <Crown (1)>
+[666 ] <Crown (2)>
+[712 ] <Crown (3)>
+[758 ] <Crown (4)>
+[804 ] <Crown (5)>
+[850 ] <Crown (6)>
+[@21 ] <Crown (Sacred)>
+[w24 ] <Crown Shield (1)>
+[w44 ] <Crown Shield (2)>
+[w64 ] <Crown Shield (3)>
+[w84 ] <Crown Shield (4)>
+[e14 ] <Crown Shield (5)>
+[e34 ] <Crown Shield (6)>
+[@61 ] <Crown Shield (Sacred)>
+[w29 ] <Demon Head (1)>
+[w49 ] <Demon Head (2)>
+[w69 ] <Demon Head (3)>
+[w89 ] <Demon Head (4)>
+[e19 ] <Demon Head (5)>
+[e39 ] <Demon Head (6)>
+[@66 ] <Demon Head (Sacred)>
+[k04 ] <Diadem (1)>
+[k08 ] <Diadem (2)>
+[k12 ] <Diadem (3)>
+[k16 ] <Diadem (4)>
+[k20 ] <Diadem (5)>
+[k24 ] <Diadem (6)>
+[@70 ] <Diadem (Sacred)>
+[5@L ] <Einherjar Helm (1)>
+[6@L ] <Einherjar Helm (2)>
+[7@L ] <Einherjar Helm (3)>
+[8@L ] <Einherjar Helm (4)>
+[9@L ] <Einherjar Helm (5)>
+[1@M ] <Einherjar Helm (6)>
+[2@M ] <Einherjar Helm (Sacred)>
+[w13 ] <Falcon Mask (1)>
+[w33 ] <Falcon Mask (2)>
+[w53 ] <Falcon Mask (3)>
+[w73 ] <Falcon Mask (4)>
+[w93 ] <Falcon Mask (5)>
+[e23 ] <Falcon Mask (6)>
+[@50 ] <Falcon Mask (Sacred)>
+[w16 ] <Fanged Helm (1)>
+[w36 ] <Fanged Helm (2)>
+[w56 ] <Fanged Helm (3)>
+[w76 ] <Fanged Helm (4)>
+[w96 ] <Fanged Helm (5)>
+[e26 ] <Fanged Helm (6)>
+[@53 ] <Fanged Helm (Sacred)>
+[610 ] <Field Plate (1)>
+[656 ] <Field Plate (2)>
+[702 ] <Field Plate (3)>
+[748 ] <Field Plate (4)>
+[794 ] <Field Plate (5)>
+[840 ] <Field Plate (6)>
+[@11 ] <Field Plate (Sacred)>
+[618 ] <Full Helm (1)>
+[664 ] <Full Helm (2)>
+[710 ] <Full Helm (3)>
+[756 ] <Full Helm (4)>
+[802 ] <Full Helm (5)>
+[848 ] <Full Helm (6)>
+[@19 ] <Full Helm (Sacred)>
+[613 ] <Full Plate Mail (1)>
+[659 ] <Full Plate Mail (2)>
+[705 ] <Full Plate Mail (3)>
+[751 ] <Full Plate Mail (4)>
+[797 ] <Full Plate Mail (5)>
+[843 ] <Full Plate Mail (6)>
+[@14 ] <Full Plate Mail (Sacred)>
+[1@G ] <Gambeson (1)>
+[2@G ] <Gambeson (2)>
+[3@G ] <Gambeson (3)>
+[4@G ] <Gambeson (4)>
+[5@G ] <Gambeson (5)>
+[6@G ] <Gambeson (6)>
+[7@G ] <Gambeson (Sacred)>
+[w28 ] <Gargoyle Head (1)>
+[w48 ] <Gargoyle Head (2)>
+[w68 ] <Gargoyle Head (3)>
+[w88 ] <Gargoyle Head (4)>
+[e18 ] <Gargoyle Head (5)>
+[e38 ] <Gargoyle Head (6)>
+[@65 ] <Gargoyle Head (Sacred)>
+[636 ] <Gauntlets (1)>
+[682 ] <Gauntlets (2)>
+[728 ] <Gauntlets (3)>
+[774 ] <Gauntlets (4)>
+[820 ] <Gauntlets (5)>
+[866 ] <Gauntlets (6)>
+[@37 ] <Gauntlets (Sacred)>
+[36! ] <Gilded Shield (1)>
+[37! ] <Gilded Shield (2)>
+[38! ] <Gilded Shield (3)>
+[39! ] <Gilded Shield (4)>
+[40! ] <Gilded Shield (5)>
+[41! ] <Gilded Shield (6)>
+[42! ] <Gilded Shield (Sacred)>
+[612 ] <Gothic Plate (1)>
+[658 ] <Gothic Plate (2)>
+[704 ] <Gothic Plate (3)>
+[750 ] <Gothic Plate (4)>
+[796 ] <Gothic Plate (5)>
+[842 ] <Gothic Plate (6)>
+[@13 ] <Gothic Plate (Sacred)>
+[626 ] <Gothic Shield (1)>
+[672 ] <Gothic Shield (2)>
+[718 ] <Gothic Shield (3)>
+[764 ] <Gothic Shield (4)>
+[810 ] <Gothic Shield (5)>
+[856 ] <Gothic Shield (6)>
+[@27 ] <Gothic Shield (Sacred)>
+[619 ] <Great Helm (1)>
+[665 ] <Great Helm (2)>
+[711 ] <Great Helm (3)>
+[757 ] <Great Helm (4)>
+[803 ] <Great Helm (5)>
+[849 ] <Great Helm (6)>
+[@20 ] <Great Helm (Sacred)>
+[641 ] <Greaves (1)>
+[687 ] <Greaves (2)>
+[733 ] <Greaves (3)>
+[779 ] <Greaves (4)>
+[825 ] <Greaves (5)>
+[871 ] <Greaves (6)>
+[@42 ] <Greaves (Sacred)>
+[602 ] <Hard Leather Armor (1)>
+[648 ] <Hard Leather Armor (2)>
+[694 ] <Hard Leather Armor (3)>
+[740 ] <Hard Leather Armor (4)>
+[786 ] <Hard Leather Armor (5)>
+[832 ] <Hard Leather Armor (6)>
+[@03 ] <Hard Leather Armor (Sacred)>
+[w11 ] <Hawk Helm (1)>
+[w31 ] <Hawk Helm (2)>
+[w51 ] <Hawk Helm (3)>
+[w71 ] <Hawk Helm (4)>
+[w91 ] <Hawk Helm (5)>
+[e21 ] <Hawk Helm (6)>
+[@48 ] <Hawk Helm (Sacred)>
+[630 ] <Heavy Belt (1)>
+[676 ] <Heavy Belt (2)>
+[722 ] <Heavy Belt (3)>
+[768 ] <Heavy Belt (4)>
+[814 ] <Heavy Belt (5)>
+[860 ] <Heavy Belt (6)>
+[@31 ] <Heavy Belt (Sacred)>
+[638 ] <Heavy Boots (1)>
+[684 ] <Heavy Boots (2)>
+[730 ] <Heavy Boots (3)>
+[776 ] <Heavy Boots (4)>
+[822 ] <Heavy Boots (5)>
+[868 ] <Heavy Boots (6)>
+[@39 ] <Heavy Boots (Sacred)>
+[633 ] <Heavy Gloves (1)>
+[679 ] <Heavy Gloves (2)>
+[725 ] <Heavy Gloves (3)>
+[771 ] <Heavy Gloves (4)>
+[817 ] <Heavy Gloves (5)>
+[863 ] <Heavy Gloves (6)>
+[@34 ] <Heavy Gloves (Sacred)>
+[617 ] <Helm (1)>
+[663 ] <Helm (2)>
+[709 ] <Helm (3)>
+[755 ] <Helm (4)>
+[801 ] <Helm (5)>
+[847 ] <Helm (6)>
+[@18 ] <Helm (Sacred)>
+[w22 ] <Heraldic Shield (1)>
+[w42 ] <Heraldic Shield (2)>
+[w62 ] <Heraldic Shield (3)>
+[w82 ] <Heraldic Shield (4)>
+[e12 ] <Heraldic Shield (5)>
+[e32 ] <Heraldic Shield (6)>
+[@59 ] <Heraldic Shield (Sacred)>
+[w17 ] <Horned Helm (1)>
+[w37 ] <Horned Helm (2)>
+[w57 ] <Horned Helm (3)>
+[w77 ] <Horned Helm (4)>
+[w97 ] <Horned Helm (5)>
+[e27 ] <Horned Helm (6)>
+[@54 ] <Horned Helm (Sacred)>
+[43! ] <Hundsgugel (1)>
+[44! ] <Hundsgugel (2)>
+[45! ] <Hundsgugel (3)>
+[46! ] <Hundsgugel (4)>
+[47! ] <Hundsgugel (5)>
+[48! ] <Hundsgugel (6)>
+[49! ] <Hundsgugel (Sacred)>
+[w15 ] <Jawbone Cap (1)>
+[w35 ] <Jawbone Cap (2)>
+[w55 ] <Jawbone Cap (3)>
+[w75 ] <Jawbone Cap (4)>
+[w95 ] <Jawbone Cap (5)>
+[e25 ] <Jawbone Cap (6)>
+[@52 ] <Jawbone Cap (Sacred)>
+[6@H ] <Kazarghand (1)>
+[7@H ] <Kazarghand (2)>
+[8@H ] <Kazarghand (3)>
+[9@H ] <Kazarghand (4)>
+[1@I ] <Kazarghand (5)>
+[2@I ] <Kazarghand (6)>
+[3@I ] <Kazarghand (Sacred)>
+[624 ] <Kite Shield (1)>
+[670 ] <Kite Shield (2)>
+[716 ] <Kite Shield (3)>
+[762 ] <Kite Shield (4)>
+[808 ] <Kite Shield (5)>
+[854 ] <Kite Shield (6)>
+[@25 ] <Kite Shield (Sacred)>
+[8@G ] <Lamellar Armor (1)>
+[9@G ] <Lamellar Armor (2)>
+[1@H ] <Lamellar Armor (3)>
+[2@H ] <Lamellar Armor (4)>
+[3@H ] <Lamellar Armor (5)>
+[4@H ] <Lamellar Armor (6)>
+[5@H ] <Lamellar Armor (Sacred)>
+[623 ] <Large Shield (1)>
+[669 ] <Large Shield (2)>
+[715 ] <Large Shield (3)>
+[761 ] <Large Shield (4)>
+[807 ] <Large Shield (5)>
+[853 ] <Large Shield (6)>
+[@24 ] <Large Shield (Sacred)>
+[601 ] <Leather Armor (1)>
+[647 ] <Leather Armor (2)>
+[693 ] <Leather Armor (3)>
+[739 ] <Leather Armor (4)>
+[785 ] <Leather Armor (5)>
+[831 ] <Leather Armor (6)>
+[@02 ] <Leather Armor (Sacred)>
+[632 ] <Leather Gloves (1)>
+[678 ] <Leather Gloves (2)>
+[724 ] <Leather Gloves (3)>
+[770 ] <Leather Gloves (4)>
+[816 ] <Leather Gloves (5)>
+[862 ] <Leather Gloves (6)>
+[@33 ] <Leather Gloves (Sacred)>
+[628 ] <Light Belt (1)>
+[674 ] <Light Belt (2)>
+[720 ] <Light Belt (3)>
+[766 ] <Light Belt (4)>
+[812 ] <Light Belt (5)>
+[858 ] <Light Belt (6)>
+[@29 ] <Light Belt (Sacred)>
+[635 ] <Light Gauntlets (1)>
+[681 ] <Light Gauntlets (2)>
+[727 ] <Light Gauntlets (3)>
+[773 ] <Light Gauntlets (4)>
+[819 ] <Light Gauntlets (5)>
+[865 ] <Light Gauntlets (6)>
+[@36 ] <Light Gauntlets (Sacred)>
+[611 ] <Light Plate (1)>
+[657 ] <Light Plate (2)>
+[703 ] <Light Plate (3)>
+[749 ] <Light Plate (4)>
+[795 ] <Light Plate (5)>
+[841 ] <Light Plate (6)>
+[@12 ] <Light Plate (Sacred)>
+[640 ] <Light Plated Boots (1)>
+[686 ] <Light Plated Boots (2)>
+[732 ] <Light Plated Boots (3)>
+[778 ] <Light Plated Boots (4)>
+[824 ] <Light Plated Boots (5)>
+[870 ] <Light Plated Boots (6)>
+[@41 ] <Light Plated Boots (Sacred)>
+[644 ] <Mask (1)>
+[690 ] <Mask (2)>
+[736 ] <Mask (3)>
+[782 ] <Mask (4)>
+[828 ] <Mask (5)>
+[874 ] <Mask (6)>
+[@45 ] <Mask (Sacred)>
+[9@J ] <Morion (1)>
+[1@K ] <Morion (2)>
+[2@K ] <Morion (3)>
+[3@K ] <Morion (4)>
+[4@K ] <Morion (5)>
+[5@K ] <Morion (6)>
+[6@K ] <Morion (Sacred)>
+[1@N ] <Parma (1)>
+[2@N ] <Parma (2)>
+[3@N ] <Parma (3)>
+[4@N ] <Parma (4)>
+[5@N ] <Parma (5)>
+[6@N ] <Parma (6)>
+[7@N ] <Parma (Sacred)>
+[08! ] <Phoenix Shield (1)>
+[09! ] <Phoenix Shield (2)>
+[10! ] <Phoenix Shield (3)>
+[11! ] <Phoenix Shield (4)>
+[12! ] <Phoenix Shield (5)>
+[13! ] <Phoenix Shield (6)>
+[14! ] <Phoenix Shield (Sacred)>
+[609 ] <Plate Mail (1)>
+[655 ] <Plate Mail (2)>
+[701 ] <Plate Mail (3)>
+[747 ] <Plate Mail (4)>
+[793 ] <Plate Mail (5)>
+[839 ] <Plate Mail (6)>
+[@10 ] <Plate Mail (Sacred)>
+[631 ] <Plated Belt (1)>
+[677 ] <Plated Belt (2)>
+[723 ] <Plated Belt (3)>
+[769 ] <Plated Belt (4)>
+[815 ] <Plated Belt (5)>
+[861 ] <Plated Belt (6)>
+[@32 ] <Plated Belt (Sacred)>
+[w25 ] <Preserved Head (1)>
+[w45 ] <Preserved Head (2)>
+[w65 ] <Preserved Head (3)>
+[w85 ] <Preserved Head (4)>
+[e15 ] <Preserved Head (5)>
+[e35 ] <Preserved Head (6)>
+[@62 ] <Preserved Head (Sacred)>
+[600 ] <Quilted Armor (1)>
+[646 ] <Quilted Armor (2)>
+[692 ] <Quilted Armor (3)>
+[738 ] <Quilted Armor (4)>
+[784 ] <Quilted Armor (5)>
+[830 ] <Quilted Armor (6)>
+[@01 ] <Quilted Armor (Sacred)>
+[604 ] <Ring Mail (1)>
+[650 ] <Ring Mail (2)>
+[696 ] <Ring Mail (3)>
+[742 ] <Ring Mail (4)>
+[788 ] <Ring Mail (5)>
+[834 ] <Ring Mail (6)>
+[@05 ] <Ring Mail (Sacred)>
+[w21 ] <Rondache (1)>
+[w41 ] <Rondache (2)>
+[w61 ] <Rondache (3)>
+[w81 ] <Rondache (4)>
+[e11 ] <Rondache (5)>
+[e31 ] <Rondache (6)>
+[@58 ] <Rondache (Sacred)>
+[627 ] <Sash (1)>
+[673 ] <Sash (2)>
+[719 ] <Sash (3)>
+[765 ] <Sash (4)>
+[811 ] <Sash (5)>
+[857 ] <Sash (6)>
+[@28 ] <Sash (Sacred)>
+[605 ] <Scale Mail (1)>
+[651 ] <Scale Mail (2)>
+[697 ] <Scale Mail (3)>
+[743 ] <Scale Mail (4)>
+[789 ] <Scale Mail (5)>
+[835 ] <Scale Mail (6)>
+[@06 ] <Scale Mail (Sacred)>
+[15! ] <Setzschild (1)>
+[16! ] <Setzschild (2)>
+[17! ] <Setzschild (3)>
+[18! ] <Setzschild (4)>
+[19! ] <Setzschild (5)>
+[20! ] <Setzschild (6)>
+[21! ] <Setzschild (Sacred)>
+[616 ] <Skull Cap (1)>
+[662 ] <Skull Cap (2)>
+[708 ] <Skull Cap (3)>
+[754 ] <Skull Cap (4)>
+[800 ] <Skull Cap (5)>
+[846 ] <Skull Cap (6)>
+[@17 ] <Skull Cap (Sacred)>
+[622 ] <Small Shield (1)>
+[668 ] <Small Shield (2)>
+[714 ] <Small Shield (3)>
+[760 ] <Small Shield (4)>
+[806 ] <Small Shield (5)>
+[852 ] <Small Shield (6)>
+[@23 ] <Small Shield (Sacred)>
+[3@M ] <Spangenhelm (1)>
+[4@M ] <Spangenhelm (2)>
+[5@M ] <Spangenhelm (3)>
+[6@M ] <Spangenhelm (4)>
+[7@M ] <Spangenhelm (5)>
+[8@M ] <Spangenhelm (6)>
+[9@M ] <Spangenhelm (Sacred)>
+[643 ] <Spiked Shield (1)>
+[689 ] <Spiked Shield (2)>
+[735 ] <Spiked Shield (3)>
+[781 ] <Spiked Shield (4)>
+[827 ] <Spiked Shield (5)>
+[873 ] <Spiked Shield (6)>
+[@44 ] <Spiked Shield (Sacred)>
+[w14 ] <Spirit Mask (1)>
+[w34 ] <Spirit Mask (2)>
+[w54 ] <Spirit Mask (3)>
+[w74 ] <Spirit Mask (4)>
+[w94 ] <Spirit Mask (5)>
+[e24 ] <Spirit Mask (6)>
+[@51 ] <Spirit Mask (Sacred)>
+[608 ] <Splint Mail (1)>
+[654 ] <Splint Mail (2)>
+[700 ] <Splint Mail (3)>
+[746 ] <Splint Mail (4)>
+[792 ] <Splint Mail (5)>
+[838 ] <Splint Mail (6)>
+[@09 ] <Splint Mail (Sacred)>
+[603 ] <Studded Leather (1)>
+[649 ] <Studded Leather (2)>
+[695 ] <Studded Leather (3)>
+[741 ] <Studded Leather (4)>
+[787 ] <Studded Leather (5)>
+[833 ] <Studded Leather (6)>
+[@04 ] <Studded Leather (Sacred)>
+[w20 ] <Targe (1)>
+[w40 ] <Targe (2)>
+[w60 ] <Targe (3)>
+[w80 ] <Targe (4)>
+[e10 ] <Targe (5)>
+[e30 ] <Targe (6)>
+[@57 ] <Targe (Sacred)>
+[k03 ] <Tiara (1)>
+[k07 ] <Tiara (2)>
+[k11 ] <Tiara (3)>
+[k15 ] <Tiara (4)>
+[k19 ] <Tiara (5)>
+[k23 ] <Tiara (6)>
+[@69 ] <Tiara (Sacred)>
+[6@O ] <Totem Shield (1)>
+[7@O ] <Totem Shield (2)>
+[8@O ] <Totem Shield (3)>
+[9@O ] <Totem Shield (4)>
+[1@P ] <Totem Shield (5)>
+[2@P ] <Totem Shield (6)>
+[3@P ] <Totem Shield (Sacred)>
+[625 ] <Tower Shield (1)>
+[671 ] <Tower Shield (2)>
+[717 ] <Tower Shield (3)>
+[763 ] <Tower Shield (4)>
+[809 ] <Tower Shield (5)>
+[855 ] <Tower Shield (6)>
+[@26 ] <Tower Shield (Sacred)>
+[w27 ] <Unraveller Head (1)>
+[w47 ] <Unraveller Head (2)>
+[w67 ] <Unraveller Head (3)>
+[w87 ] <Unraveller Head (4)>
+[e17 ] <Unraveller Head (5)>
+[e37 ] <Unraveller Head (6)>
+[@64 ] <Unraveller Head (Sacred)>
+[w10 ] <Wolf Head (1)>
+[w30 ] <Wolf Head (2)>
+[w50 ] <Wolf Head (3)>
+[w70 ] <Wolf Head (4)>
+[w90 ] <Wolf Head (5)>
+[e20 ] <Wolf Head (6)>
+[@47 ] <Wolf Head (Sacred)>
+[w26 ] <Zombie Head (1)>
+[w46 ] <Zombie Head (2)>
+[w66 ] <Zombie Head (3)>
+[w86 ] <Zombie Head (4)>
+[e16 ] <Zombie Head (5)>
+[e36 ] <Zombie Head (6)>
+[@63 ] <Zombie Head (Sacred)>
+[Ysh4] <Mage's Plate>
+[Ysh5] <Divine Guard>
+[Ysh6] <Sorcerer's Mask>
+[Ysh7] <Mana Belt>
+[Ysh8] <Warkeepers>
+[Ysh9] <Winged Feet>
+{misc}
+[elx ] <Elixir>
+[hpo ] <FLYING POLAR BUFFALO ERROR>
+[mpo ] <FLYING POLAR BUFFALO ERROR>
+[hpf ] <FLYING POLAR BUFFALO ERROR>
+[mpf ] <FLYING POLAR BUFFALO ERROR>
+[vps ] <Stamina Potion>
+[yps ] <Antidote Potion>
+[rvs ] <Rejuvenation Potion>
+[rvl ] <Full Rejuvenation Potion>
+[wms ] <Thawing Potion>
+[tbk ] <Tome of Town Portal>
+[ibk ] <Tome of Identify>
+[amu ] <Amulet>
+[vip ] <Top of the Horadric Staff>
+[rin ] <Ring>
+[gld ] <Gold>
+[bks ] <Scroll of Inifuss>
+[bkd ] <Key to the Cairn Stones>
+[aqv ] <Arrow Quiver>
+[tch ] <Torch>
+[cqv ] <Bolt Quiver>
+[tsc ] <Scroll of Town Portal>
+[isc ] <Scroll of Identify>
+[hrt ] <Heart>
+[brz ] <Brain>
+[jaw ] <Jawbone>
+[eyz ] <Eye>
+[hrn ] <Horn>
+[tal ] <Tail>
+[flg ] <Flag>
+[fng ] <Fang>
+[qll ] <Quill>
+[sol ] <Soul>
+[scz ] <Scalp>
+[spe ] <Spleen>
+[key ] <Key>
+[luv ] <The Black Tower Key>
+[xyz ] <Right Click to permanently add 20 to Life|Potion of Life>
+[j34 ] <A Jade Figurine>
+[g34 ] <The Golden Bird>
+[bbb ] <Lam Esen's Tome>
+[box ] <Horadric Cube>
+[tr1 ] <Horadric Scroll>
+[mss ] <Mephisto's Soulstone>
+[ass ] <Right Click to learn skill of your choice|Book of Skill>
+[qey ] <Khalim's Eye>
+[qhr ] <Khalim's Heart>
+[qbr ] <Khalim's Brain>
+[ear ] <Ear>
+[gcv ] <Chipped Amethyst>
+[gfv ] <Flawed Amethyst>
+[gsv ] <Amethyst>
+[gzv ] <Flawless Amethyst>
+[gpv ] <Perfect Amethyst>
+[gcy ] <Chipped Topaz>
+[gfy ] <Flawed Topaz>
+[gsy ] <Topaz>
+[gly ] <Flawless Topaz>
+[gpy ] <Perfect Topaz>
+[gcb ] <Chipped Sapphire>
+[gfb ] <Flawed Sapphire>
+[gsb ] <Sapphire>
+[glb ] <Flawless Sapphire>
+[gpb ] <Perfect Sapphire>
+[gcg ] <Chipped Emerald>
+[gfg ] <Flawed Emerald>
+[gsg ] <Emerald>
+[glg ] <Flawless Emerald>
+[gpg ] <Perfect Emerald>
+[gcr ] <Chipped Ruby>
+[gfr ] <Flawed Ruby>
+[gsr ] <Ruby>
+[glr ] <Flawless Ruby>
+[gpr ] <Perfect Ruby>
+[gcw ] <Chipped Diamond>
+[gfw ] <Flawed Diamond>
+[gsw ] <Diamond>
+[glw ] <Flawless Diamond>
+[gpw ] <Perfect Diamond>
+[hp1 ] <Minor Healing Potion>
+[hp2 ] <Light Healing Potion>
+[hp3 ] <Healing Potion>
+[hp4 ] <Greater Healing Potion>
+[hp5 ] <Super Healing Potion>
+[mp1 ] <Minor Mana Potion>
+[mp2 ] <Light Mana Potion>
+[mp3 ] <Mana Potion>
+[mp4 ] <Greater Mana Potion>
+[mp5 ] <Super Mana Potion>
+[skc ] <Chipped Skull>
+[skf ] <Flawed Skull>
+[sku ] <Skull>
+[skl ] <Flawless Skull>
+[skz ] <Perfect Skull>
+[hrb ] <Herb>
+[cm1 ] <Cycle>
+[cm2 ] <Cycle>
+[cm3 ] <Cycle>
+[rps ] <FLYING POLAR BUFFALO ERROR>
+[rpl ] <FLYING POLAR BUFFALO ERROR>
+[bps ] <FLYING POLAR BUFFALO ERROR>
+[bpl ] <FLYING POLAR BUFFALO ERROR>
+[r01 ] <El Rune>
+[r02 ] <Eld Rune>
+[r03 ] <Tir Rune>
+[r04 ] <Nef Rune>
+[r05 ] <Eth Rune>
+[r06 ] <Ith Rune>
+[r07 ] <Tal Rune>
+[r08 ] <Ral Rune>
+[r09 ] <Ort Rune>
+[r10 ] <Thul Rune>
+[r11 ] <Amn Rune>
+[r12 ] <Sol Rune>
+[r13 ] <Shael Rune>
+[r14 ] <Dol Rune>
+[r15 ] <Hel Rune>
+[r16 ] <Io Rune>
+[r17 ] <Lum Rune>
+[r18 ] <Ko Rune>
+[r19 ] <Fal Rune>
+[r20 ] <Lem Rune>
+[r21 ] <Pul Rune>
+[r22 ] <Um Rune>
+[r23 ] <Mal Rune>
+[r24 ] <Ist Rune>
+[r25 ] <Gul Rune>
+[r26 ] <Vex Rune>
+[r27 ] <Ohm Rune>
+[r28 ] <Lo Rune>
+[r29 ] <Sur Rune>
+[r30 ] <Ber Rune>
+[r31 ] <Jah Rune>
+[r32 ] <Cham Rune>
+[r33 ] <Zod Rune>
+[jew ] <Jewel>
+[ice ] <Keep it to thaw Anya|Malah's Potion>
+[0sc ] <Scroll of Knowledge>
+[tr2 ] <Cube Reagent|Scroll of Resistance>
+[dr1 ] <Amulet>
+[dr2 ] <Amulet>
+[dr3 ] <Amulet>
+[dr4 ] <Amulet>
+[dr5 ] <Amulet>
+[ba1 ] <Amulet>
+[ba2 ] <Amulet>
+[ba3 ] <Amulet>
+[ba4 ] <Amulet>
+[ba5 ] <Amulet>
+[pa1 ] <Amulet>
+[pa2 ] <Amulet>
+[pa3 ] <Amulet>
+[pa4 ] <Amulet>
+[pa5 ] <Amulet>
+[ne1 ] <Amulet>
+[ne2 ] <Amulet>
+[ne3 ] <Amulet>
+[ne4 ] <Amulet>
+[ne5 ] <Amulet>
+[dr6 ] <Amulet>
+[dr7 ] <Amulet>
+[dr8 ] <Amulet>
+[dr9 ] <Amulet>
+[dra ] <Amulet>
+[ba6 ] <Amulet>
+[ba7 ] <Amulet>
+[ba8 ] <Amulet>
+[ba9 ] <Amulet>
+[baa ] <Amulet>
+[pa6 ] <Amulet>
+[pa7 ] <Amulet>
+[pa8 ] <Amulet>
+[pa9 ] <Amulet>
+[paa ] <Amulet>
+[ne6 ] <Amulet>
+[ne7 ] <Amulet>
+[ne8 ] <Amulet>
+[ne9 ] <Amulet>
+[nea ] <Amulet>
+[drb ] <Amulet>
+[drc ] <Amulet>
+[drd ] <Amulet>
+[dre ] <Amulet>
+[drf ] <Amulet>
+[bab ] <Amulet>
+[bac ] <Amulet>
+[bad ] <Amulet>
+[bae ] <Amulet>
+[baf ] <Amulet>
+[pab ] <Amulet>
+[pac ] <Amulet>
+[pad ] <Amulet>
+[pae ] <Amulet>
+[paf ] <Amulet>
+[neb ] <Amulet>
+[neg ] <Amulet>
+[ned ] <Amulet>
+[nee ] <Amulet>
+[nef ] <Amulet>
+[ktr ] <Amulet>
+[wrb ] <Amulet>
+[axf ] <Amulet>
+[ces ] <Amulet>
+[clw ] <Amulet>
+[btl ] <Amulet>
+[skr ] <Amulet>
+[9ar ] <Amulet>
+[9wb ] <Amulet>
+[9xf ] <Amulet>
+[9cs ] <Amulet>
+[9lw ] <Amulet>
+[9tw ] <Amulet>
+[9qr ] <Amulet>
+[7ar ] <Amulet>
+[7wb ] <Amulet>
+[7xf ] <Amulet>
+[7cs ] <Amulet>
+[7lw ] <Amulet>
+[7tw ] <Amulet>
+[7qr ] <Amulet>
+[ob1 ] <Amulet>
+[ob2 ] <Amulet>
+[ob3 ] <Amulet>
+[ob4 ] <Amulet>
+[ob5 ] <Amulet>
+[am1 ] <Amulet>
+[am2 ] <Amulet>
+[am3 ] <Amulet>
+[am4 ] <Amulet>
+[am5 ] <Amulet>
+[ob6 ] <Amulet>
+[ob7 ] <Amulet>
+[ob8 ] <Amulet>
+[ob9 ] <Amulet>
+[oba ] <Amulet>
+[am6 ] <Amulet>
+[am7 ] <Amulet>
+[am8 ] <Amulet>
+[am9 ] <Amulet>
+[ama ] <Amulet>
+[obb ] <Amulet>
+[obc ] <Amulet>
+[obd ] <Amulet>
+[obe ] <Amulet>
+[obf ] <Amulet>
+[amb ] <Amulet>
+[amc ] <Amulet>
+[amd ] <Amulet>
+[ame ] <Amulet>
+[amf ] <Amulet>
+[zen ] <Median XL 2017|- Welcome ->
+[ey2 ] <Elixir of Experience>
+[ey3 ] <Elixir of Greed>
+[ey4 ] <Elixir of Wealth>
+[ey9 ] <Elixir of Adrenaline (Disabled)>
+[et1 ] <Elixir of Concentration>
+[0g7 ] <Elixir of Power>
+[0g8 ] <Elixir of Love>
+[0g0 ] <Elixir of Greater Experience>
+[0g1 ] <Elixir of Greater Greed>
+[0g2 ] <Elixir of Greater Wealth>
+[vic ] <Cube Reagent|Sacrifical Heart>
+[mec ] <Cube Reagent|Meditation Candle>
+[abu ] <Do Not Use Ethereal Items Idiot>
+[s0m ] <Book of Summoning>
+[a55 ] <Optical Detector>
+[a56 ] <Azmodan's Heart>
+[a57 ] <Visions of Akarat>
+[a58 ] <Scroll of Kings>
+[a59 ] <Laser Focus Crystal>
+[a60 ] <The Butcher's Tooth>
+[a61 ] <Sacred Worldstone Key>
+[a66 ] <Idol of Vanity>
+[a67 ] <Congratulations. You got it!|Spirit of Damnation>
+[a68 ] <Horazon's Focus>
+[yq1 ] <Sunless Crystal Bird>
+[yq2 ] <Six Angel Bag>
+[yq7 ] <Hard Mode Charm>
+[yq8 ] <Zakarum's Ear>
+[yqx ] <Spirit Trance Herb>
+[yqe ] <By Richard Knaak|Moon of the Spider>
+[x0x ] <Eternal Bone Pile>
+[x1x ] <Sunstone of Fire>
+[x2x ] <Sunstone of Ice>
+[x3x ] <Sunstone of Thunder>
+[x4x ] <Sunstone of the Gods>
+[2x5 ] <Alpha Brain>
+[2x6 ] <Beta Brain>
+[2x7 ] <Gamma Brain>
+[2x8 ] <Delta Brain>
+[2x9 ] <Epsilon Brain>
+[adi ] <By Richard Knaak|Legacy of Blood>
+[0u1 ] <Hammer of the Taan Judges>
+[x01 ] <Sacred Sunstone>
+[x02 ] <Shadow Vortex>
+[x03 ] <Worldstone Orb>
+[x04 ] <Caoi Dulra Fruit>
+[x05 ] <Soulstone Shard>
+[x06 ] <Eye of Divinity>
+[x07 ] <Nexus Crystal>
+[yo1 ] <Chipped Rainbow Stone>
+[yo2 ] <Flawed Rainbow Stone>
+[yo3 ] <Rainbow Stone>
+[yo4 ] <Flawless Rainbow Stone>
+[yo5 ] <Perfect Rainbow Stone>
+[r34 ] <Sha Rune>
+[r35 ] <Lah Rune>
+[r36 ] <Kur Rune>
+[r37 ] <Ix Rune>
+[r38 ] <Thur Rune>
+[r39 ] <Nas Rune>
+[r40 ] <Ath Rune>
+[r41 ] <Kra Rune>
+[r42 ] <Vith Rune>
+[r43 ] <No Rune>
+[r44 ] <Yul Rune>
+[r45 ] <Thai Rune>
+[r46 ] <Rha Rune>
+[r47 ] <Xar Rune>
+[r48 ] <Nih Rune>
+[r49 ] <Lai Rune>
+[r50 ] <On Rune>
+[r51 ] <Great Rune|Taha Rune>
+[r52 ] <Great Rune|Ghal Rune>
+[r53 ] <Great Rune|Qor Rune>
+[qus ] <Cube Reagent (1/4)|Regular Arcane Crystal>
+[qut ] <Cube Reagent (2/4)|Glowing Arcane Crystal>
+[qux ] <Cube Reagent (3/4)|Brilliant Arcane Crystal>
+[quy ] <Cube Reagent (4/4)|Dazzling Arcane Crystal>
+[A0+ ] <Creepy Shrine (10)>
+[A1+ ] <Creepy Shrine (9)>
+[A2+ ] <Creepy Shrine (8)>
+[A3+ ] <Creepy Shrine (7)>
+[A4+ ] <Creepy Shrine (6)>
+[A5+ ] <Creepy Shrine (5)>
+[A6+ ] <Creepy Shrine (4)>
+[A7+ ] <Creepy Shrine (3)>
+[A8+ ] <Creepy Shrine (2)>
+[A9+ ] <Creepy Shrine (1)>
+[B0+ ] <Abandoned Shrine (10)>
+[B1+ ] <Abandoned Shrine (9)>
+[B2+ ] <Abandoned Shrine (8)>
+[B3+ ] <Abandoned Shrine (7)>
+[B4+ ] <Abandoned Shrine (6)>
+[B5+ ] <Abandoned Shrine (5)>
+[B6+ ] <Abandoned Shrine (4)>
+[B7+ ] <Abandoned Shrine (3)>
+[B8+ ] <Abandoned Shrine (2)>
+[B9+ ] <Abandoned Shrine (1)>
+[C0+ ] <Quiet Shrine (10)>
+[C1+ ] <Quiet Shrine (9)>
+[C2+ ] <Quiet Shrine (8)>
+[C3+ ] <Quiet Shrine (7)>
+[C4+ ] <Quiet Shrine (6)>
+[C5+ ] <Quiet Shrine (5)>
+[C6+ ] <Quiet Shrine (4)>
+[C7+ ] <Quiet Shrine (3)>
+[C8+ ] <Quiet Shrine (2)>
+[C9+ ] <Quiet Shrine (1)>
+[D0+ ] <Eerie Shrine (10)>
+[D1+ ] <Eerie Shrine (9)>
+[D2+ ] <Eerie Shrine (8)>
+[D3+ ] <Eerie Shrine (7)>
+[D4+ ] <Eerie Shrine (6)>
+[D5+ ] <Eerie Shrine (5)>
+[D6+ ] <Eerie Shrine (4)>
+[D7+ ] <Eerie Shrine (3)>
+[D8+ ] <Eerie Shrine (2)>
+[D9+ ] <Eerie Shrine (1)>
+[E0+ ] <Weird Shrine (10)>
+[E1+ ] <Weird Shrine (9)>
+[E2+ ] <Weird Shrine (8)>
+[E3+ ] <Weird Shrine (7)>
+[E4+ ] <Weird Shrine (6)>
+[E5+ ] <Weird Shrine (5)>
+[E6+ ] <Weird Shrine (4)>
+[E7+ ] <Weird Shrine (3)>
+[E8+ ] <Weird Shrine (2)>
+[E9+ ] <Weird Shrine (1)>
+[F0+ ] <Gloomy Shrine (10)>
+[F1+ ] <Gloomy Shrine (9)>
+[F2+ ] <Gloomy Shrine (8)>
+[F3+ ] <Gloomy Shrine (7)>
+[F4+ ] <Gloomy Shrine (6)>
+[F5+ ] <Gloomy Shrine (5)>
+[F6+ ] <Gloomy Shrine (4)>
+[F7+ ] <Gloomy Shrine (3)>
+[F8+ ] <Gloomy Shrine (2)>
+[F9+ ] <Gloomy Shrine (1)>
+[G0+ ] <Tainted Shrine (10)>
+[G1+ ] <Tainted Shrine (9)>
+[G2+ ] <Tainted Shrine (8)>
+[G3+ ] <Tainted Shrine (7)>
+[G4+ ] <Tainted Shrine (6)>
+[G5+ ] <Tainted Shrine (5)>
+[G6+ ] <Tainted Shrine (4)>
+[G7+ ] <Tainted Shrine (3)>
+[G8+ ] <Tainted Shrine (2)>
+[G9+ ] <Tainted Shrine (1)>
+[H0+ ] <Fascinating Shrine (10)>
+[H1+ ] <Fascinating Shrine (9)>
+[H2+ ] <Fascinating Shrine (8)>
+[H3+ ] <Fascinating Shrine (7)>
+[H4+ ] <Fascinating Shrine (6)>
+[H5+ ] <Fascinating Shrine (5)>
+[H6+ ] <Fascinating Shrine (4)>
+[H7+ ] <Fascinating Shrine (3)>
+[H8+ ] <Fascinating Shrine (2)>
+[H9+ ] <Fascinating Shrine (1)>
+[I0+ ] <Ornate Shrine (10)>
+[I1+ ] <Ornate Shrine (9)>
+[I2+ ] <Ornate Shrine (8)>
+[I3+ ] <Ornate Shrine (7)>
+[I4+ ] <Ornate Shrine (6)>
+[I5+ ] <Ornate Shrine (5)>
+[I6+ ] <Ornate Shrine (4)>
+[I7+ ] <Ornate Shrine (3)>
+[I8+ ] <Ornate Shrine (2)>
+[I9+ ] <Ornate Shrine (1)>
+[J0+ ] <Sacred Shrine (10)>
+[J1+ ] <Sacred Shrine (9)>
+[J2+ ] <Sacred Shrine (8)>
+[J3+ ] <Sacred Shrine (7)>
+[J4+ ] <Sacred Shrine (6)>
+[J5+ ] <Sacred Shrine (5)>
+[J6+ ] <Sacred Shrine (4)>
+[J7+ ] <Sacred Shrine (3)>
+[J8+ ] <Sacred Shrine (2)>
+[J9+ ] <Sacred Shrine (1)>
+[K0+ ] <Shimmering Shrine (10)>
+[K1+ ] <Shimmering Shrine (9)>
+[K2+ ] <Shimmering Shrine (8)>
+[K3+ ] <Shimmering Shrine (7)>
+[K4+ ] <Shimmering Shrine (6)>
+[K5+ ] <Shimmering Shrine (5)>
+[K6+ ] <Shimmering Shrine (4)>
+[K7+ ] <Shimmering Shrine (3)>
+[K8+ ] <Shimmering Shrine (2)>
+[K9+ ] <Shimmering Shrine (1)>
+[M0+ ] <Spiritual Shrine (10)>
+[M1+ ] <Spiritual Shrine (9)>
+[M2+ ] <Spiritual Shrine (8)>
+[M3+ ] <Spiritual Shrine (7)>
+[M4+ ] <Spiritual Shrine (6)>
+[M5+ ] <Spiritual Shrine (5)>
+[M6+ ] <Spiritual Shrine (4)>
+[M7+ ] <Spiritual Shrine (3)>
+[M8+ ] <Spiritual Shrine (2)>
+[M9+ ] <Spiritual Shrine (1)>
+[N0+ ] <Magical Shrine (10)>
+[N1+ ] <Magical Shrine (9)>
+[N2+ ] <Magical Shrine (8)>
+[N3+ ] <Magical Shrine (7)>
+[N4+ ] <Magical Shrine (6)>
+[N5+ ] <Magical Shrine (5)>
+[N6+ ] <Magical Shrine (4)>
+[N7+ ] <Magical Shrine (3)>
+[N8+ ] <Magical Shrine (2)>
+[N9+ ] <Magical Shrine (1)>
+[O0+ ] <Enchanted Shrine (10)>
+[O1+ ] <Enchanted Shrine (9)>
+[O2+ ] <Enchanted Shrine (8)>
+[O3+ ] <Enchanted Shrine (7)>
+[O4+ ] <Enchanted Shrine (6)>
+[O5+ ] <Enchanted Shrine (5)>
+[O6+ ] <Enchanted Shrine (4)>
+[O7+ ] <Enchanted Shrine (3)>
+[O8+ ] <Enchanted Shrine (2)>
+[O9+ ] <Enchanted Shrine (1)>
+[Q0+ ] <Hidden Shrine (10)>
+[Q1+ ] <Hidden Shrine (9)>
+[Q2+ ] <Hidden Shrine (8)>
+[Q3+ ] <Hidden Shrine (7)>
+[Q4+ ] <Hidden Shrine (6)>
+[Q5+ ] <Hidden Shrine (5)>
+[Q6+ ] <Hidden Shrine (4)>
+[Q7+ ] <Hidden Shrine (3)>
+[Q8+ ] <Hidden Shrine (2)>
+[Q9+ ] <Hidden Shrine (1)>
+[R0+ ] <Stone Shrine (10)>
+[R1+ ] <Stone Shrine (9)>
+[R2+ ] <Stone Shrine (8)>
+[R3+ ] <Stone Shrine (7)>
+[R4+ ] <Stone Shrine (6)>
+[R5+ ] <Stone Shrine (5)>
+[R6+ ] <Stone Shrine (4)>
+[R7+ ] <Stone Shrine (3)>
+[R8+ ] <Stone Shrine (2)>
+[R9+ ] <Stone Shrine (1)>
+[qmu ] <Amulet (Sacred)>
+[qin ] <Ring (Sacred)>
+[qqv ] <Arrow Quiver (Sacred)>
+[qqc ] <Bolt Quiver (Sacred)>
+[zkw ] <Signet of Gold>
+[zku ] <Signet of Experience>
+[zkq ] <Signet of Learning>
+[zkx ] <Greater Signet of Gold>
+[zky ] <Greater Signet of Learning>
+[zkr ] <Greater Signet of Experience>
+[zka ] <Signet of Gold>
+[zkb ] <Signet of Experience>
+[zkc ] <Signet of Learning>
+[zkd ] <Greater Signet of Gold>
+[zke ] <Greater Signet of Learning>
+[zkf ] <Greater Signet of Experience>
+[38+ ] <Cube Reagent|Mystic Orb>
+[61+ ] <Cube Reagent|Mystic Orb>
+[31+ ] <Cube Reagent|Mystic Orb>
+[51+ ] <Cube Reagent|Mystic Orb>
+[48+ ] <Cube Reagent|Mystic Orb>
+[25+ ] <Cube Reagent|Mystic Orb>
+[17+ ] <Cube Reagent|Mystic Orb>
+[20+ ] <Cube Reagent|Mystic Orb>
+[09+ ] <Cube Reagent|Mystic Orb>
+[14+ ] <Cube Reagent|Mystic Orb>
+[39+ ] <Cube Reagent|Mystic Orb>
+[60+ ] <Cube Reagent|Mystic Orb>
+[35+ ] <Cube Reagent|Mystic Orb>
+[50+ ] <Cube Reagent|Mystic Orb>
+[47+ ] <Cube Reagent|Mystic Orb>
+[03+ ] <Cube Reagent|Mystic Orb>
+[18+ ] <Cube Reagent|Mystic Orb>
+[24+ ] <Cube Reagent|Mystic Orb>
+[08+ ] <Cube Reagent|Mystic Orb>
+[12+ ] <Cube Reagent|Mystic Orb>
+[37+ ] <Cube Reagent|Mystic Orb>
+[40+ ] <Cube Reagent|Mystic Orb>
+[62+ ] <Cube Reagent|Mystic Orb>
+[52+ ] <Cube Reagent|Mystic Orb>
+[30+ ] <Cube Reagent|Mystic Orb>
+[04+ ] <Cube Reagent|Mystic Orb>
+[11+ ] <Cube Reagent|Mystic Orb>
+[23+ ] <Cube Reagent|Mystic Orb>
+[07+ ] <Cube Reagent|Mystic Orb>
+[13+ ] <Cube Reagent|Mystic Orb>
+[63+ ] <Cube Reagent|Mystic Orb>
+[33+ ] <Cube Reagent|Mystic Orb>
+[64+ ] <Cube Reagent|Mystic Orb>
+[27+ ] <Cube Reagent|Mystic Orb>
+[53+ ] <Cube Reagent|Mystic Orb>
+[02+ ] <Cube Reagent|Mystic Orb>
+[10+ ] <Cube Reagent|Mystic Orb>
+[22+ ] <Cube Reagent|Mystic Orb>
+[06+ ] <Cube Reagent|Mystic Orb>
+[15+ ] <Cube Reagent|Mystic Orb>
+[36+ ] <Cube Reagent|Mystic Orb>
+[32+ ] <Cube Reagent|Mystic Orb>
+[65+ ] <Cube Reagent|Mystic Orb>
+[26+ ] <Cube Reagent|Mystic Orb>
+[46+ ] <Cube Reagent|Mystic Orb>
+[01+ ] <Cube Reagent|Mystic Orb>
+[19+ ] <Cube Reagent|Mystic Orb>
+[21+ ] <Cube Reagent|Mystic Orb>
+[05+ ] <Cube Reagent|Mystic Orb>
+[16+ ] <Cube Reagent|Mystic Orb>
+[qul ] <Cube Reagent|Arcane Shards (1)>
+[quz ] <Boom!>
+[&66 ] <Mystic Orb|Kara's Trinket>
+[&67 ] <Mystic Orb|Monsterball>
+[&68 ] <Mystic Orb|Heart of Frost>
+[&69 ] <Mystic Orb|Relic of Yaerius>
+[&70 ] <Mystic Orb|The Endless Light>
+[&71 ] <Mystic Orb|Marksman's Eye>
+[&72 ] <Mystic Orb|Farnham's Lost Marble>
+[&73 ] <Mystic Orb|Zayl's Soul Orb>
+[&74 ] <Mystic Orb|Eye of Malic>
+[&75 ] <Mystic Orb|Apple of Discord>
+[&76 ] <Mystic Orb|Idol of Stars>
+[&77 ] <Mystic Orb|Nagapearl>
+[&78 ] <Mystic Orb|The Moon Crystal>
+[&79 ] <Mystic Orb|Auriel's Focus>
+[&80 ] <Mystic Orb|Solitude>
+[&81 ] <Mystic Orb|Larzuk's Round Shot>
+[&82 ] <Mystic Orb|Vizjun's Ball Bearing>
+[&83 ] <Mystic Orb|Nor Tiraj's Flaming Sphere>
+[&84 ] <Mystic Orb|The Demon Core>
+[&85 ] <Mystic Orb|Uldyssian's Spirit>
+[lok ] <Crystalline Flame Medallion>
+[g$a ] <Chipped Onyx>
+[g$b ] <Flawed Onyx>
+[g$c ] <Onyx>
+[g$d ] <Flawless Onyx>
+[g$e ] <Perfect Onyx>
+[9$a ] <Chipped Bloodstone>
+[9$b ] <Flawed Bloodstone>
+[9$c ] <Bloodstone>
+[9$d ] <Flawless Bloodstone>
+[9$e ] <Perfect Bloodstone>
+[7$a ] <Chipped Turquoise>
+[7$b ] <Flawed Turquoise>
+[7$c ] <Turquoise>
+[7$d ] <Flawless Turquoise>
+[7$e ] <Perfect Turquoise>
+[5$a ] <Chipped Amber>
+[5$b ] <Flawed Amber>
+[5$c ] <Amber>
+[5$d ] <Flawless Amber>
+[5$e ] <Perfect Amber>
+[az! ] <Fool's Gold>
+[aq! ] <Silver Seal of Ureh>
+[ab! ] <Astrogha's Venom Stinger>
+[qum ] <Cube Reagent|Arcane Crystal>
+[k@k ] <The Book of Lies>
+[l@l ] <Skinrender's Sigil>
+[m@m ] <Spinecracker's Sigil>
+[o@o ] <Eyegouger's Sigil>
+[p@p ] <Fleshcutter's Sigil>
+[q@q ] <Bonehexer's Sigil>
+[r@r ] <Ring of the Five>
+[s@s ] <Assur's Bane>
+[t@t ] <Demonsbane>
+[u@v ] <for an upgrade!|See the documentation|You're not cool enough!|Poser!>
+[b@b ] <Goodberry>
+[µ01 ] <Lord Aldric Jitan Trophy>
+[µ02 ] <Legacy of Blood Trophy>
+[µ03 ] <Judgement Day Trophy>
+[µ04 ] <Akarat Trophy>
+[µ05 ] <Kingdom of Shadow Trophy>
+[µ06 ] <Duncraig Trophy>
+[µ07 ] <Rathma Square Trophy>
+[µ08 ] <Cathedral of Vanity Trophy>
+[µ09 ] <Tran Athulua Trophy>
+[µ10 ] <Quov Tsin Trophy>
+[µ11 ] <Astrogha Trophy>
+[µ12 ] <Azmodan Trophy>
+[µ13 ] <MCS Trophy>
+[µ14 ] <Brother Laz Trophy>
+[w@w ] <Cold Fusion Schematics>
+[x@x ] <The Glorious Book of Median>
+[r54 ] <Great Rune|Krys Rune>
+[r55 ] <Great Rune|Auhe Rune>
+[r56 ] <Great Rune|Sha'ad Rune>
+[zog ] <Life Pack>
+[zoh ] <Energy Pack>
+[c@c ] <Moon Symbol>
+[toa ] <Belladonna Extract>
+[!@1 ] <Evil Eye of the Clawstorm>
+[!@2 ] <Evil Eye of the Landmass>
+[!@3 ] <Evil Eye of the Glowing Blob>
+[!@4 ] <Evil Eye of the Fairy Witch>
+[!@5 ] <Evil Eye of the Bane Hunter>
+[!@6 ] <Dogma of Suffering>
+[!@7 ] <Dogma of Pain>
+[!@8 ] <Dogma of Hatred>
+[!@9 ] <Dogma of Terror>
+[!@A ] <Dogma of Destruction>
+[!@B ] <Signet of Skill>
+[6oµ ] <Cube Reagent|Oil of Luck>
+[2oµ ] <Cube Reagent|Oil of Disjunction>
+[4oµ ] <Cube Reagent|Oil of Enhancement>
+[5oµ ] <Cube Reagent|Oil of Renewal>
+[1oµ ] <Cube Reagent|Oil of Duplication>
+[7oµ ] <Cube Reagent|Oil of Craft>
+[8oµ ] <Cube Reagent|Oil of Absolution>
+[0oµ ] <Cube Reagent|Catalyst of Learning>
+[3oµ ] <Cube Reagent|Catalyst of Disenchantment>
+[9oµ ] <Cube Reagent|Catalyst of Destruction>
+[u@+ ] <I Am Rich>
+[dog ] <Apple>
+[&86 ] <Mystic Orb|Orb of Annihilation>
+[&87 ] <Mystic Orb|Warbringer>
+[&88 ] <Mystic Orb|Ten Pin Striker>
+[&89 ] <Mystic Orb|Wrathspirit>
+[&90 ] <Mystic Orb|Crystal of Tears>
+[&91 ] <Mystic Orb|Essence of Itherael>
+[&92 ] <Mystic Orb|Periapt of Life>
+[&93 ] <Mystic Orb|Lodestone>
+[&94 ] <Mystic Orb|Explorer's Globe>
+[&95 ] <Mystic Orb|The Perfect Sphere>
+[yq9 ] <Aerial's Skull>
+[brx ] <Scroll of Kabraxis>
+[bxt ] <Kabraxis Trophy>
+[bxa ] <Soul of Kabraxis>
+[r99 ] <Primal Rune|Runestone>
+[>.< ] <Character Orb>
+[r58 ] <Elemental Rune|Earth Rune>
+[r59 ] <Elemental Rune|Magic Rune>
+[r60 ] <Elemental Rune|Poison Rune>
+[r61 ] <Elemental Rune|Light Rune>
+[r62 ] <Elemental Rune|Ice Rune>
+[r57 ] <Elemental Rune|Fire Rune>
+[Kx1 ] <Earth Essence>
+[Kx2 ] <Magic Essence>
+[Kx3 ] <Venomous Essence>
+[Kx4 ] <Lightning Essence>
+[Kx5 ] <Icy Essence>
+[Kx6 ] <Fiery Essence>
+[r98 ] <(Can't be Unsocketed)|Legendary Rune|Kabraxis' Stone>
+[k.Z ] <Key of Damnation>
+[kZ8 ] <Sunless Crystal Bird>
+[x#x ] <Elemental Prism>
+[##. ] <Uldyssian's Sword>
+[##/ ] <Uldyssian's Trophy>
+[@## ] <Cube Reagent|Deity's Bow>
+[#X1 ] <Cube Reagent (Secret)|Emblem of Suffering>
+[#X2 ] <Cube Reagent (Secret)|Emblem of Pain>
+[#X3 ] <Cube Reagent (Secret)|Emblem of Hatred>
+[#X4 ] <Cube Reagent (Secret)|Emblem of Terror>
+[#X5 ] <Cube Reagent (Secret)|Emblem of Destruction>
+[#X6 ] <Cube Reagent (Secret)|Emblem of Lies>
+[zk# ] <Large Signet of Learning>
+[#X7 ] <Level Challenge 0>
+[#X8 ] <Instructions|Level Challenge 0>
+[#X9 ] <Cube Reagent|Griswold's Treasure>
+[#X0 ] <Gem>
+[02^ ] <Custom Signet of Learning>
+[03^ ] <Custom Signet of Learning>
+[04^ ] <Custom Signet of Learning>
+[06^ ] <Custom Signet of Learning>
+[07^ ] <Custom Signet of Learning>
+[08^ ] <Custom Signet of Learning>
+[09^ ] <Custom Signet of Learning>
+[10^ ] <Custom Signet of Learning>
+[11^ ] <Custom Signet of Learning>
+[12^ ] <Custom Signet of Learning>
+[13^ ] <Custom Signet of Learning>
+[14^ ] <Custom Signet of Learning>
+[15^ ] <Custom Signet of Learning>
+[16^ ] <Custom Signet of Learning>
+[17^ ] <Custom Signet of Learning>
+[18^ ] <Custom Signet of Learning>
+[19^ ] <Custom Signet of Learning>
+[20^ ] <Custom Signet of Learning>
+[21^ ] <Custom Signet of Learning>
+[22^ ] <Custom Signet of Learning>
+[23^ ] <Custom Signet of Learning>
+[24^ ] <Custom Signet of Learning>
+[#1^ ] <Diablo's Essence>
+[#2^ ] <Pandora's Box>
+[#3^ ] <Cube Reagent|Arcane Shards (2)>
+[#4^ ] <Cube Reagent|Arcane Shards (3)>
+[#5^ ] <Cube Reagent|Arcane Shards (4)>
+[#Y^ ] <Creator's Hand|Congratulations!>
+[`^` ] <Trader's Chest>
+[r97 ] <Primal Rune|Runestone>
+[`^# ] <Mystic Shard>
+[`|# ] <The Sleep>
+[µ99 ] <Learn to Read Trophy>
+[µ98 ] <Cleanup Trophy>
+[||_ ] <Cube Reagent|Cursed Crystal>
+[||. ] <Cube Reagent|Blessed Crystal>
+[||` ] <Broken Crystal>
+[||l ] <Cube Reagent|Book of Cain>
+[||# ] <Book of Ultimative>
+[||* ] <Cube Reagent|Ancient Book>
+[||; ] <>
+[|\\ ] <The Ancient Repositories>
+[|\# ] <Xazax's Illusion>
+[*\+ ] <Signet of Gold>
+[\\1 ] <Great Rainbow Stone>
+[\\2 ] <Great Skull>
+[\\3 ] <Great Topaz>
+[\\4 ] <Great Saphire>
+[\\5 ] <Great Ruby>
+[lawl] <Soulkeeper|Congratulations!>
+[\\8 ] <Lucion's Soulstone>
+[µ15 ] <Triune Trophy>
+[\\7 ] <Tome of Possession>
+[\\6 ] <Mythic Cycle>
+[voi1] <Scroll of Greed>
+[voi2] <Scroll of Sloth>
+[voi3] <Scroll of Envy>
+[voi4] <Scroll of Wrath>
+[voi5] <Scroll of Gluttony>
+[voi6] <Scroll of Lust>
+[vor1] <Ring of Pride>
+[vor2] <Sigil of Deadly Sins>
+[voDX] <Cube Reagent|Enchanting Crystal>
+[voXX] <Rathma's Supremacy>
+[A0+S] <Creepy Vessel>
+[B0+S] <Abandoned Vessel>
+[C0+S] <Quiet Vessel>
+[D0+S] <Eerie Vessel>
+[E0+S] <Weird Vessel>
+[F0+S] <Gloomy Vessel>
+[G0+S] <Tainted Vessel>
+[H0+S] <Fascinating Vessel>
+[I0+S] <Ornate Vessel>
+[J0+S] <Sacred Vessel>
+[K0+S] <Shimmering Vessel>
+[M0+S] <Spiritual Vessel>
+[N0+S] <Magical Vessel>
+[O0+S] <Enchanted Vessel>
+[Q0+S] <Hidden Vessel>
+[R0+S] <Stone Vessel>
+[Ysh1] <Arcane Seal>
+[Ysh2] <Necklace>
+[mnx1] <Custom Signet of Learning>
+[mnx2] <Signet of Skill>
+[hnrx] <Cube Reagent|Mark of Infusion>
+[ripx] <Wings of the Departed>
+[slc1] <Level Challenge I|Scroll of Athulua>
+[slc2] <Level Challenge II|Scroll of the Zakarum>
+[senn] <Ennead Challenge|Scroll of Kurast>
+[brc1] <Black Road Challenge|Scroll of Fear>
+[brc2] <Black Road Challenge|Scroll of Greed>
+[brc3] <Black Road Challenge|Scroll of Contrition>
+[brc4] <Black Road Challenge|Scroll of Knowledge>
+[brc5] <Black Road Challenge|Scroll of Blood>
+[brc6] <Black Road Challenge|Scroll of Completion>
+[smi1] <Minigame|Scroll of Witches>
+[smi2] <Minigame|Scroll of Mirrors>
