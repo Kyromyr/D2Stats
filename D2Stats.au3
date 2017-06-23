@@ -10,9 +10,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.7.0)
-#pragma compile(FileVersion, 0.3.7.0)
-#pragma compile(Comments, 20.06.2017)
+#pragma compile(ProductVersion, 0.3.7.1)
+#pragma compile(FileVersion, 0.3.7.1)
+#pragma compile(Comments, 24.06.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -53,7 +53,7 @@ local $logstr = ""
 
 local $hotkey_enabled = False
 
-local $opts_general = 4
+local $opts_general = 6
 local $opts_notify = 6
 
 local $options[][5] = [ _
@@ -61,6 +61,8 @@ local $options[][5] = [ _
 ["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
 ["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
 ["nopickup", 0, "cb", "Automatically enable /nopickup", 0], _
+["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
+["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
 ["notify-enabled", 1, "cb", "Enable drop notifier", 0], _
 ["notify-tiered", 1, "cb", "Tiered uniques", 0], _
 ["notify-sacred", 1, "cb", "Sacred uniques / jewelry", 0], _
@@ -77,7 +79,7 @@ func Main()
 	_HotKey_Disable($HK_FLAG_D2STATS)
 
 	local $timer = TimerInit()
-	local $ingame
+	local $ingame, $showitems
 	
 	while 1
 		switch GUIGetMsg()
@@ -97,6 +99,20 @@ func Main()
 			UpdateGUIOptions() ; Must update options after hotkeys
 			
 			if (IsIngame()) then
+				if (IsShowItemsToggle()) then
+					if (GetGUIOption("toggleMsg")) then
+						if (_MemoryRead($d2client + 0xFADB4, $d2handle) == 0) then
+							if ($showitems) then PrintString("Not showing items.", 3)
+							$showitems = False
+						else
+							$showitems = True
+						endif
+					endif
+					if (not GetGUIOption("toggle")) then ToggleShowItems()
+				else
+					$showitems = False
+				endif
+				
 				if (GetGUIOption("nopickup") and not $ingame) then _MemoryWrite($d2client + 0x11C2F0, $d2handle, 1, "byte")
 				
 				if (GetGUIOption("notify-enabled")) then DropNotifier()
@@ -283,6 +299,11 @@ func HotKey_DropFilter()
 			_Debug("HotKey_DropFilter", "Failed to inject DropFilter.")
 		endif
 	endif
+endfunc
+
+func HotKey_ToggleShowItems()
+	if (not IsIngame()) then return
+	ToggleShowItems()
 endfunc
 #EndRegion
 
@@ -928,6 +949,63 @@ func EjectDropFilter($handle)
 	if ($ret) then _MemoryWrite($d2client + 0x5907E, $d2handle, "0x833E040F85", "byte[5]")
 	
 	return $ret
+endfunc
+
+#cs
+D2Client.dll+3AECF - A3 *                  - mov [D2Client.dll+FADB4],eax { [00000000] }
+-->
+D2Client.dll+3AECF - 90                    - nop 
+D2Client.dll+3AED0 - 90                    - nop 
+D2Client.dll+3AED1 - 90                    - nop 
+D2Client.dll+3AED2 - 90                    - nop 
+D2Client.dll+3AED3 - 90                    - nop 
+
+
+D2Client.dll+3B224 - CC                    - int 3 
+D2Client.dll+3B225 - CC                    - int 3 
+D2Client.dll+3B226 - CC                    - int 3 
+D2Client.dll+3B227 - CC                    - int 3 
+D2Client.dll+3B228 - CC                    - int 3 
+D2Client.dll+3B229 - CC                    - int 3 
+D2Client.dll+3B22A - CC                    - int 3 
+D2Client.dll+3B22B - CC                    - int 3 
+D2Client.dll+3B22C - CC                    - int 3 
+D2Client.dll+3B22D - CC                    - int 3 
+D2Client.dll+3B22E - CC                    - int 3 
+D2Client.dll+3B22F - CC                    - int 3 
+-->
+D2Client.dll+3B224 - 83 35 * 01            - xor dword ptr [D2Client.dll+FADB4],01 { [00000000] }
+D2Client.dll+3B22B - E9 B6000000           - jmp D2Client.dll+3B2E6
+
+
+D2Client.dll+3B2E1 - 89 1D *               - mov [D2Client.dll+FADB4],ebx { [00000000] }
+-->
+D2Client.dll+3B2E1 - E9 3EFFFFFF           - jmp D2Client.dll+3B224
+D2Client.dll+3B2E6 - 90                    - nop 
+#ce
+
+func IsShowItemsToggle()
+	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
+endfunc
+
+func ToggleShowItems()
+	local $write1 = "0x9090909090"
+	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
+	local $write3 = "0xE93EFFFFFF90" ; Jump within same DLL shouldn't require offset fixing
+	
+	local $restore = IsShowItemsToggle()
+	if ($restore) then
+		$write1 = "0xA3" & GetOffsetAddress($d2client + 0xFADB4)
+		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
+		$write3 = "0x891D" & GetOffsetAddress($d2client + 0xFADB4)
+	endif
+	
+	_MemoryWrite($d2client + 0x3AECF, $d2handle, $write1, "byte[5]")
+	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
+	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
+	
+	_MemoryWrite($d2client + 0xFADB4, $d2handle, 0)
+	PrintString($restore ? "Hold to show items." : "Toggle to show items.", 3)
 endfunc
 
 func GetOffsetAddress($addr)
