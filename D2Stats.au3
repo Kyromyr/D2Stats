@@ -701,11 +701,9 @@ func CreateGUI()
 	
 	$gui[0][1] += $groupWidth
 	NewText(00, "Minigames")
-	NewItem(01, "Witch Queen [400:1/1]", "Slay the Countess or any of her minions on Terror difficulty to receive a red swirly overlay||[Class Charm] + Eth Rune → returns [Class Charm] with added bonuses| Maximum Skill Level Increased by 1")
-	NewItem(02, "Mirror, Mirror [314:1/1]", "Do the Baal fight on Terror or Destruction difficulty and instead of killing Baal, kill|his Shardspawn minions. Each kill brings a 1% chance to gain a red swirly overlay||[Class Charm] + Lem Rune → returns [Class Charm] with added bonuses| Maximum Skill Level Increased by 1")
-	NewItem(03, "Veteran tokens [219:1/1]", "On Terror and Destruction difficulty, you can find veteran monsters near the end of|each Act. There are five types of veteran monsters, one for each Act||[Class Charm] + each of the 5 tokens → returns [Class Charm] with added bonuses| +1 to [Your class] Skill Levels| +20% to Experience Gained")
-	NewItem(04, "Dogmas {186}/3 [186:3/1]", "On Terror or Destruction difficulty, kill Act bosses to receive a 'Dogma' token||Each of the 5 tokens → Signet of Skill")
-	NewItem(05, "Bremmtown [491:1/1]", "Defeat the Dark Star Dragon on Destruction difficulty within three minutes|after entering the level and without dying||[Class Charm] + Arcane Crystal → [Class Charm] with added bonuses| (Varies by class; see documentation)")
+	NewItem(01, "Veteran tokens [219:1/1]", "On Terror and Destruction difficulty, you can find veteran monsters near the end of|each Act. There are five types of veteran monsters, one for each Act||[Class Charm] + each of the 5 tokens → returns [Class Charm] with added bonuses| +1 to [Your class] Skill Levels| +20% to Experience Gained")
+	NewItem(02, "Dogmas {186}/3 [186:3/1]", "On Terror or Destruction difficulty, kill Act bosses to receive a 'Dogma' token||Each of the 5 tokens → Signet of Skill")
+	NewItem(03, "Bremmtown [491:1/1]", "Defeat the Dark Star Dragon on Destruction difficulty within three minutes|after entering the level and without dying||[Class Charm] + Arcane Crystal → [Class Charm] with added bonuses| (Varies by class; see documentation)")
 	
 
 	LoadGUIOptions()
