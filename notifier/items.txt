@@ -1507,6 +1507,7 @@
 [700 ] <Splint Mail (3)>
 [746 ] <Splint Mail (4)>
 [792 ] <Splint Mail (5)>
+[Ysh5] <Divine Guard>
 [838 ] <Splint Mail (6)>
 [@09 ] <Splint Mail (Sacred)>
 [603 ] <Studded Leather (1)>
@@ -1531,10 +1532,14 @@
 [k23 ] <Tiara (6)>
 [@69 ] <Tiara (Sacred)>
 [6@O ] <Totem Shield (1)>
+[Ysh8] <Warkeepers>
+[Ysh9] <Winged Feet>
 [7@O ] <Totem Shield (2)>
 [8@O ] <Totem Shield (3)>
 [9@O ] <Totem Shield (4)>
 [1@P ] <Totem Shield (5)>
+[Ysh4] <Mage's Plate>
+[Ysh7] <Mana Belt>
 [2@P ] <Totem Shield (6)>
 [3@P ] <Totem Shield (Sacred)>
 [625 ] <Tower Shield (1)>
@@ -1565,12 +1570,7 @@
 [e16 ] <Zombie Head (5)>
 [e36 ] <Zombie Head (6)>
 [@63 ] <Zombie Head (Sacred)>
-[Ysh4] <Mage's Plate>
-[Ysh5] <Divine Guard>
 [Ysh6] <Sorcerer's Mask>
-[Ysh7] <Mana Belt>
-[Ysh8] <Warkeepers>
-[Ysh9] <Winged Feet>
 {misc}
 [elx ] <Elixir>
 [hpo ] <FLYING POLAR BUFFALO ERROR>
@@ -1951,16 +1951,16 @@
 [E7+ ] <Weird Shrine (3)>
 [E8+ ] <Weird Shrine (2)>
 [E9+ ] <Weird Shrine (1)>
-[F0+ ] <Gloomy Shrine (10)>
-[F1+ ] <Gloomy Shrine (9)>
-[F2+ ] <Gloomy Shrine (8)>
-[F3+ ] <Gloomy Shrine (7)>
-[F4+ ] <Gloomy Shrine (6)>
-[F5+ ] <Gloomy Shrine (5)>
-[F6+ ] <Gloomy Shrine (4)>
-[F7+ ] <Gloomy Shrine (3)>
-[F8+ ] <Gloomy Shrine (2)>
-[F9+ ] <Gloomy Shrine (1)>
+[F0+ ] <Intimidating Shrine (10)>
+[F1+ ] <Intimidating Shrine (9)>
+[F2+ ] <Intimidating Shrine (8)>
+[F3+ ] <Intimidating Shrine (7)>
+[F4+ ] <Intimidating Shrine (6)>
+[F5+ ] <Intimidating Shrine (5)>
+[F6+ ] <Intimidating Shrine (4)>
+[F7+ ] <Intimidating Shrine (3)>
+[F8+ ] <Intimidating Shrine (2)>
+[F9+ ] <Intimidating Shrine (1)>
 [G0+ ] <Tainted Shrine (10)>
 [G1+ ] <Tainted Shrine (9)>
 [G2+ ] <Tainted Shrine (8)>
@@ -2051,16 +2051,16 @@
 [Q7+ ] <Hidden Shrine (3)>
 [Q8+ ] <Hidden Shrine (2)>
 [Q9+ ] <Hidden Shrine (1)>
-[R0+ ] <Stone Shrine (10)>
-[R1+ ] <Stone Shrine (9)>
-[R2+ ] <Stone Shrine (8)>
-[R3+ ] <Stone Shrine (7)>
-[R4+ ] <Stone Shrine (6)>
-[R5+ ] <Stone Shrine (5)>
-[R6+ ] <Stone Shrine (4)>
-[R7+ ] <Stone Shrine (3)>
-[R8+ ] <Stone Shrine (2)>
-[R9+ ] <Stone Shrine (1)>
+[R0+ ] <Trinity Shrine (10)>
+[R1+ ] <Trinity Shrine (9)>
+[R2+ ] <Trinity Shrine (8)>
+[R3+ ] <Trinity Shrine (7)>
+[R4+ ] <Trinity Shrine (6)>
+[R5+ ] <Trinity Shrine (5)>
+[R6+ ] <Trinity Shrine (4)>
+[R7+ ] <Trinity Shrine (3)>
+[R8+ ] <Trinity Shrine (2)>
+[R9+ ] <Trinity Shrine (1)>
 [qmu ] <Amulet (Sacred)>
 [qin ] <Ring (Sacred)>
 [qqv ] <Arrow Quiver (Sacred)>
@@ -2192,13 +2192,13 @@
 [µ05 ] <Kingdom of Shadow Trophy>
 [µ06 ] <Duncraig Trophy>
 [µ07 ] <Rathma Square Trophy>
-[µ08 ] <Cathedral of Vanity Trophy>
+[µ08 ] <Cathedral of Light Trophy>
 [µ09 ] <Tran Athulua Trophy>
 [µ10 ] <Quov Tsin Trophy>
 [µ11 ] <Astrogha Trophy>
-[µ12 ] <Azmodan Trophy>
-[µ13 ] <MCS Trophy>
-[µ14 ] <Brother Laz Trophy>
+[µ12 ] <Heart of Sin Trophy>
+[µ13 ] <Viz-jun Trophy>
+[µ14 ] <Archbishop Lazarus Trophy>
 [w@w ] <Cold Fusion Schematics>
 [x@x ] <The Glorious Book of Median>
 [r54 ] <Great Rune|Krys Rune>
@@ -2243,7 +2243,7 @@
 [&95 ] <Mystic Orb|The Perfect Sphere>
 [yq9 ] <Aerial's Skull>
 [brx ] <Scroll of Kabraxis>
-[bxt ] <Kabraxis Trophy>
+[bxt ] <Black Road Trophy>
 [bxa ] <Soul of Kabraxis>
 [r99 ] <Primal Rune|Runestone>
 [>.< ] <Character Orb>
@@ -2346,7 +2346,7 @@
 [C0+S] <Quiet Vessel>
 [D0+S] <Eerie Vessel>
 [E0+S] <Weird Vessel>
-[F0+S] <Gloomy Vessel>
+[F0+S] <Intimidating Vessel>
 [G0+S] <Tainted Vessel>
 [H0+S] <Fascinating Vessel>
 [I0+S] <Ornate Vessel>
@@ -2356,7 +2356,7 @@
 [N0+S] <Magical Vessel>
 [O0+S] <Enchanted Vessel>
 [Q0+S] <Hidden Vessel>
-[R0+S] <Stone Vessel>
+[R0+S] <Trinity Vessel>
 [Ysh1] <Arcane Seal>
 [Ysh2] <Necklace>
 [mnx1] <Custom Signet of Learning>
@@ -2374,3 +2374,5 @@
 [brc6] <Black Road Challenge|Scroll of Completion>
 [smi1] <Minigame|Scroll of Witches>
 [smi2] <Minigame|Scroll of Mirrors>
+[sofd] <Cube Reagent|Seal of Darkness>
+[kvoi] <Demon Key>

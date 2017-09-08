@@ -32,7 +32,7 @@ for line in f:lines() do
 			text = name;
 		elseif (name:match"Welcome") then
 			add = true;
-			text = "HAI";
+			text = "Hello!";
 		else
 			for _, match in ipairs (matches) do
 				text = name:match(match) or "";
