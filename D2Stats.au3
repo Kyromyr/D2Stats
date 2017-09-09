@@ -1,17 +1,16 @@
 #RequireAdmin
+#include <Array.au3>
 #include <WinAPI.au3>
 #include <NomadMemory.au3>
 #include <Misc.au3>
 #include <HotKey.au3>
 #include <HotKeyInput.au3>
 
-#include "notifier\notify_list.au3"
-
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.7.3)
-#pragma compile(FileVersion, 0.3.7.3)
+#pragma compile(ProductVersion, 0.3.8.0)
+#pragma compile(FileVersion, 0.3.8.0)
 #pragma compile(Comments, 09.09.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -31,9 +30,14 @@ if (not IsAdmin()) then
 endif
 
 OnAutoItExitRegister("_Exit")
-if (not @Compiled) then HotKeySet("+{INS}", "HotKey_CopyStatsToClipboard")
+if (not @Compiled) then
+	HotKeySet("+{INS}", "HotKey_CopyStatsToClipboard")
+	HotKeySet("+{PgUp}", "HotKey_CopyItemsToClipboard")
+endif
 
 global const $HK_FLAG_D2STATS = BitOR($HK_FLAG_DEFAULT, $HK_FLAG_NOUNHOOK)
+
+local $notify_list[0][0]
 
 local $gui_event_close = -3
 local $gui[128][3] = [[0]]
@@ -42,12 +46,12 @@ local $gui_opt[16][3] = [[0]]
 local const $numStats = 1024
 local $stats_cache[2][$numStats]
 
-local $dlls[] = ["D2Client.dll", "D2Common.dll", "D2Win.dll"]
-local $d2client, $d2common, $d2win, $d2sgpt
+local $dlls[] = ["D2Client.dll", "D2Common.dll", "D2Win.dll", "D2Lang.dll"]
+local $d2client, $d2common, $d2win, $d2lang, $d2sgpt
 local $d2pid, $d2handle, $failCounter
 local $lastUpdate = TimerInit()
 
-local $d2inject_print, $d2inject_string
+local $d2inject_print, $d2inject_string, $d2inject_getstring
 
 local $logstr = ""
 
@@ -66,7 +70,7 @@ local $options[][5] = [ _
 ["hidePass", 0, "cb", "Hide game password when minimap is open"], _
 ["notify-enabled", 1, "cb", "Enable drop notifier", 0], _
 ["notify-tiered", 1, "cb", "Tiered uniques", 0], _
-["notify-sacred", 1, "cb", "Sacred uniques / jewelry", 0], _
+["notify-sacred", 1, "cb", "Sacred uniques and jewelry", 0], _
 ["notify-set", 1, "cb", "Set items", 0], _
 ["notify-shrine", 1, "cb", "Shrines", 0], _
 ["notify-respec", 1, "cb", "Belladonna Extract", 0] ]
@@ -100,6 +104,8 @@ func Main()
 			UpdateGUIOptions() ; Must update options after hotkeys
 			
 			if (IsIngame()) then
+				if (not $ingame) then DropNotifierSetup()
+				
 				_MemoryWrite($d2client + 0x6011B, $d2handle, GetGUIOption("hidePass") ? 0x7F : 0x01, "byte")
 
 				if (IsShowItemsToggle()) then
@@ -163,9 +169,9 @@ func UpdateHandle()
 		return _Debug("UpdateHandle", "Couldn't update dll handles.")
 	endif
 	
-	if (not InjectPrintFunction()) then
+	if (not InjectFunctions()) then
 		_CloseHandle()
-		return _Debug("UpdateHandle", "Couldn't inject print function.")
+		return _Debug("UpdateHandle", "Couldn't inject functions.")
 	endif
 
 	$failCounter = 0
@@ -243,14 +249,43 @@ func HotKey_CopyStatsToClipboard()
 	
 	UpdateStatValues()
 	local $ret = ""
+	
 	for $i = 0 to $numStats-1
 		local $val = GetStatValue($i)
+		
 		if ($val) then
 			$ret &= StringFormat("%s = %s%s", $i, $val, @CRLF)
 		endif
 	next
+	
 	ClipPut($ret)
 	PrintString("Stats copied to clipboard.")
+endfunc
+
+func HotKey_CopyItemsToClipboard()
+	if (not IsIngame()) then return
+	
+	local $nItems = _MemoryRead($d2common + 0x9FB94, $d2handle)
+	local $pItemsTxt = _MemoryRead($d2common + 0x9FB98, $d2handle)
+
+	local $base, $nameid, $name, $misc
+	local $ret = ""
+	
+	for $class = 0 to $nItems - 1
+		$base = $pItemsTxt + 0x1A8 * $class
+		
+		$misc = _MemoryRead($base + 0x84, $d2handle, "dword")
+		$nameid = _MemoryRead($base + 0xF4, $d2handle, "word")
+		
+		$name = _CreateRemoteThread($d2inject_getstring, $nameid)
+		$name = _MemoryRead($name, $d2handle, "wchar[100]")
+		$name = StringReplace($name, @LF, "|")
+		
+		$ret &= StringFormat("[class:%04i] [misc:%s] <%s>%s", $class, $misc ? 0 : 1, $name, @CRLF)
+	next
+	
+	ClipPut($ret)
+	PrintString("Items copied to clipboard.")
 endfunc
 
 func HotKey_CopyItem()
@@ -434,6 +469,65 @@ endfunc
 #EndRegion
 
 #Region Drop notifier
+func DropNotifierSetup()
+	local $nItems = _MemoryRead($d2common + 0x9FB94, $d2handle)
+	local $pItemsTxt = _MemoryRead($d2common + 0x9FB98, $d2handle)
+
+	local $base, $nameid, $name
+	
+	local $matches[] = ["Emblem .+", ".+ Trophy$", "Cycle", "Enchanting Crystal", "Wings of the Departed", ".+ Essence$", "Runestone", "Great Rune\|(.*)", "Mystic Orb\|(.*)"]
+	local $iMatches = UBound($matches) - 1
+	
+	local $match, $group, $text
+	
+	redim $notify_list[$nItems][3]
+	
+	for $class = 0 to $nItems - 1
+		$group = ""
+		$text = ""
+		
+		$base = $pItemsTxt + 0x1A8 * $class
+		
+		$nameid = _MemoryRead($base + 0xF4, $d2handle, "word")
+		$name = _CreateRemoteThread($d2inject_getstring, $nameid)
+		$name = _MemoryRead($name, $d2handle, "wchar[100]")
+		
+		$name = StringReplace($name, @LF, "|")
+		$name = StringRegExpReplace($name, "ÿc.", "")
+
+		if (_MemoryRead($base + 0x84, $d2handle)) then
+			$group = StringInStr($name, "(Sacred)", 3) ? "sacred" : "tiered"
+			$text = $name
+		elseif ($name == "Ring" or $name == "Amulet" or $name == "Jewel" or StringInStr($name, "Quiver")) then
+			$group = "sacred"
+			$text = $name
+		elseif (StringInStr($name, "Shrine (10)")) then
+			$group = "shrine"
+			$text = StringTrimRight($name, 5)
+		elseif (StringInStr($name, "Belladonna")) then
+			$group = "respec"
+			$text = $name
+		elseif (StringInStr($name, "Welcome")) then
+			$add = 1
+			$text = "Hello!"
+		else
+			for $i = 0 to $iMatches
+				$match = StringRegExp($name, $matches[$i], 3)
+				if (not @error) then
+					$text = $match[0]
+					exitloop
+				endif
+			next
+		endif
+
+		$notify_list[$class][0] = $group
+		$notify_list[$class][1] = $text
+		$notify_list[$class][2] = $name
+	next
+	
+	if (not @compiled) then _ArrayDisplay($notify_list)
+endfunc
+
 func DropNotifier()
 	local $ptr_offsets[4] = [0, 0x2C, 0x1C, 0x0]
 	local $pPaths = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
@@ -455,35 +549,36 @@ func DropNotifier()
 			
 			if ($type == 4) then
 				$class = _MemoryRead($unit + 0x4, $d2handle)
-				$data = _MemoryRead($unit + 0x14, $d2handle)
 				
-				$notify = $notify_list[$class][0]
-				$group = $notify_list[$class][1]
+				$group = $notify_list[$class][0]
+				$text = $notify_list[$class][1]
 				
-				$clr = 8 ; Orange
-				if ($group <> "") then
-					$quality = _MemoryRead($data + 0x0, $d2handle)
+				if ($text <> "") then
+					$data = _MemoryRead($unit + 0x14, $d2handle)
+					$notify = 1
+					$clr = 8 ; Orange
 					
-					if ($quality == 5) then
-						$notify = GetGUIOption("notify-set")
-						$clr = 2 ; Green
-					elseif ($quality == 7 or ($group <> "tiered" and $group <> "sacred")) then
-						$notify = GetGUIOption("notify-" & $group)
-						$clr = $quality == 7 ? 4 : $clr  ; Gold or Orange
-					else
-						$notify = 0
+					if ($group <> "") then
+						$quality = _MemoryRead($data + 0x0, $d2handle)
+						
+						if ($quality == 5) then
+							$notify = GetGUIOption("notify-set")
+							$clr = 2 ; Green
+						elseif ($quality == 7 or ($group <> "tiered" and $group <> "sacred")) then
+							$notify = GetGUIOption("notify-" & $group)
+							$clr = $quality == 7 ? 4 : $clr  ; Gold or Orange
+						else
+							$notify = 0
+						endif
 					endif
-				endif
 
-				if ($notify and _MemoryRead($data + 0x48, $d2handle, "byte") == 0) then
-					; Using the ear level field to check if we've seen this item on the ground before
-					; Resets when the item is picked up or we move too far away
-					_MemoryWrite($data + 0x48, $d2handle, 1, "byte")
-					
-					$text = $notify_list[$class][2]
-					if ($text == "") then $text = "<Unknown>"
+					if ($notify and _MemoryRead($data + 0x48, $d2handle, "byte") == 0) then
+						; Using the ear level field to check if we've seen this item on the ground before
+						; Resets when the item is picked up or we move too far away
+						_MemoryWrite($data + 0x48, $d2handle, 1, "byte")
 
-					PrintString("- " & $text, $clr)
+						PrintString("- " & $text, $clr)
+					endif
 				endif
 			endif
 			
@@ -1019,13 +1114,31 @@ D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE10
 D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
 D2Client.dll+CDE08 - E8 43FAFAFF           - call D2Client.dll+7D850
 D2Client.dll+CDE0D - C3                    - ret 
+
+D2Client.dll+CDE10 - 8B CB                 - mov ecx,ebx
+D2Client.dll+CDE12 - 31 C0                 - xor eax,eax
+D2Client.dll+CDE14 - BB *                  - mov ebx,D2Lang.dll+9450
+D2Client.dll+CDE19 - FF D3                 - call ebx
+D2Client.dll+CDE1B - C3                    - ret 
 #ce
+
+func InjectFunctions()
+	return InjectPrintFunction() and InjectGetStringFunction()
+endfunc
 
 func InjectPrintFunction()
 	local $sCode = "0x5368" & GetOffsetAddress($d2inject_string) & "31C0E843FAFAFFC3"
 	local $ret = _MemoryWrite($d2inject_print, $d2handle, $sCode, "byte[14]")
 	
 	local $injected = _MemoryRead($d2inject_print, $d2handle)
+	return Hex($injected, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
+endfunc
+
+func InjectGetStringFunction()
+	local $sCode = "0x8BCB31C0BB" & GetOffsetAddress($d2lang + 0x9450) & "FFD3C3"
+	local $ret = _MemoryWrite($d2inject_getstring, $d2handle, $sCode, "byte[12]")
+
+	local $injected = _MemoryRead($d2inject_getstring, $d2handle)
 	return Hex($injected, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
 endfunc
 
@@ -1049,10 +1162,12 @@ func UpdateDllHandles()
 	$d2client = $handles[0]
 	$d2common = $handles[1]
 	$d2win = $handles[2]
+	$d2lang = $handles[3]
 	
 	local $d2inject = $d2client + 0xCDE00
 	$d2inject_print = $d2inject + 0x0
-	$d2inject_string = $d2inject + 0x10
+	$d2inject_getstring = $d2inject + 0x10
+	$d2inject_string = $d2inject + 0x20
 	
 	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
 
