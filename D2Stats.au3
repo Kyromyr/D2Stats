@@ -10,8 +10,8 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 0.3.7.2)
-#pragma compile(FileVersion, 0.3.7.2)
+#pragma compile(ProductVersion, 0.3.7.3)
+#pragma compile(FileVersion, 0.3.7.3)
 #pragma compile(Comments, 09.09.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -53,7 +53,7 @@ local $logstr = ""
 
 local $hotkey_enabled = False
 
-local $opts_general = 6
+local $opts_general = 7
 local $opts_notify = 6
 
 local $options[][5] = [ _
@@ -63,6 +63,7 @@ local $options[][5] = [ _
 ["nopickup", 0, "cb", "Automatically enable /nopickup", 0], _
 ["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
 ["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
+["hidePass", 0, "cb", "Hide game password when minimap is open"], _
 ["notify-enabled", 1, "cb", "Enable drop notifier", 0], _
 ["notify-tiered", 1, "cb", "Tiered uniques", 0], _
 ["notify-sacred", 1, "cb", "Sacred uniques / jewelry", 0], _
@@ -99,6 +100,8 @@ func Main()
 			UpdateGUIOptions() ; Must update options after hotkeys
 			
 			if (IsIngame()) then
+				_MemoryWrite($d2client + 0x6011B, $d2handle, GetGUIOption("hidePass") ? 0x7F : 0x01, "byte")
+
 				if (IsShowItemsToggle()) then
 					if (GetGUIOption("toggleMsg")) then
 						if (_MemoryRead($d2client + 0xFADB4, $d2handle) == 0) then
@@ -859,6 +862,10 @@ endfunc
 #EndRegion
 
 #Region Injection
+func GetOffsetAddress($addr)
+	return StringFormat("%08s", StringLeft(Hex(Binary($addr)), 8))
+endfunc
+
 func PrintString($string, $color = 0)
 	if (not WriteWString($string)) then return _Log("PrintString", "Failed to write string.")
 	
@@ -1004,10 +1011,6 @@ func ToggleShowItems()
 	
 	_MemoryWrite($d2client + 0xFADB4, $d2handle, 0)
 	PrintString($restore ? "Hold to show items." : "Toggle to show items.", 3)
-endfunc
-
-func GetOffsetAddress($addr)
-	return StringFormat("%08s", StringLeft(Hex(Binary($addr)), 8))
 endfunc
 
 #cs
