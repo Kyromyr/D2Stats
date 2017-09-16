@@ -496,7 +496,7 @@ func DropNotifierSetup()
 		$name = StringRegExpReplace($name, "ÿc.", "")
 
 		if (_MemoryRead($base + 0x84, $d2handle)) then
-			$group = StringInStr($name, "(Sacred)", 3) ? "sacred" : "tiered"
+			$group = StringInStr($name, "(Sacred)") ? "sacred" : "tiered"
 			$text = $name
 		elseif ($name == "Ring" or $name == "Amulet" or $name == "Jewel" or StringInStr($name, "Quiver")) then
 			$group = "sacred"
@@ -508,7 +508,6 @@ func DropNotifierSetup()
 			$group = "respec"
 			$text = $name
 		elseif (StringInStr($name, "Welcome")) then
-			$add = 1
 			$text = "Hello!"
 		else
 			for $i = 0 to $iMatches
@@ -1017,7 +1016,7 @@ func InjectDropFilter()
 	
 	local $injected = _MemoryRead($d2client + 0x5907E, $d2handle, "byte")
 	
-	; If the jmp is already there it means my DropFilter isn't used, and it'll will probably close D2Stats if we load it from here
+	; TODO: Check if this is still needed
 	if ($ret and $injected <> 233) then
 		local $handle = _WinAPI_LoadLibrary("DropFilter.dll")
 		if ($handle) then
