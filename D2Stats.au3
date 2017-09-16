@@ -9,9 +9,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.8.0)
-#pragma compile(FileVersion, 3.8.0)
-#pragma compile(Comments, 09.09.2017)
+#pragma compile(ProductVersion, 3.8.1)
+#pragma compile(FileVersion, 3.8.1)
+#pragma compile(Comments, 16.09.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -702,10 +702,11 @@ func CreateGUI()
 	NewItem(04, "{001} Energy")
 	
 	NewItem(06, "{080}% M.Find", "Magic Find")
-	NewItem(07, "{079}% Gold", "Extra Gold from Monsters")
-	NewItem(08, "{085}% Exp.Gain", "Experience gained")
-	NewItem(09, "{185} Signets", "Signets of Learning")
-	NewItem(10, "{479} M.Skill", "Maximum Skill Level")
+	NewItem(07, "{085}% Exp.Gain", "Experience gained")
+	NewItem(08, "{479} M.Skill", "Maximum Skill Level")
+	NewItem(09, "{185} Sig.Stat [185:500/500]", "Signets of Learning. Up to 500 can be used||Any sacred unique item x1-25 + Catalyst of Learning → Signet of Learning x1-25 + Catalyst of Learning|Any set item x1-25 + Catalyst of Learning → Signet of Learning x1-25 + Catalyst of Learning|Unique ring/amulet/jewel/quiver + Catalyst of Learning → Signet of Learning + Catalyst of Learning")
+	NewItem(10, "{186} Sig.Skill [186:3/3]", "Signets of Skill. Up to 3 can be used||On Destruction difficulty, monsters in the Torajan Jungles have a chance to drop these")
+	NewItem(11, "Veteran tokens [219:1/1]", "On Terror and Destruction difficulty, you can find veteran monsters near the end of|each Act. There are five types of veteran monsters, one for each Act||[Class Charm] + each of the 5 tokens → returns [Class Charm] with added bonuses| +1 to [Your class] Skill Levels| +20% to Experience Gained")
 	
 	
 	$gui[0][1] += $groupWidth
@@ -797,11 +798,6 @@ func CreateGUI()
 	
 	
 	$gui[0][1] += $groupWidth
-	NewText(00, "Minigames")
-	NewItem(01, "Veteran tokens [219:1/1]", "On Terror and Destruction difficulty, you can find veteran monsters near the end of|each Act. There are five types of veteran monsters, one for each Act||[Class Charm] + each of the 5 tokens → returns [Class Charm] with added bonuses| +1 to [Your class] Skill Levels| +20% to Experience Gained")
-	NewItem(02, "Dogmas {186}/3 [186:3/1]", "On Terror or Destruction difficulty, kill Act bosses to receive a 'Dogma' token||Each of the 5 tokens → Signet of Skill")
-	NewItem(03, "Bremmtown [491:1/1]", "Defeat the Dark Star Dragon on Destruction difficulty within three minutes|after entering the level and without dying||[Class Charm] + Arcane Crystal → [Class Charm] with added bonuses| (Varies by class; see documentation)")
-	
 
 	LoadGUIOptions()
 	GUICtrlCreateTabItem("Options")
