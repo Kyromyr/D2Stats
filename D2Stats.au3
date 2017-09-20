@@ -9,9 +9,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.8.1)
-#pragma compile(FileVersion, 3.8.1)
-#pragma compile(Comments, 16.09.2017)
+#pragma compile(ProductVersion, 3.8.2)
+#pragma compile(FileVersion, 3.8.2)
+#pragma compile(Comments, 20.09.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -475,7 +475,7 @@ func DropNotifierSetup()
 
 	local $base, $nameid, $name
 	
-	local $matches[] = ["Emblem .+", ".+ Trophy$", "Cycle", "Enchanting Crystal", "Wings of the Departed", ".+ Essence$", "Runestone", "Great Rune\|(.*)", "Mystic Orb\|(.*)"]
+	local $matches[] = ["Signet of Skill", ".*Signet of Learning", "Emblem .+", ".+ Trophy$", "Cycle", "Enchanting Crystal", "Wings of the Departed", ".+ Essence$", "Runestone", "Great Rune\|(.*)", "Mystic Orb\|(.*)"]
 	local $iMatches = UBound($matches) - 1
 	
 	local $match, $group, $text
@@ -672,6 +672,34 @@ func UpdateGUI()
 	next
 endfunc
 
+Func _GetDPI()
+    Local $a1[3]
+    Local $iDPI, $iDPIRat, $Logpixelsy = 90, $hWnd = 0
+    Local $hDC = DllCall("user32.dll", "long", "GetDC", "long", $hWnd)
+    Local $aRet = DllCall("gdi32.dll", "long", "GetDeviceCaps", "long", $hDC[0], "long", $Logpixelsy)
+    DllCall("user32.dll", "long", "ReleaseDC", "long", $hWnd, "long", $hDC)
+    $iDPI = $aRet[0]
+
+    Select
+        Case $iDPI = 0
+            $iDPI = 96
+            $iDPIRat = 94
+        Case $iDPI < 84
+            $iDPIRat = $iDPI / 105
+        Case $iDPI < 121
+            $iDPIRat = $iDPI / 96
+        Case $iDPI < 145
+            $iDPIRat = $iDPI / 95
+        Case Else
+            $iDPIRat = $iDPI / 94
+    EndSelect
+    $a1[0] = 2
+    $a1[1] = $iDPI
+    $a1[2] = $iDPIRat
+
+    Return $a1
+EndFunc   ;==>_GetDPI
+
 func CreateGUI()
 	local $clr_red	= 0xFF0000
 	local $clr_blue	= 0x0066CC
@@ -687,7 +715,7 @@ func CreateGUI()
 	local $guiWidth = 16 + 4*$groupWidth
 	local $guiHeight = 34 + 15*$groupLines
 	GUICreate($title, $guiWidth, $guiHeight)
-	GUISetFont(9, 0, 0, "Courier New")
+	GUISetFont(9 / _GetDPI()[2], 0, 0, "Courier New")
 	
 	global $btnRead = GUICtrlCreateButton("Read", $groupXStart-35, $guiHeight-31, 70, 25)
 
