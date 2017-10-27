@@ -9,9 +9,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.8.2)
-#pragma compile(FileVersion, 3.8.2)
-#pragma compile(Comments, 20.09.2017)
+#pragma compile(ProductVersion, 3.8.3)
+#pragma compile(FileVersion, 3.8.3)
+#pragma compile(Comments, 27.10.2017)
 #pragma compile(UPX, True) ;compression
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
@@ -57,23 +57,25 @@ local $logstr = ""
 
 local $hotkey_enabled = False
 
-local $opts_general = 7
+local $opts_general = 3
+local $opts_hotkey = 5
 local $opts_notify = 6
 
 local $options[][5] = [ _
+["nopickup", 0, "cb", "Automatically enable /nopickup"], _
+["hidePass", 0, "cb", "Hide game password when minimap is open"], _
+["mousefix", 0, "cb", "Continue attacking when monster dies under cursor"], _
 ["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
 ["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
 ["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
-["nopickup", 0, "cb", "Automatically enable /nopickup", 0], _
 ["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
 ["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
-["hidePass", 0, "cb", "Hide game password when minimap is open"], _
-["notify-enabled", 1, "cb", "Enable drop notifier", 0], _
-["notify-tiered", 1, "cb", "Tiered uniques", 0], _
-["notify-sacred", 1, "cb", "Sacred uniques and jewelry", 0], _
-["notify-set", 1, "cb", "Set items", 0], _
-["notify-shrine", 1, "cb", "Shrines", 0], _
-["notify-respec", 1, "cb", "Belladonna Extract", 0] ]
+["notify-enabled", 1, "cb", "Enable drop notifier"], _
+["notify-tiered", 1, "cb", "Tiered uniques"], _
+["notify-sacred", 1, "cb", "Sacred uniques and jewelry"], _
+["notify-set", 1, "cb", "Set items"], _
+["notify-shrine", 1, "cb", "Shrines"], _
+["notify-respec", 1, "cb", "Belladonna Extract"] ]
 
 
 CreateGUI()
@@ -107,7 +109,9 @@ func Main()
 				if (not $ingame) then DropNotifierSetup()
 				
 				_MemoryWrite($d2client + 0x6011B, $d2handle, GetGUIOption("hidePass") ? 0x7F : 0x01, "byte")
-
+				
+				if (GetGUIOption("mousefix") <> IsMouseFixToggle()) then ToggleMouseFix()
+				
 				if (IsShowItemsToggle()) then
 					if (GetGUIOption("toggleMsg")) then
 						if (_MemoryRead($d2client + 0xFADB4, $d2handle) == 0) then
@@ -404,7 +408,7 @@ func FixStatVelocities() ; This game is stupid
 	next
 	
 	local $pSkillsTxt = _MemoryRead($d2sgpt + 0xB98, $d2handle)
-	local $skill, $pStats, $nStats, $txt, $index, $val, $ownerType, $ownerId
+	local $skill, $pStats, $nStats, $txt, $index, $val, $ownerType, $ownerId, $state
 	
 	local $wep_main_offsets[3] = [0, 0x60, 0x1C]
 	local $wep_main = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $wep_main_offsets)
@@ -415,6 +419,7 @@ func FixStatVelocities() ; This game is stupid
 	while $ptr
 		$ownerType = _MemoryRead($ptr + 0x08, $d2handle)
 		$ownerId = _MemoryRead($ptr + 0x0C, $d2handle)
+		$state = _MemoryRead($ptr + 0x14, $d2handle)
 		$pStats = _MemoryRead($ptr + 0x24, $d2handle)
 		$nStats = _MemoryRead($ptr + 0x28, $d2handle, "word")
 		$ptr = _MemoryRead($ptr + 0x2C, $d2handle)
@@ -428,6 +433,10 @@ func FixStatVelocities() ; This game is stupid
 			if ($ownerType == 4 and $index == 67) then $stats_cache[1][$index] += $val ; Armor FRW penalty
 		next
 		if ($ownerType == 4) then continueloop
+		
+		if ($state == 195) then ; Dark Power / Tome of Possession aura
+			$skill = 687 ; Dark Power
+		endif
 
 		local $has[3] = [0,0,0]
 		if ($skill) then ; Game doesn't even bother setting the skill id for some skills, so we'll just have to assume the stat list isn't lying...
@@ -475,7 +484,18 @@ func DropNotifierSetup()
 
 	local $base, $nameid, $name
 	
-	local $matches[] = ["Signet of Skill", ".*Signet of Learning", "Emblem .+", ".+ Trophy$", "Cycle", "Enchanting Crystal", "Wings of the Departed", ".+ Essence$", "Runestone", "Great Rune\|(.*)", "Mystic Orb\|(.*)"]
+	local $matches[] = [ _
+		"Signet of Skill", _
+		".*Signet of Learning", _
+		"Emblem .+", _
+		".+ Trophy$", _
+		"Cycle", _
+		"Enchanting Crystal", _
+		"Wings of the Departed", _
+		".+ Essence$", _
+		"Runestone", _
+		"Great Rune\|(.*)", _
+		"Mystic Orb\|(.*)" ]
 	local $iMatches = UBound($matches) - 1
 	
 	local $match, $group, $text
@@ -828,11 +848,18 @@ func CreateGUI()
 	$gui[0][1] += $groupWidth
 
 	LoadGUIOptions()
-	GUICtrlCreateTabItem("Options")
 	$gui[0][1] = 8
 	
+	GUICtrlCreateTabItem("Options")
 	local $i = 0
+	
 	for $j = 1 to $opts_general
+		NewOption($j-1, $options[$i][0], $options[$i][3], $options[$i][4])
+		$i += 1
+	next
+	
+	GUICtrlCreateTabItem("Hotkeys")
+	for $j = 1 to $opts_hotkey
 		NewOption($j-1, $options[$i][0], $options[$i][3], $options[$i][4])
 		$i += 1
 	next
@@ -1072,6 +1099,28 @@ func EjectDropFilter($handle)
 	if ($ret) then _MemoryWrite($d2client + 0x5907E, $d2handle, "0x833E040F85", "byte[5]")
 	
 	return $ret
+endfunc
+
+#cs
+D2Client.dll+42AE1 - A3 *                  - mov [D2Client.dll+11C3DC],eax { [00000000] }
+->
+D2Client.dll+42AE1 - 90                    - nop 
+D2Client.dll+42AE2 - 90                    - nop 
+D2Client.dll+42AE3 - 90                    - nop 
+D2Client.dll+42AE4 - 90                    - nop 
+D2Client.dll+42AE5 - 90                    - nop 
+#ce
+
+func IsMouseFixToggle()
+	return _MemoryRead($d2client + 0x42AE1, $d2handle, "byte") == 0x90 ? 1 : 0
+endfunc
+
+func ToggleMouseFix()
+	local $restore = IsMouseFixToggle()
+	local $write = $restore ? "0xA3" & GetOffsetAddress($d2client + 0x11C3DC) : "0x9090909090" 
+
+	_MemoryWrite($d2client + 0x42AE1, $d2handle, $write, "byte[5]")
+	; PrintString($restore ? "Mouse fix disabled." : "Mouse fix enabled.", 3)
 endfunc
 
 #cs
