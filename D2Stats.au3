@@ -1103,12 +1103,18 @@ endfunc
 
 #cs
 D2Client.dll+42AE1 - A3 *                  - mov [D2Client.dll+11C3DC],eax { [00000000] }
+D2Client.dll+42AE6 - A3 *                  - mov [D2Client.dll+11C3E0],eax { [00000000] }
 ->
 D2Client.dll+42AE1 - 90                    - nop 
 D2Client.dll+42AE2 - 90                    - nop 
 D2Client.dll+42AE3 - 90                    - nop 
 D2Client.dll+42AE4 - 90                    - nop 
 D2Client.dll+42AE5 - 90                    - nop 
+D2Client.dll+42AE6 - 90                    - nop 
+D2Client.dll+42AE7 - 90                    - nop 
+D2Client.dll+42AE8 - 90                    - nop 
+D2Client.dll+42AE9 - 90                    - nop 
+D2Client.dll+42AEA - 90                    - nop 
 #ce
 
 func IsMouseFixToggle()
@@ -1117,9 +1123,9 @@ endfunc
 
 func ToggleMouseFix()
 	local $restore = IsMouseFixToggle()
-	local $write = $restore ? "0xA3" & GetOffsetAddress($d2client + 0x11C3DC) : "0x9090909090" 
+	local $write = $restore ? "0xA3" & GetOffsetAddress($d2client + 0x11C3DC) & "A3" & GetOffsetAddress($d2client + 0x11C3E0) : "0x90909090909090909090" 
 
-	_MemoryWrite($d2client + 0x42AE1, $d2handle, $write, "byte[5]")
+	_MemoryWrite($d2client + 0x42AE1, $d2handle, $write, "byte[10]")
 	; PrintString($restore ? "Mouse fix disabled." : "Mouse fix enabled.", 3)
 endfunc
 
