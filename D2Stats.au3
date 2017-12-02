@@ -1,18 +1,30 @@
 #RequireAdmin
 #include <Array.au3>
-#include <WinAPI.au3>
-#include <NomadMemory.au3>
-#include <Misc.au3>
+#include <GuiEdit.au3>
 #include <HotKey.au3>
 #include <HotKeyInput.au3>
+#include <Misc.au3>
+#include <NomadMemory.au3>
+#include <WinAPI.au3>
+
+#include <AutoItConstants.au3>
+#include <FileConstants.au3>
+#include <GUIConstantsEx.au3>
+#include <MemoryConstants.au3>
+#include <MsgBoxConstants.au3>
+#include <StringConstants.au3>
+#include <StaticConstants.au3>
+#include <TabConstants.au3>
+#include <WindowsConstants.au3>
 
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.8.4)
-#pragma compile(FileVersion, 3.8.4)
-#pragma compile(Comments, 28.10.2017)
+#pragma compile(ProductVersion, 3.9.0)
+#pragma compile(FileVersion, 3.9.0)
+#pragma compile(Comments, 02.12.2017)
 #pragma compile(UPX, True) ;compression
+#pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
 ;#pragma compile(Compatibility, win7)
 ;#pragma compile(x64, True)
@@ -25,58 +37,22 @@ if (not _Singleton("D2Stats-Singleton")) then
 endif
 
 if (not IsAdmin()) then
-	MsgBox(4096, "Error", "Admin rights needed!")
+	MsgBox($MB_ICONERROR, "D2Stats", "Admin rights needed!")
 	exit
 endif
 
-OnAutoItExitRegister("_Exit")
 if (not @Compiled) then
 	HotKeySet("+{INS}", "HotKey_CopyStatsToClipboard")
 	HotKeySet("+{PgUp}", "HotKey_CopyItemsToClipboard")
 endif
 
-global const $HK_FLAG_D2STATS = BitOR($HK_FLAG_DEFAULT, $HK_FLAG_NOUNHOOK)
+Opt("MustDeclareVars", 1)
+Opt("GUICloseOnESC", 0)
+Opt("GUIOnEventMode", 1)
 
-local $notify_list[0][0]
+DefineGlobals()
 
-local $gui_event_close = -3
-local $gui[128][3] = [[0]]
-local $gui_opt[16][3] = [[0]]
-
-local const $numStats = 1024
-local $stats_cache[2][$numStats]
-
-local $dlls[] = ["D2Client.dll", "D2Common.dll", "D2Win.dll", "D2Lang.dll"]
-local $d2client, $d2common, $d2win, $d2lang, $d2sgpt
-local $d2pid, $d2handle, $failCounter
-local $lastUpdate = TimerInit()
-
-local $d2inject_print, $d2inject_string, $d2inject_getstring
-
-local $logstr = ""
-
-local $hotkey_enabled = False
-
-local $opts_general = 3
-local $opts_hotkey = 5
-local $opts_notify = 6
-
-local $options[][5] = [ _
-["nopickup", 0, "cb", "Automatically enable /nopickup"], _
-["hidePass", 0, "cb", "Hide game password when minimap is open"], _
-["mousefix", 0, "cb", "Continue attacking when monster dies under cursor"], _
-["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
-["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
-["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
-["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
-["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
-["notify-enabled", 1, "cb", "Enable drop notifier"], _
-["notify-tiered", 1, "cb", "Tiered uniques"], _
-["notify-sacred", 1, "cb", "Sacred uniques and jewelry"], _
-["notify-set", 1, "cb", "Set items"], _
-["notify-shrine", 1, "cb", "Shrines"], _
-["notify-respec", 1, "cb", "Belladonna Extract"] ]
-
+OnAutoItExitRegister("_Exit")
 
 CreateGUI()
 Main()
@@ -85,87 +61,86 @@ Main()
 func Main()
 	_HotKey_Disable($HK_FLAG_D2STATS)
 
-	local $timer = TimerInit()
-	local $ingame, $showitems
+	local $hTimerUpdateDelay = TimerInit()
+	local $bIsIngame, $bShowItems
 	
 	while 1
-		switch GUIGetMsg()
-			case $gui_event_close
-				exit
-			case $btnRead
-				ReadCharacterData()
-			case $tab
-				GUICtrlSetState($btnRead, GUICtrlRead($tab) < 2 ? 16 : 32)
-		endswitch
-		
-		if (TimerDiff($timer) > 250) then
-			$timer = TimerInit()
+		if (TimerDiff($hTimerUpdateDelay) > 250) then
+			$hTimerUpdateDelay = TimerInit()
 			
 			UpdateHandle()
-			UpdateHotkeys()
-			UpdateGUIOptions() ; Must update options after hotkeys
+			UpdateGUIOptions()
 			
 			if (IsIngame()) then
-				if (not $ingame) then DropNotifierSetup()
-				
-				_MemoryWrite($d2client + 0x6011B, $d2handle, GetGUIOption("hidePass") ? 0x7F : 0x01, "byte")
-				
-				if (GetGUIOption("mousefix") <> IsMouseFixToggle()) then ToggleMouseFix()
-				
-				if (IsShowItemsToggle()) then
-					if (GetGUIOption("toggleMsg")) then
-						if (_MemoryRead($d2client + 0xFADB4, $d2handle) == 0) then
-							if ($showitems) then PrintString("Not showing items.", 3)
-							$showitems = False
-						else
-							$showitems = True
-						endif
-					endif
-					if (not GetGUIOption("toggle")) then ToggleShowItems()
-				else
-					$showitems = False
+				if (not $bIsIngame) then
+					GUICtrlSetState($g_idNotifyTest, $GUI_ENABLE)
+					$g_bNotifyCache = True
 				endif
 				
-				if (GetGUIOption("nopickup") and not $ingame) then _MemoryWrite($d2client + 0x11C2F0, $d2handle, 1, "byte")
+				_MemoryWrite($g_hD2Client + 0x6011B, $g_ahD2Handle, _GUI_Option("hidePass") ? 0x7F : 0x01, "byte")
 				
-				if (GetGUIOption("notify-enabled")) then DropNotifier()
+				if (_GUI_Option("mousefix") <> IsMouseFixEnabled()) then ToggleMouseFix()
 				
-				$ingame = True
+				if (IsShowItemsEnabled()) then
+					if (_GUI_Option("toggleMsg")) then
+						if (_MemoryRead($g_hD2Client + 0xFADB4, $g_ahD2Handle) == 0) then
+							if ($bShowItems) then PrintString("Not showing items.", $ePrintBlue)
+							$bShowItems = False
+						else
+							$bShowItems = True
+						endif
+					endif
+					if (not _GUI_Option("toggle")) then ToggleShowItems()
+				else
+					$bShowItems = False
+				endif
+				
+				if (_GUI_Option("nopickup") and not $bIsIngame) then _MemoryWrite($g_hD2Client + 0x11C2F0, $g_ahD2Handle, 1, "byte")
+				
+				if (_GUI_Option("notify-enabled")) then NotifierMain()
+				
+				$bIsIngame = True
 			else
-				$ingame = False
+				if ($bIsIngame) then GUICtrlSetState($g_idNotifyTest, $GUI_DISABLE)
+				
+				$bIsIngame = False
 			endif
 		endif
 	wend
 endfunc
 
 func _Exit()
+	if (BitAND(GUICtrlGetState($g_idNotifySave), $GUI_ENABLE)) then
+		local $iButton = MsgBox(BitOR($MB_ICONQUESTION, $MB_YESNO), "D2Stats", "There are unsaved changes in the notifier rules. Save?", 0, $g_hGUI)
+		if ($iButton == $IDYES) then OnClick_NotifySave()
+	endif
+	
+	OnAutoItExitUnRegister("_Exit")
 	_GUICtrlHKI_Release()
 	GUIDelete()
 	_CloseHandle()
 	_LogSave()
+	exit
 endfunc
 
 func _CloseHandle()
-	if ($d2handle) then
-		_MemoryClose($d2handle)
-		$d2handle = 0
-		$d2pid = 0
+	if ($g_ahD2Handle) then
+		_MemoryClose($g_ahD2Handle)
+		$g_ahD2Handle = 0
+		$g_iD2pid = 0
 	endif
 endfunc
 
 func UpdateHandle()
-	if (TimerDiff($lastUpdate) < 100) then return
-	$lastUpdate = TimerInit()
+	local $hWnd = WinGetHandle("[CLASS:Diablo II]")
+	local $iPID = WinGetProcess($hWnd)
 	
-	local $hwnd = WinGetHandle("[CLASS:Diablo II]")
-	local $pid = WinGetProcess($hwnd)
-	
-	if ($pid == -1) then return _CloseHandle()
-	if ($pid == $d2pid) then return
+	if ($iPID == -1) then return _CloseHandle()
+	if ($iPID == $g_iD2pid) then return
 
 	_CloseHandle()
-	$failCounter += 1
-	$d2handle = _MemoryOpen($pid)
+	$g_iUpdateFailCounter += 1
+	$g_ahD2Handle = _MemoryOpen($iPID)
 	if (@error) then return _Debug("UpdateHandle", "Couldn't open Diablo II memory handle.")
 	
 	if (not UpdateDllHandles()) then
@@ -178,164 +153,136 @@ func UpdateHandle()
 		return _Debug("UpdateHandle", "Couldn't inject functions.")
 	endif
 
-	$failCounter = 0
-	$d2pid = $pid
-	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
+	$g_iUpdateFailCounter = 0
+	$g_iD2pid = $iPID
+	$g_pD2sgpt = _MemoryRead($g_hD2Common + 0x99E1C, $g_ahD2Handle)
 endfunc
 
 func IsIngame()
-	if (not $d2pid) then return False
-	return _MemoryRead($d2client + 0x11BBFC, $d2handle) <> 0
+	if (not $g_iD2pid) then return False
+	return _MemoryRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle) <> 0
 endfunc
 
-func _Debug($function, $msg, $error = @error, $extended = @extended)
-	_Log($function, $msg, $error, $extended)
-	PrintString($msg, 1)
+func _Debug($sFuncName, $sMessage, $iError = @error, $iExtended = @extended)
+	_Log($sFuncName, $sMessage, $iError, $iExtended)
+	PrintString($sMessage, $ePrintRed)
 endfunc
 
-func _Log($function, $msg, $error = @error, $extended = @extended)
-	$logstr &= StringFormat("[%s] %s (error: %s; extended: %s)%s", $function, $msg, $error, $extended, @CRLF)
+func _Log($sFuncName, $sMessage, $iError = @error, $iExtended = @extended)
+	$g_sLog &= StringFormat("[%s] %s (error: %s; extended: %s)%s", $sFuncName, $sMessage, $iError, $iExtended, @CRLF)
 	
-	if ($failCounter >= 10) then
-		MsgBox(0, "D2Stats Error", "Failed too many times in a row. Check log for details. Closing D2Stats...")
+	if ($g_iUpdateFailCounter >= 10) then
+		MsgBox($MB_ICONERROR, "D2Stats", "Failed too many times in a row. Check log for details. Closing D2Stats...", 0, $g_hGUI)
 		exit
 	endif
 endfunc
 
 func _LogSave()
-	if ($logstr <> "") then
-		local $file = FileOpen("D2Stats-log.txt", 2)
-		FileWrite($file, $logstr)
-		FileFlush($file)
-		FileClose($file)
+	if ($g_sLog <> "") then
+		local $hFile = FileOpen("D2Stats-log.txt", $FO_OVERWRITE)
+		FileWrite($hFile, $g_sLog)
+		FileFlush($hFile)
+		FileClose($hFile)
 	endif
 endfunc
-
 #EndRegion
 
 #Region Hotkeys
 func GetIlvl()
-	local $ilvl_offsets[3] = [0, 0x14, 0x2C]
-	local $ret = _MemoryPointerRead($d2client + 0x11BC38, $d2handle, $ilvl_offsets)
-	if (not $ret) then PrintString("Hover the cursor over an item first.", 1)
-	return $ret
+	local $apOffsetsIlvl[3] = [0, 0x14, 0x2C]
+	local $iRet = _MemoryPointerRead($g_hD2Client + 0x11BC38, $g_ahD2Handle, $apOffsetsIlvl)
+	if (not $iRet) then PrintString("Hover the cursor over an item first.", $ePrintRed)
+	return $iRet
 endfunc
 
-func UpdateHotkeys()
-	local $opt, $value, $old
-	for $i = 1 to $gui_opt[0][0]
-		$opt = $gui_opt[$i][0]
-
-		if (GetGUIOptionType($opt) == "hk") then
-			$old = GetGUIOption($opt)
-			$value = _GUICtrlHKI_GetHotKey($gui_opt[$i][1])
-			
-			if ($old <> $value) then
-				if ($old) then _HotKey_Assign($old, 0, $HK_FLAG_D2STATS)
-				if ($value) then _HotKey_Assign($value, $gui_opt[$i][2], $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
-			endif
-		endif
-	next
-	
-	local $enable = IsIngame()
-	if ($enable <> $hotkey_enabled) then
-		if ($enable) then
-			_HotKey_Enable()
-		else
-			_HotKey_Disable($HK_FLAG_D2STATS)
-		endif
-		$hotkey_enabled = $enable
-	endif
-endfunc
-
-func HotKey_CopyStatsToClipboard()
-	if (not IsIngame()) then return
+func HotKey_CopyStatsToClipboard($TEST = False)
+	if ($TEST or not IsIngame()) then return
 	
 	UpdateStatValues()
-	local $ret = ""
+	local $sOutput = ""
 	
-	for $i = 0 to $numStats-1
-		local $val = GetStatValue($i)
+	for $i = 0 to $g_iNumStats - 1
+		local $iVal = GetStatValue($i)
 		
-		if ($val) then
-			$ret &= StringFormat("%s = %s%s", $i, $val, @CRLF)
+		if ($iVal) then
+			$sOutput &= StringFormat("%s = %s%s", $i, $iVal, @CRLF)
 		endif
 	next
 	
-	ClipPut($ret)
+	ClipPut($sOutput)
 	PrintString("Stats copied to clipboard.")
 endfunc
 
-func HotKey_CopyItemsToClipboard()
-	if (not IsIngame()) then return
+func HotKey_CopyItemsToClipboard($TEST = False)
+	if ($TEST or not IsIngame()) then return
 	
-	local $nItems = _MemoryRead($d2common + 0x9FB94, $d2handle)
-	local $pItemsTxt = _MemoryRead($d2common + 0x9FB98, $d2handle)
+	local $iItemsTxt = _MemoryRead($g_hD2Common + 0x9FB94, $g_ahD2Handle)
+	local $pItemsTxt = _MemoryRead($g_hD2Common + 0x9FB98, $g_ahD2Handle)
 
-	local $base, $nameid, $name, $misc
-	local $ret = ""
+	local $pBaseAddr, $iNameID, $sName, $iMisc
+	local $sOutput = ""
 	
-	for $class = 0 to $nItems - 1
-		$base = $pItemsTxt + 0x1A8 * $class
+	for $iClass = 0 to $iItemsTxt - 1
+		$pBaseAddr = $pItemsTxt + 0x1A8 * $iClass
 		
-		$misc = _MemoryRead($base + 0x84, $d2handle, "dword")
-		$nameid = _MemoryRead($base + 0xF4, $d2handle, "word")
+		$iMisc = _MemoryRead($pBaseAddr + 0x84, $g_ahD2Handle, "dword")
+		$iNameID = _MemoryRead($pBaseAddr + 0xF4, $g_ahD2Handle, "word")
 		
-		$name = _CreateRemoteThread($d2inject_getstring, $nameid)
-		$name = _MemoryRead($name, $d2handle, "wchar[100]")
-		$name = StringReplace($name, @LF, "|")
+		$sName = RemoteThread($g_pD2InjectGetString, $iNameID)
+		$sName = _MemoryRead($sName, $g_ahD2Handle, "wchar[100]")
+		$sName = StringReplace($sName, @LF, "|")
 		
-		$ret &= StringFormat("[class:%04i] [misc:%s] <%s>%s", $class, $misc ? 0 : 1, $name, @CRLF)
+		$sOutput &= StringFormat("[class:%04i] [misc:%s] <%s>%s", $iClass, $iMisc ? 0 : 1, $sName, @CRLF)
 	next
 	
-	ClipPut($ret)
+	ClipPut($sOutput)
 	PrintString("Items copied to clipboard.")
 endfunc
 
-func HotKey_CopyItem()
-	if (not IsIngame() or GetIlvl() == 0) then return
+func HotKey_CopyItem($TEST = False)
+	if ($TEST or not IsIngame() or GetIlvl() == 0) then return
 
-	local $timer = TimerInit()
-	local $text = ""
+	local $hTimerRetry = TimerInit()
+	local $sOutput = ""
 	
-	while ($text == "" and TimerDiff($timer) < 10)
-		$text = _MemoryRead($d2win + 0xC9E58, $d2handle, "wchar[800]")
+	while ($sOutput == "" and TimerDiff($hTimerRetry) < 10)
+		$sOutput = _MemoryRead($g_hD2Win + 0xC9E58, $g_ahD2Handle, "wchar[800]")
 	wend
 	
-	$text = StringRegExpReplace($text, "ÿc.", "")
-	local $split = StringSplit($text, @LF)
+	$sOutput = StringRegExpReplace($sOutput, "ÿc.", "")
+	local $asLines = StringSplit($sOutput, @LF)
 	
-	$text = ""
-	for $i = $split[0] to 1 step -1
-		$text &= $split[$i] & @CRLF
+	$sOutput = ""
+	for $i = $asLines[0] to 1 step -1
+		$sOutput &= $asLines[$i] & @CRLF
 	next
 
-	ClipPut($text)
+	ClipPut($sOutput)
 	PrintString("Item text copied.")
 endfunc
 
-func HotKey_ShowIlvl()
-	if (not IsIngame()) then return
+func HotKey_ShowIlvl($TEST = False)
+	if ($TEST or not IsIngame()) then return
 
-	local $ilvl = GetIlvl()
-	if ($ilvl) then PrintString(StringFormat("ilvl: %02s", $ilvl))
+	local $iItemLevel = GetIlvl()
+	if ($iItemLevel) then PrintString(StringFormat("ilvl: %02s", $iItemLevel))
 endfunc
 
-func HotKey_DropFilter()
-	if (not IsIngame()) then return
+func HotKey_DropFilter($TEST = False)
+	if ($TEST or not IsIngame()) then return
 
-	local $handle = GetDropFilterHandle()
+	local $hDropFilter = GetDropFilterHandle()
 
-	if ($handle) then
-		if (EjectDropFilter($handle)) then
-			PrintString("Ejected DropFilter.", 10)
+	if ($hDropFilter) then
+		if (EjectDropFilter($hDropFilter)) then
+			PrintString("Ejected DropFilter.", $ePrintGreen)
 			_Log("HotKey_DropFilter", "Ejected DropFilter.")
 		else
 			_Debug("HotKey_DropFilter", "Failed to eject DropFilter.")
 		endif
 	else
 		if (InjectDropFilter()) then
-			PrintString("Injected DropFilter.", 10)
+			PrintString("Injected DropFilter.", $ePrintGreen)
 			_Log("HotKey_DropFilter", "Injected DropFilter.")
 		else
 			_Debug("HotKey_DropFilter", "Failed to inject DropFilter.")
@@ -343,52 +290,52 @@ func HotKey_DropFilter()
 	endif
 endfunc
 
-func HotKey_ToggleShowItems()
-	if (not IsIngame()) then return
+func HotKey_ToggleShowItems($TEST = False)
+	if ($TEST or not IsIngame()) then return
 	ToggleShowItems()
 endfunc
 #EndRegion
 
 #Region Stat reading
-func UpdateStatValueMem($ivector)
-	if ($ivector <> 0 and $ivector <> 1) then _Debug("UpdateStatValueMem", "Invalid $ivector value.")
+func UpdateStatValueMem($iVector)
+	if ($iVector <> 0 and $iVector <> 1) then _Debug("UpdateStatValueMem", "Invalid $iVector value.")
 	
-	local $ptr_offsets[3] = [0, 0x5C, ($ivector+1)*0x24]
-	local $ptr = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
+	local $aiOffsets[3] = [0, 0x5C, ($iVector+1)*0x24]
+	local $pStatList = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
 
-	$ptr_offsets[2] += 0x4
-	local $statcount = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets, "word") - 1
+	$aiOffsets[2] += 0x4
+	local $iStatCount = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets, "word") - 1
 
-	local $struct = "word wSubIndex;word wStatIndex;int dwStatValue;", $finalstruct
-	for $i = 0 to $statcount
-		$finalstruct &= $struct
+	local $tagStat = "word wSubIndex;word wStatIndex;int dwStatValue;", $tagStatsAll
+	for $i = 0 to $iStatCount
+		$tagStatsAll &= $tagStat
 	next
 
-	local $stats = DllStructCreate($finalstruct)
-	_WinAPI_ReadProcessMemory($d2handle[1], $ptr, DllStructGetPtr($stats), DllStructGetSize($stats), 0)
+	local $tStats = DllStructCreate($tagStatsAll)
+	_WinAPI_ReadProcessMemory($g_ahD2Handle[1], $pStatList, DllStructGetPtr($tStats), DllStructGetSize($tStats), 0)
 
-	local $start = $ivector == 1 ? 5 : 0
-	local $index, $val
-	for $i = $start to $statcount
-		$index = DllStructGetData($stats, 2 + (3 * $i))
-		if ($index >= $numStats) then
+	local $iStart = $iVector == 1 ? 5 : 0
+	local $iStatIndex, $iStatValue
+	for $i = $iStart to $iStatCount
+		$iStatIndex = DllStructGetData($tStats, 2 + (3 * $i))
+		if ($iStatIndex >= $g_iNumStats) then
 			continueloop ; Should never happen
 		endif
 		
-		$val = DllStructGetData($stats, 3 + (3 * $i))
-		switch $index
+		$iStatValue = DllStructGetData($tStats, 3 + (3 * $i))
+		switch $iStatIndex
 			case 6 to 11
-				$stats_cache[$ivector][$index] += $val / 256
+				$g_aiStatsCache[$iVector][$iStatIndex] += $iStatValue / 256
 			case else
-				$stats_cache[$ivector][$index] += $val
+				$g_aiStatsCache[$iVector][$iStatIndex] += $iStatValue
 		endswitch
 	next
 endfunc
 
 func UpdateStatValues()
-	for $i = 0 to $numStats-1
-		$stats_cache[0][$i] = 0
-		$stats_cache[1][$i] = 0
+	for $i = 0 to $g_iNumStats - 1
+		$g_aiStatsCache[0][$i] = 0
+		$g_aiStatsCache[1][$i] = 0
 	next
 	
 	if (IsIngame()) then
@@ -397,308 +344,834 @@ func UpdateStatValues()
 		FixStatVelocities()
 		
 		; Poison damage to damage/second
-		$stats_cache[1][57] *= (25/256)
-		$stats_cache[1][58] *= (25/256)
+		$g_aiStatsCache[1][57] *= (25/256)
+		$g_aiStatsCache[1][58] *= (25/256)
 	endif
 endfunc
 
 func FixStatVelocities() ; This game is stupid
 	for $i = 67 to 69
-		$stats_cache[1][$i] = 0
+		$g_aiStatsCache[1][$i] = 0
 	next
 	
-	local $pSkillsTxt = _MemoryRead($d2sgpt + 0xB98, $d2handle)
-	local $skill, $pStats, $nStats, $txt, $index, $val, $ownerType, $ownerId, $state
+	local $pSkillsTxt = _MemoryRead($g_pD2sgpt + 0xB98, $g_ahD2Handle)
+	local $iSkillID, $pStats, $iStatCount, $pSkill, $iStatIndex, $iStatValue, $iOwnerType, $iStateID
 	
-	local $wep_main_offsets[3] = [0, 0x60, 0x1C]
-	local $wep_main = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $wep_main_offsets)
+	; local $wep_main_offsets[3] = [0, 0x60, 0x1C]
+	; local $wep_main = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $wep_main_offsets)
 	
-	local $ptr_offsets[3] = [0, 0x5C, 0x3C]
-	local $ptr = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
+	local $aiOffsets[3] = [0, 0x5C, 0x3C]
+	local $pStatList = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
 
-	while $ptr
-		$ownerType = _MemoryRead($ptr + 0x08, $d2handle)
-		$ownerId = _MemoryRead($ptr + 0x0C, $d2handle)
-		$state = _MemoryRead($ptr + 0x14, $d2handle)
-		$pStats = _MemoryRead($ptr + 0x24, $d2handle)
-		$nStats = _MemoryRead($ptr + 0x28, $d2handle, "word")
-		$ptr = _MemoryRead($ptr + 0x2C, $d2handle)
-		$skill = 0
+	while $pStatList
+		$iOwnerType = _MemoryRead($pStatList + 0x08, $g_ahD2Handle)
+		$iStateID = _MemoryRead($pStatList + 0x14, $g_ahD2Handle)
+		$pStats = _MemoryRead($pStatList + 0x24, $g_ahD2Handle)
+		$iStatCount = _MemoryRead($pStatList + 0x28, $g_ahD2Handle, "word")
+		$pStatList = _MemoryRead($pStatList + 0x2C, $g_ahD2Handle)
+		$iSkillID = 0
 
-		for $i = 0 to $nStats-1
-			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
-			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle, "int")
+		for $i = 0 to $iStatCount - 1
+			$iStatIndex = _MemoryRead($pStats + $i*8 + 2, $g_ahD2Handle, "word")
+			$iStatValue = _MemoryRead($pStats + $i*8 + 4, $g_ahD2Handle, "int")
 			
-			if ($index == 350 and $val <> 511) then $skill = $val
-			if ($ownerType == 4 and $index == 67) then $stats_cache[1][$index] += $val ; Armor FRW penalty
+			if ($iStatIndex == 350 and $iStatValue <> 511) then $iSkillID = $iStatValue
+			if ($iOwnerType == 4 and $iStatIndex == 67) then $g_aiStatsCache[1][$iStatIndex] += $iStatValue ; Armor FRW penalty
 		next
-		if ($ownerType == 4) then continueloop
+		if ($iOwnerType == 4) then continueloop
 		
-		if ($state == 195) then ; Dark Power / Tome of Possession aura
-			$skill = 687 ; Dark Power
+		if ($iStateID == 195) then ; Dark Power / Tome of Possession aura
+			$iSkillID = 687 ; Dark Power
 		endif
 
-		local $has[3] = [0,0,0]
-		if ($skill) then ; Game doesn't even bother setting the skill id for some skills, so we'll just have to assume the stat list isn't lying...
-			$txt = $pSkillsTxt + 0x23C*$skill
+		local $bHasStat[3] = [False,False,False]
+		if ($iSkillID) then ; Game doesn't even bother setting the skill id for some skills, so we'll just have to hope the state is correct or the stat list isn't lying...
+			$pSkill = $pSkillsTxt + 0x23C*$iSkillID
 		
 			for $i = 0 to 4
-				$index = _MemoryRead($txt + 0x98 + $i*2, $d2handle, "word")
-				switch $index
+				$iStatIndex = _MemoryRead($pSkill + 0x98 + $i*2, $g_ahD2Handle, "word")
+				switch $iStatIndex
 					case 67 to 69
-						$has[$index-67] = 1
+						$bHasStat[$iStatIndex-67] = True
 				endswitch
 			next
 			
 			for $i = 0 to 5
-				$index = _MemoryRead($txt + 0x54 + $i*2, $d2handle, "word")
-				switch $index
+				$iStatIndex = _MemoryRead($pSkill + 0x54 + $i*2, $g_ahD2Handle, "word")
+				switch $iStatIndex
 					case 67 to 69
-						$has[$index-67] = 1
+						$bHasStat[$iStatIndex-67] = True
 				endswitch
 			next
 		endif
 		
-		for $i = 0 to $nStats-1
-			$index = _MemoryRead($pStats + $i*8 + 2, $d2handle, "word")
-			$val = _MemoryRead($pStats + $i*8 + 4, $d2handle, "int")
-			switch $index
+		for $i = 0 to $iStatCount - 1
+			$iStatIndex = _MemoryRead($pStatList + $i*8 + 2, $g_ahD2Handle, "word")
+			$iStatValue = _MemoryRead($pStatList + $i*8 + 4, $g_ahD2Handle, "int")
+			switch $iStatIndex
 				case 67 to 69
-					if (not $skill or $has[$index-67]) then $stats_cache[1][$index] += $val
+					if (not $iSkillID or $bHasStat[$iStatIndex-67]) then $g_aiStatsCache[1][$iStatIndex] += $iStatValue
 			endswitch
 		next
 	wend
 endfunc
 
-func GetStatValue($istat)
-	local $ivector = $istat < 4 ? 0 : 1
-	local $val = $stats_cache[$ivector][$istat]
-	return Floor($val ? $val : 0)
+func GetStatValue($iStatID)
+	local $iVector = $iStatID < 4 ? 0 : 1
+	local $iStatValue = $g_aiStatsCache[$iVector][$iStatID]
+	return Floor($iStatValue ? $iStatValue : 0)
 endfunc
 #EndRegion
 
 #Region Drop notifier
-func DropNotifierSetup()
-	local $nItems = _MemoryRead($d2common + 0x9FB94, $d2handle)
-	local $pItemsTxt = _MemoryRead($d2common + 0x9FB98, $d2handle)
-
-	local $base, $nameid, $name
-	
-	local $matches[] = [ _
-		"Signet of Skill", _
-		".*Signet of Learning", _
-		"Emblem .+", _
-		".+ Trophy$", _
-		"Cycle", _
-		"Enchanting Crystal", _
-		"Wings of the Departed", _
-		".+ Essence$", _
-		"Runestone", _
-		"Great Rune\|(.*)", _
-		"Mystic Orb\|(.*)" ]
-	local $iMatches = UBound($matches) - 1
-	
-	local $match, $group, $text
-	
-	redim $notify_list[$nItems][3]
-	
-	for $class = 0 to $nItems - 1
-		$group = ""
-		$text = ""
-		
-		$base = $pItemsTxt + 0x1A8 * $class
-		
-		$nameid = _MemoryRead($base + 0xF4, $d2handle, "word")
-		$name = _CreateRemoteThread($d2inject_getstring, $nameid)
-		$name = _MemoryRead($name, $d2handle, "wchar[100]")
-		
-		$name = StringReplace($name, @LF, "|")
-		$name = StringRegExpReplace($name, "ÿc.", "")
-
-		if (_MemoryRead($base + 0x84, $d2handle)) then
-			$group = StringInStr($name, "(Sacred)") ? "sacred" : "tiered"
-			$text = $name
-		elseif ($name == "Ring" or $name == "Amulet" or $name == "Jewel" or StringInStr($name, "Quiver")) then
-			$group = "sacred"
-			$text = $name
-		elseif (StringInStr($name, "Shrine (10)")) then
-			$group = "shrine"
-			$text = StringTrimRight($name, 5)
-		elseif (StringInStr($name, "Belladonna")) then
-			$group = "respec"
-			$text = $name
-		elseif (StringInStr($name, "Welcome")) then
-			$text = "Hello!"
-		else
-			for $i = 0 to $iMatches
-				$match = StringRegExp($name, $matches[$i], 3)
-				if (not @error) then
-					$text = $match[0]
-					exitloop
-				endif
-			next
-		endif
-
-		$notify_list[$class][0] = $group
-		$notify_list[$class][1] = $text
-		$notify_list[$class][2] = $name
+func NotifierFlag($sFlag)
+	for $i = 0 to UBound($g_asNotifyFlags) - 1
+		if ($g_asNotifyFlags[$i] == $sFlag) then return BitRotate(1, $i, "D")
 	next
-	
-	if (not @compiled) then _ArrayDisplay($notify_list)
+	return 0
 endfunc
 
-func DropNotifier()
-	local $ptr_offsets[4] = [0, 0x2C, 0x1C, 0x0]
-	local $pPaths = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
+func NotifierCache()
+	if (not $g_bNotifyCache) then return
+	$g_bNotifyCache = False
 	
-	$ptr_offsets[3] = 0x24
-	local $nPaths = _MemoryPointerRead($d2client + 0x11BBFC, $d2handle, $ptr_offsets)
+	local $iItemsTxt = _MemoryRead($g_hD2Common + 0x9FB94, $g_ahD2Handle)
+	local $pItemsTxt = _MemoryRead($g_hD2Common + 0x9FB98, $g_ahD2Handle)
+
+	local $pBaseAddr, $iNameID, $sName, $asMatch, $sTier
 	
-	if (not $pPaths or not $nPaths) then return
+	redim $g_avNotifyCache[$iItemsTxt][2]
 	
-	local $path, $unit, $data
-	local $type, $class, $quality, $notify, $group, $text, $clr
-	
-	for $i = 0 to $nPaths-1
-		$path = _MemoryRead($pPaths + 4*$i, $d2handle)
-		$unit = _MemoryRead($path + 0x74, $d2handle)
+	for $iClass = 0 to $iItemsTxt - 1
+		$pBaseAddr = $pItemsTxt + 0x1A8 * $iClass
 		
-		while $unit
-			$type = _MemoryRead($unit + 0x0, $d2handle)
-			
-			if ($type == 4) then
-				$class = _MemoryRead($unit + 0x4, $d2handle)
-				
-				$group = $notify_list[$class][0]
-				$text = $notify_list[$class][1]
-				
-				if ($text <> "") then
-					$data = _MemoryRead($unit + 0x14, $d2handle)
-					$notify = 1
-					$clr = 8 ; Orange
-					
-					if ($group <> "") then
-						$quality = _MemoryRead($data + 0x0, $d2handle)
-						
-						if ($quality == 5) then
-							$notify = GetGUIOption("notify-set")
-							$clr = 2 ; Green
-						elseif ($quality == 7 or ($group <> "tiered" and $group <> "sacred")) then
-							$notify = GetGUIOption("notify-" & $group)
-							$clr = $quality == 7 ? 4 : $clr  ; Gold or Orange
-						else
-							$notify = 0
-						endif
-					endif
+		$iNameID = _MemoryRead($pBaseAddr + 0xF4, $g_ahD2Handle, "word")
+		$sName = RemoteThread($g_pD2InjectGetString, $iNameID)
+		$sName = _MemoryRead($sName, $g_ahD2Handle, "wchar[100]")
+		
+		$sName = StringReplace($sName, @LF, "|")
+		$sName = StringRegExpReplace($sName, "ÿc.", "")
+		$sTier = "0"
+		
+		if (_MemoryRead($pBaseAddr + 0x84, $g_ahD2Handle)) then ; Weapon / Armor
+			$asMatch = StringRegExp($sName, "[1-6]|\Q(Sacred)\E", $STR_REGEXPARRAYGLOBALMATCH)
+			if (not @error) then $sTier = $asMatch[0] == "(Sacred)" ? "sacred" : $asMatch[0]
+		endif
+		
+		$g_avNotifyCache[$iClass][0] = $sName
+		$g_avNotifyCache[$iClass][1] = NotifierFlag($sTier)
+	next
+endfunc
 
-					if ($notify and _MemoryRead($data + 0x48, $d2handle, "byte") == 0) then
-						; Using the ear level field to check if we've seen this item on the ground before
-						; Resets when the item is picked up or we move too far away
-						_MemoryWrite($data + 0x48, $d2handle, 1, "byte")
-
-						PrintString("- " & $text, $clr)
-					endif
-				endif
+func NotifierCompileLine($sLine, ByRef $sMatch, ByRef $iFlags)
+	$sLine = StringStripWS(StringRegExpReplace($sLine, "#.*", ""), BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING, $STR_STRIPSPACES))
+	local $iLineLength = StringLen($sLine)
+	
+	local $sArg = "", $sChar
+	local $bQuoted = False
+	
+	$sMatch = ""
+	$iFlags = 0
+	
+	for $i = 1 to $iLineLength
+		$sChar = StringMid($sLine, $i, 1)
+		
+		if ($sChar == '"') then
+			if ($bQuoted) then
+				$sMatch = $sArg
+				$sArg = ""
 			endif
 			
-			$unit = _MemoryRead($unit + 0xE8, $d2handle)
+			$bQuoted = not $bQuoted
+		elseif ($sChar == " " and not $bQuoted) then
+			$iFlags = BitOR($iFlags, NotifierFlag($sArg))
+			$sArg = ""
+		else
+			$sArg &= $sChar
+		endif
+	next
+
+	if ($sArg <> "") then $iFlags = BitOr($iFlags, NotifierFlag($sArg))
+	
+	if ($sMatch == "" and $iFlags <> 0) then $sMatch = ".+"
+endfunc
+
+func NotifierCompile()
+	if (not $g_bNotifyCompile) then return
+	$g_bNotifyCompile = False
+	
+	local $asLines = StringSplit(_GUI_Option("notify-text"), @LF)
+	local $iLines = $asLines[0]
+	
+	redim $g_avNotifyCompile[0][2]
+	redim $g_avNotifyCompile[$iLines][2]
+	
+	local $sMatch, $iFlags
+	local $iCount = 0
+	
+	for $i = 1 to $iLines
+		NotifierCompileLine($asLines[$i], $sMatch, $iFlags)
+		
+		if ($sMatch <> "" or $iFlags <> 0) then
+			$g_avNotifyCompile[$iCount][0] = $sMatch
+			$g_avNotifyCompile[$iCount][1] = $iFlags
+			$iCount += 1
+		endif
+	next
+	
+	redim $g_avNotifyCompile[$iCount][2]
+endfunc
+
+func NotifierTest($sInput)
+	NotifierCache()
+	
+	local $sMatch, $iFlags
+	NotifierCompileLine($sInput, $sMatch, $iFlags)
+	
+	local $sFlags = StringRegExpReplace($sInput, '("[^"]+")|(#.*)', "")
+	$sFlags = StringStripWS($sFlags, BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING))
+	
+	local $iItems = UBound($g_avNotifyCache)
+	local $asMatches[$iItems + 1][2] = [ [$sMatch, $sFlags] ]
+	
+	local $sName, $iTierFlag, $asMatch, $bRequireTier
+	local $iCount = 1
+	
+	if ($sMatch <> "" or $iFlags <> 0) then
+		for $i = 0 to $iItems - 1
+			$sName = $g_avNotifyCache[$i][0]
+			$iTierFlag = $g_avNotifyCache[$i][1]
+			
+			$asMatch = StringRegExp($sName, $sMatch == "" ? ".*" : $sMatch, $STR_REGEXPARRAYGLOBALMATCH)
+			if (not @error) then
+				$bRequireTier = BitAND($iFlags, $g_iNotifyFlagsMaskTier) <> 0
+				
+				if ($bRequireTier and not BitAND($iFlags, $iTierFlag)) then continueloop
+				
+				$asMatches[$iCount][0] = $sName
+				$asMatches[$iCount][1] = $asMatch[0]
+				$iCount += 1
+			endif
+		next
+	endif
+	
+	redim $asMatches[$iCount][2]
+	_ArrayDisplay($asMatches, "Notifier Test", default, 32, @LF, "Item|Text")
+endfunc
+
+func NotifierMain()
+	NotifierCache()
+	NotifierCompile()
+	
+	local $aiOffsets[4] = [0, 0x2C, 0x1C, 0x0]
+	local $pPaths = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
+	
+	$aiOffsets[3] = 0x24
+	local $iPaths = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
+	
+	if (not $pPaths or not $iPaths) then return
+	
+	local $pPath, $pUnit, $pUnitData
+	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iFlags, $iFlagsQuality, $sName, $iTierFlag
+	local $bIsNewItem, $bIsSocketed, $bIsEthereal, $bRequireTier, $bRequireQuality
+	local $asMatch, $sText, $iColor, $bNotify
+
+	local $tUnitAny = DllStructCreate("dword iUnitType;dword iClass;dword pad1[3];dword pUnitData;dword pad2[52];dword pUnit;")
+	local $tItemData = DllStructCreate("dword iQuality;dword pad1[5];dword iFlags;dword pad2[11];byte iEarLevel;")
+	
+	for $i = 0 to $iPaths - 1
+		$pPath = _MemoryRead($pPaths + 4*$i, $g_ahD2Handle)
+		$pUnit = _MemoryRead($pPath + 0x74, $g_ahD2Handle)
+		
+		while $pUnit
+			_WinAPI_ReadProcessMemory($g_ahD2Handle[1], $pUnit, DllStructGetPtr($tUnitAny), DllStructGetSize($tUnitAny), 0)
+			$iUnitType = DllStructGetData($tUnitAny, "iUnitType")
+			$pUnitData = DllStructGetData($tUnitAny, "pUnitData")
+			$iClass = DllStructGetData($tUnitAny, "iClass")
+			$pUnit = DllStructGetData($tUnitAny, "pUnit")
+			
+			; iUnitType 4 = item
+			if ($iUnitType == 4) then
+				_WinAPI_ReadProcessMemory($g_ahD2Handle[1], $pUnitData, DllStructGetPtr($tItemData), DllStructGetSize($tItemData), 0)
+				$iQuality = DllStructGetData($tItemData, "iQuality")
+				$iFlags = DllStructGetData($tItemData, "iFlags")
+				$iEarLevel = DllStructGetData($tItemData, "iEarLevel")
+				
+				; Using the ear level field to check if we've seen this item on the ground before
+				; Resets when the item is picked up or we move too far away
+				if ($iEarLevel <> 0) then continueloop
+				_MemoryWrite($pUnitData + 0x48, $g_ahD2Handle, 1, "byte")
+				
+				$bIsNewItem = BitAND(0x2000, $iFlags) <> 0
+				$bIsSocketed = BitAND(0x800, $iFlags) <> 0
+				$bIsEthereal = BitAND(0x400000, $iFlags) <> 0
+				
+				$sName = $g_avNotifyCache[$iClass][0]
+				$iTierFlag = $g_avNotifyCache[$iClass][1]
+				
+				$bNotify = False
+				
+				for $j = 0 to UBound($g_avNotifyCompile) - 1
+					$asMatch = StringRegExp($sName, $g_avNotifyCompile[$j][0], $STR_REGEXPARRAYGLOBALMATCH)
+
+					if (not @error) then
+						$sText = $asMatch[0]
+						$iFlags = $g_avNotifyCompile[$j][1]
+						
+						$bRequireTier = BitAND($iFlags, $g_iNotifyFlagsMaskTier) <> 0
+						$bRequireQuality = BitAND($iFlags, $g_iNotifyFlagsMaskQuality) <> 0
+						
+						if ($sText == "") then continueloop
+						
+						if ($bRequireTier and not BitAND($iFlags, $iTierFlag)) then continueloop
+						
+						if ($bRequireQuality) then
+							if (not BitAND($iFlags, NotifierFlag($g_asNotifyFlagsQuality[$iQuality - 1]))) then continueloop
+						endif
+						
+						if ($bIsEthereal) then
+							$sText &= " (Eth)"
+						elseif (BitAND($iFlags, NotifierFlag("eth"))) then
+							continueloop
+						endif
+						
+						if ($bIsSocketed) then
+							$sText &= " (Socket)"
+						elseif (BitAND($iFlags, NotifierFlag("socket"))) then
+							continueloop
+						endif
+						
+						$bNotify = True
+						exitloop
+					endif
+				next
+				
+				if ($bNotify) then
+					$iColor = $g_iQualityColor[$iQuality]
+					if ($iQuality == $eQualityNormal and $iTierFlag == NotifierFlag("0")) then
+						$iColor = $ePrintOrange
+					endif
+					
+					PrintString("- " & $sText, $iColor)
+				endif
+			endif
 		wend
 	next
 endfunc
 #EndRegion
 
+#Region GUI helper functions
+func _GUI_StringWidth($sText)
+	return 2 + 7 * StringLen($sText)
+endfunc
+
+func _GUI_LineY($iLine)
+	return 28 + 15*$iLine
+endfunc
+
+func _GUI_GroupX($iX = default)
+	if ($iX <> default) then $g_avGUI[0][1] = $iX
+	return $g_avGUI[0][1]
+endfunc
+
+func _GUI_GroupFirst()
+	$g_avGUI[0][1] = $g_iGroupXStart
+endfunc
+
+func _GUI_GroupNext()
+	$g_avGUI[0][1] += $g_iGroupWidth
+endfunc
+
+func _GUI_ItemCount()
+	return $g_avGUI[0][0]
+endfunc
+
+func _GUI_NewItem($iLine, $sText, $sTip = default, $iColor = default)
+	$g_avGUI[0][0] += 1
+	local $iCount = $g_avGUI[0][0]
+	
+	$g_avGUI[$iCount][0] = $sText
+	$g_avGUI[$iCount][1] = _GUI_GroupX()
+	$g_avGUI[$iCount][2] = _GUI_NewText($iLine, $sText, $sTip, $iColor)
+endfunc
+
+func _GUI_NewText($iLine, $sText, $sTip = default, $iColor = default)
+	local $idRet = _GUI_NewTextBasic($iLine, $sText)
+
+	; GUICtrlSetBkColor(-1, Random(0, 2147483647, 1))
+	if ($sTip <> default) then
+		GUICtrlSetTip(-1, StringReplace($sTip, "|", @LF), default, default, $TIP_CENTER)
+	endif
+	if ($iColor >= default) then
+		GUICtrlSetColor(-1, $iColor)
+	endif
+	return $idRet
+endfunc
+
+func _GUI_NewTextBasic($iLine, $sText, $bCentered = True)
+	local $iWidth = _GUI_StringWidth($sText)
+	local $iX = _GUI_GroupX() - ($bCentered ? $iWidth/2 : 0)
+	return GUICtrlCreateLabel($sText, $iX, _GUI_LineY($iLine), $iWidth, 15, $bCentered ? $SS_CENTER : $SS_LEFT)
+endfunc
+
+func _GUI_ItemByRef($iItem, byref $sText, byref $iX, byref $idControl)
+	$sText = $g_avGUI[$iItem][0]
+	$iX = $g_avGUI[$iItem][1]
+	$idControl = $g_avGUI[$iItem][2]
+endfunc
+
+func _GUI_OptionCount()
+	return $g_avGUIOption[0][0]
+endfunc
+
+func _GUI_NewOption($iLine, $sOption, $sText, $sFunc = "")
+	local $iY = _GUI_LineY($iLine)*2 - _GUI_LineY(0)
+	
+	local $idControl
+	local $sOptionType = _GUI_OptionType($sOption)
+	
+	switch $sOptionType
+		case null
+			_Log("_GUI_NewOption", "Invalid option '" & $sOption & "'")
+			exit
+		case "hk"
+			Call($sFunc, True)
+			if (@error == 0xDEAD and @extended == 0xBEEF) then
+				_Log("_GUI_NewOption", StringFormat("No hotkey function '%s' for option '%s'", $sFunc, $sOption))
+				exit
+			endif
+			
+			local $iKeyCode = _GUI_Option($sOption)
+			if ($iKeyCode) then
+				_KeyLock($iKeyCode)
+				_HotKey_Assign($iKeyCode, $sFunc, $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
+			endif
+			
+			$idControl = _GUICtrlHKI_Create($iKeyCode, _GUI_GroupX(), $iY, 120, 25)
+			GUICtrlCreateLabel($sText, _GUI_GroupX() + 124, $iY + 4)
+		case "cb"
+			$idControl = GUICtrlCreateCheckbox($sText, _GUI_GroupX(), $iY)
+			GUICtrlSetState(-1, _GUI_Option($sOption) ? $GUI_CHECKED : $GUI_UNCHECKED)
+		case else
+			_Log("_GUI_NewOption", "Invalid option type '" & $sOptionType & "'")
+			exit
+	endswitch
+	
+	$g_avGUIOption[0][0] += 1
+	local $iIndex = $g_avGUIOption[0][0]
+	
+	$g_avGUIOption[$iIndex][0] = $sOption
+	$g_avGUIOption[$iIndex][1] = $idControl
+	$g_avGUIOption[$iIndex][2] = $sFunc
+endfunc
+
+func _GUI_OptionByRef($iOption, byref $sOption, byref $idControl, byref $sFunc)
+	$sOption = $g_avGUIOption[$iOption][0]
+	$idControl = $g_avGUIOption[$iOption][1]
+	$sFunc = $g_avGUIOption[$iOption][2]
+endfunc
+
+func _GUI_OptionID($sOption)
+	for $i = 0 to UBound($g_avGUIOptionList) - 1
+		if ($g_avGUIOptionList[$i][0] == $sOption) then return $i
+	next
+	_Log("_GUI_OptionID", "Invalid option '" & $sOption "'")
+	exit
+endfunc
+
+func _GUI_OptionType($sOption)
+	return $g_avGUIOptionList[ _GUI_OptionID($sOption) ][2]
+endfunc
+
+func _GUI_Option($sOption, $vValue = default)
+	local $iOption = _GUI_OptionID($sOption)
+	local $vOld = $g_avGUIOptionList[$iOption][1]
+	
+	if ($vValue <> default and $vValue <> $vOld) then
+		$g_avGUIOptionList[$iOption][1] = $vValue
+		SaveGUISettings()
+	endif
+	
+	return $vOld
+endfunc
+#EndRegion
+
 #Region GUI
-func ReadCharacterData()
+func UpdateGUI()
+	local $sText, $iX, $idControl
+	local $asMatches, $iMatches, $iWidth, $iColor, $iStatValue
+	
+	for $i = 1 to _GUI_ItemCount()
+		_GUI_ItemByRef($i, $sText, $iX, $idControl)
+		$iColor = 0
+		
+		$asMatches = StringRegExp($sText, "(\[(\d+):(\d+)/(\d+)\])", $STR_REGEXPARRAYGLOBALMATCH)
+		$iMatches = UBound($asMatches)
+		
+		if ($iMatches <> 0 and $iMatches <> 4) then
+			_Log("UpdateGUI", "Invalid coloring pattern '" & $sText & "'")
+			exit
+		elseif ($iMatches == 4) then
+			$sText = StringReplace($sText, $asMatches[0], "")
+			$iColor = $g_iColorRed
+			
+			$iStatValue = GetStatValue($asMatches[1])
+			if ($iStatValue >= $asMatches[2]) then
+				$iColor = $g_iColorGreen
+			elseif ($iStatValue >= $asMatches[3]) then
+				$iColor = $g_iColorGold
+			endif
+		endif
+		
+		$asMatches = StringRegExp($sText, "({(\d+)})", $STR_REGEXPARRAYGLOBALMATCH)
+		for $j = 0 to UBound($asMatches) - 1 step 2
+			$sText = StringReplace($sText, $asMatches[$j+0], GetStatValue($asMatches[$j+1]))
+		next
+		
+		$sText = StringStripWS($sText, BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING, $STR_STRIPSPACES))
+		GUICtrlSetData($idControl, $sText)
+		if ($iColor <> 0) then GUICtrlSetColor($idControl, $iColor)
+		
+		$iWidth = _GUI_StringWidth($sText)
+		GUICtrlSetPos($idControl, $iX - $iWidth/2, default, $iWidth, default)
+	next
+endfunc
+
+func OnClick_ReadStats()
 	UpdateStatValues()
 	UpdateGUI()
 endfunc
 
-func StringWidth($text)
-	return 2 + 7 * StringLen($text)
+func OnClick_Tab()
+	GUICtrlSetState($g_idReadStats, GUICtrlRead($g_idTab) < 2 ? $GUI_SHOW : $GUI_HIDE)
 endfunc
 
-func GetLineHeight($line)
-	return 28+15*$line
+func OnClick_NotifySave()
+	_GUI_Option("notify-text", GUICtrlRead($g_idNotifyEdit))
+	OnChange_NotifyEdit()
+	$g_bNotifyCompile = True
 endfunc
 
-func NewTextBasic($line, $text, $centered = 1)
-	local $width = StringWidth($text)
-	local $x = $gui[0][1] - ($centered ? $width/2 : 0)
-	return GUICtrlCreateLabel($text, $x, GetLineHeight($line), $width, 15, $centered)
+func OnClick_NotifyReset()
+	GUICtrlSetData($g_idNotifyEdit, _GUI_Option("notify-text"))
+	OnChange_NotifyEdit()
 endfunc
 
-func NewText($line, $text, $tip = "", $clr = -1)
-	local $width = StringWidth($text)
-	local $ret = NewTextBasic($line, $text)
-
-	; GUICtrlSetBkColor(-1, Random(0, 2147483647, 1))
-	if ($tip <> "") then
-		GUICtrlSetTip(-1, StringReplace($tip, "|", @LF), default, default, 2)
-	endif
-	if ($clr >= 0) then
-		GUICtrlSetColor(-1, $clr)
-	endif
-	return $ret
-endfunc
-
-func NewItem($line, $text, $tip = "", $clr = -1)
-	local $arrPos = $gui[0][0] + 1
+func OnClick_NotifyTest()
+	local $asText[] = [ _ 
+		'"Item Name" flag1 flag2 ... flagN # Everything after hashtag is a comment.', _
+		'', _
+		'Item name is what you''re matching against. It''s a regex string.', _
+		'If you''re unsure what regex is, use letters only.', _
+		'', _
+		'Flags:', _
+		'> 0-6 sacred - Item must be one of these tiers.', _
+		'   Tier 0 means untiered items (runes, amulets, etc).', _
+		'> superior rare set unique - Item must be one of these qualities.', _
+		'> eth socket - Item must be ethereal and/or socketed.', _
+		'', _
+		'Example:', _
+		'"Battle" sacred unique eth', _
+		'', _
+		'This would notify for ethereal SU Battle Axe, Battle Staff,', _
+		'Short Battle Bow and Long Battle Bow' _
+	]
 	
-	$gui[$arrPos][0] = $text
-	$gui[$arrPos][1] = $gui[0][1]
-	$gui[$arrPos][2] = NewText($line, $text, $tip, $clr)
-
-	$gui[0][0] = $arrPos
-endfunc
-
-func UpdateGUI()
-	local $clr_red	= 0xFF0000
-	local $clr_gold	= 0x808000
-	local $clr_green= 0x008000
-	
-	local $text, $matches, $match, $width
-	local $color, $val
-	
-	for $i = 1 to $gui[0][0]
-		$text = $gui[$i][0]
-		$color = 0
-		
-		$matches = StringRegExp($text, "\[(\d+):(\d+)/(\d+)\]", 4)
-		for $j = 0 to UBound($matches)-1
-			$match = $matches[$j]
-			$text = StringReplace($text, $match[0], "")
-			$color = $clr_red
-			
-			$val = GetStatValue($match[1])
-			if ($val >= $match[2]) then
-				$color = $clr_green
-			elseif ($val >= $match[3]) then
-				$color = $clr_gold
-			endif
-		next
-		
-		$matches = StringRegExp($text, "{(\d+)}", 4)
-		for $j = 0 to UBound($matches)-1
-			$match = $matches[$j]
-			$text = StringReplace($text, $match[0], GetStatValue($match[1]))
-		next
-		
-		$text = StringStripWS($text, 7)
-		GUICtrlSetData($gui[$i][2], $text)
-		if ($color <> 0) then GUICtrlSetColor($gui[$i][2], $color)
-		
-		$width = StringWidth($text)
-		GUICtrlSetPos($gui[$i][2], $gui[$i][1]-$width/2, Default, $width, Default)
+	local $sText = ""
+	for $i = 0 to UBound($asText) - 1
+		$sText &= $asText[$i] & @CRLF
 	next
+	
+	local $sInput = InputBox("Notifier Test", $sText, default, default, 420, 120 + UBound($asText) * 13, default, default, default, $g_hGUI)
+	if (not @error) then NotifierTest($sInput)
 endfunc
+
+func OnClick_NotifyDefault()
+	GUICtrlSetData($g_idNotifyEdit, $g_sNotifyTextDefault)
+	OnChange_NotifyEdit()
+endfunc
+
+func OnChange_NotifyEdit()
+	local $iState = _GUI_Option("notify-text") == GUICtrlRead($g_idNotifyEdit) ? $GUI_DISABLE : $GUI_ENABLE
+	GUICtrlSetState($g_idNotifySave, $iState)
+	GUICtrlSetState($g_idNotifyReset, $iState)
+endfunc
+
+func CreateGUI()
+	global $g_iGroupLines = 14
+	global $g_iGroupWidth = 110
+	global $g_iGroupXStart = 8 + $g_iGroupWidth/2
+	global $g_iGUIWidth = 16 + 4*$g_iGroupWidth
+	global $g_iGUIHeight = 34 + 15*$g_iGroupLines
+
+	local $sTitle = not @Compiled ? "Test" : StringFormat("D2Stats%s %s - [%s]", @AutoItX64 ? "-64" : "", FileGetVersion(@AutoItExe, "FileVersion"), FileGetVersion(@AutoItExe, "Comments"))
+	
+	global $g_hGUI = GUICreate($sTitle, $g_iGUIWidth, $g_iGUIHeight)
+	GUISetFont(9 / _GetDPI()[2], 0, 0, "Courier New")
+	GUISetOnEvent($GUI_EVENT_CLOSE, "_Exit")
+	
+	global $g_idReadStats = GUICtrlCreateButton("Read", $g_iGroupXStart-35, $g_iGUIHeight-31, 70, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_ReadStats")
+
+	global $g_idTab = GUICtrlCreateTab(0, 0, $g_iGUIWidth, 0, $TCS_FOCUSNEVER)
+	GUICtrlSetOnEvent(-1, "OnClick_Tab")
+	
+	local $idDummySelectAll = GUICtrlCreateDummy()
+	GUICtrlSetOnEvent(-1, "DummySelectAll")
+
+	local $avAccelKeys[][2] = [ ["^a", $idDummySelectAll] ]
+	GUISetAccelerators($avAccelKeys)
+	
+#Region Stats
+	GUICtrlCreateTabItem("Page 1")
+	_GUI_GroupFirst()
+	_GUI_NewText(00, "Base stats")
+	_GUI_NewItem(01, "{000} Strength")
+	_GUI_NewItem(02, "{002} Dexterity")
+	_GUI_NewItem(03, "{003} Vitality")
+	_GUI_NewItem(04, "{001} Energy")
+	
+	_GUI_NewItem(06, "{080}% M.Find", "Magic Find")
+	_GUI_NewItem(07, "{085}% Exp.Gain", "Experience gained")
+	_GUI_NewItem(08, "{479} M.Skill", "Maximum Skill Level")
+	_GUI_NewItem(09, "{185} Sig.Stat [185:500/500]", "Signets of Learning. Up to 500 can be used||Any sacred unique item x1-25 + Catalyst of Learning ? Signet of Learning x1-25 + Catalyst of Learning|Any set item x1-25 + Catalyst of Learning ? Signet of Learning x1-25 + Catalyst of Learning|Unique ring/amulet/jewel/quiver + Catalyst of Learning ? Signet of Learning + Catalyst of Learning")
+	_GUI_NewItem(10, "{186} Sig.Skill [186:3/3]", "Signets of Skill. Up to 3 can be used||On Destruction difficulty, monsters in the Torajan Jungles have a chance to drop these")
+	_GUI_NewItem(11, "Veteran tokens [219:1/1]", "On Terror and Destruction difficulty, you can find veteran monsters near the end of|each Act. There are five types of veteran monsters, one for each Act||[Class Charm] + each of the 5 tokens ? returns [Class Charm] with added bonuses| +1 to [Your class] Skill Levels| +20% to Experience Gained")
+	
+	_GUI_GroupNext()
+	_GUI_NewText(00, "Bonus stats")
+	_GUI_NewItem(01, "{359}% Strength")
+	_GUI_NewItem(02, "{360}% Dexterity")
+	_GUI_NewItem(03, "{362}% Vitality")
+	_GUI_NewItem(04, "{361}% Energy")
+	
+	_GUI_NewText(06, "Item/Skill", "Speed from items and skills behave differently. Use SpeedCalc to find your breakpoints")
+	_GUI_NewItem(07, "{093}%/{068}% IAS", "Increased Attack Speed")
+	_GUI_NewItem(08, "{099}%/{069}% FHR", "Faster Hit Recovery")
+	_GUI_NewItem(09, "{102}%/{069}% FBR", "Faster Block Rate")
+	_GUI_NewItem(10, "{096}%/{067}% FRW", "Faster Run/Walk")
+	_GUI_NewItem(11, "{105}%/0% FCR", "Faster Cast Rate")
+	
+	_GUI_GroupNext()
+	_GUI_NewItem(00, "{076}% Life", "Maximum Life")
+	_GUI_NewItem(01, "{077}% Mana", "Maximum Mana")
+	_GUI_NewItem(02, "{025}% EWD", "Enchanced Weapon Damage")
+	_GUI_NewItem(03, "{171}% TCD", "Total Character Defense")
+	_GUI_NewItem(04, "{119}% AR", "Attack Rating")
+	_GUI_NewItem(05, "{035} MDR", "Magic Damage Reduction")
+	_GUI_NewItem(06, "{338}% Dodge", "Chance to avoid melee attacks while standing still")
+	_GUI_NewItem(07, "{339}% Avoid", "Chance to avoid projectiles while standing still")
+	_GUI_NewItem(08, "{340}% Evade", "Chance to avoid any attack while moving")
+
+	_GUI_NewItem(10, "{136}% CB", "Crushing Blow. Chance to deal physical damage based on target's current health")
+	_GUI_NewItem(11, "{135}% OW", "Open Wounds. Chance to disable target's natural health regen for 8 seconds")
+	_GUI_NewItem(12, "{141}% DS", "Deadly Strike. Chance to double physical damage of attack")
+	_GUI_NewItem(13, "{164}% UA", "Uninterruptable Attack")
+	
+	_GUI_GroupNext()
+	_GUI_NewText(00, "Res/Abs/Flat", "Resist / Absorb / Flat absorb")
+	_GUI_NewItem(01, "{039}%/{142}%/{143}", "Fire", $g_iColorRed)
+	_GUI_NewItem(02, "{043}%/{148}%/{149}", "Cold", $g_iColorBlue)
+	_GUI_NewItem(03, "{041}%/{144}%/{145}", "Lightning", $g_iColorGold)
+	_GUI_NewItem(04, "{045}%/0%/0", "Poison", $g_iColorGreen)
+	_GUI_NewItem(05, "{037}%/{146}%/{147}", "Magic", $g_iColorPink)
+	_GUI_NewItem(06, "{036}%/{034}", "Physical (aka Damage Reduction)")
+	
+	_GUI_NewText(08, "Damage/Pierce", "Spell damage / -Enemy resist")
+	_GUI_NewItem(09, "{329}%/{333}%", "Fire", $g_iColorRed)
+	_GUI_NewItem(10, "{331}%/{335}%", "Cold", $g_iColorBlue)
+	_GUI_NewItem(11, "{330}%/{334}%", "Lightning", $g_iColorGold)
+	_GUI_NewItem(12, "{332}%/{336}%", "Poison", $g_iColorGreen)
+	_GUI_NewItem(13, "{377}%/0%", "Physical/Magic", $g_iColorPink)
+	
+	GUICtrlCreateTabItem("Page 2")
+	_GUI_GroupFirst()
+	_GUI_NewItem(00, "{278} SF", "Strength Factor")
+	_GUI_NewItem(01, "{485} EF", "Energy Factor")
+	_GUI_NewItem(02, "{431}% PSD", "Poison Skill Duration")
+	_GUI_NewItem(03, "{409}% Buff.Dur", "Buff/Debuff/Cold Skill Duration")
+	_GUI_NewItem(04, "{27}% Mana.Reg", "Mana Regeneration")
+	_GUI_NewItem(05, "{109}% CLR", "Curse Length Reduction")
+	_GUI_NewItem(06, "{110}% PLR", "Poison Length Reduction")
+	_GUI_NewItem(07, "{489} TTAD", "Target Takes Additional Damage")
+	
+	_GUI_NewText(09, "Slow")
+	_GUI_NewItem(10, "{150}%/{376}% Tgt.", "Slows Target / Slows Melee Target")
+	_GUI_NewItem(11, "{363}%/{493}% Att.", "Slows Attacker / Slows Ranged Attacker")
+	
+	_GUI_GroupNext()
+	_GUI_NewText(00, "Weapon Damage")
+	_GUI_NewItem(01, "{048}-{049}", "Fire", $g_iColorRed)
+	_GUI_NewItem(02, "{054}-{055}", "Cold", $g_iColorBlue)
+	_GUI_NewItem(03, "{050}-{051}", "Lightning", $g_iColorGold)
+	_GUI_NewItem(04, "{057}-{058}/s", "Poison/sec", $g_iColorGreen)
+	_GUI_NewItem(05, "{052}-{053}", "Magic", $g_iColorPink)
+	
+	_GUI_NewText(07, "Life/Mana")
+	_GUI_NewItem(08, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
+	_GUI_NewItem(09, "{086}/{138} *aeK", "Life/Mana after each Kill")
+	_GUI_NewItem(10, "{208}/{209} *oS", "Life/Mana on Striking")
+	_GUI_NewItem(11, "{210}/{295} *oSiM", "Life/Mana on Striking in Melee")
+	
+	_GUI_GroupNext()
+	_GUI_NewText(00, "Minions")
+	_GUI_NewItem(01, "{444}% Life")
+	_GUI_NewItem(02, "{470}% Damage")
+	_GUI_NewItem(03, "{487}% Resist")
+	_GUI_NewItem(04, "{500}% AR", "Attack Rating")
+	
+	_GUI_GroupNext()
+#EndRegion
+
+	LoadGUISettings()
+	_GUI_GroupX(8)
+	
+	GUICtrlCreateTabItem("Options")
+	local $iOption = 0
+	
+	for $j = 1 to $g_iGUIOptionsGeneral
+		_GUI_NewOption($j-1, $g_avGUIOptionList[$iOption][0], $g_avGUIOptionList[$iOption][3], $g_avGUIOptionList[$iOption][4])
+		$iOption += 1
+	next
+	
+	GUICtrlCreateTabItem("Hotkeys")
+	for $j = 1 to $g_iGUIOptionsHotkey
+		_GUI_NewOption($j-1, $g_avGUIOptionList[$iOption][0], $g_avGUIOptionList[$iOption][3], $g_avGUIOptionList[$iOption][4])
+		$iOption += 1
+	next
+	
+	GUICtrlCreateTabItem("Notifier")
+	
+	local $iNotifyY = $g_iGUIHeight - 29
+	
+	global $g_idNotifyEdit = GUICtrlCreateEdit("", 4, _GUI_LineY(0), $g_iGUIWidth - 8, $iNotifyY - _GUI_LineY(0) - 5)
+	
+	global $g_idNotifySave = GUICtrlCreateButton("Save", 4 + 0*62, $iNotifyY, 60, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_NotifySave")
+	global $g_idNotifyReset = GUICtrlCreateButton("Reset", 4 + 1*62, $iNotifyY, 60, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_NotifyReset")
+	global $g_idNotifyTest = GUICtrlCreateButton("Test", 4 + 2*62, $iNotifyY, 60, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_NotifyTest")
+	GUICtrlCreateButton("Default", 4 + 3*62, $iNotifyY, 60, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_NotifyDefault")
+	
+	OnClick_NotifyReset()
+
+	GUICtrlCreateTabItem("Drop filter")
+	_GUI_GroupX(8)
+	_GUI_NewTextBasic(00, "The latest drop filter hides:", False)
+	_GUI_NewTextBasic(01, " White/magic/rare tiered equipment with no filled sockets.", False)
+	_GUI_NewTextBasic(02, " Runes below and including Zod.", False)
+	_GUI_NewTextBasic(03, " Gems below Perfect.", False)
+	_GUI_NewTextBasic(04, " Gold stacks below 2,000.", False)
+	_GUI_NewTextBasic(05, " Magic rings, amulets and quivers.", False)
+	_GUI_NewTextBasic(06, " Elixirs of Experience/Greed/Concentration.", False)
+	_GUI_NewTextBasic(07, " Various junk (mana potions, TP/ID scrolls and tomes, keys).", False)
+	_GUI_NewTextBasic(08, " Health potions below Greater.", False)
+	
+	GUICtrlCreateTabItem("About")
+	_GUI_GroupX(8)
+	_GUI_NewTextBasic(00, "Made by Wojen and Kyromyr, using Shaggi's offsets.", False)
+	_GUI_NewTextBasic(01, "Layout help by krys.", False)
+	_GUI_NewTextBasic(02, "Additional help by suchbalance and Quirinus.", False)
+	
+	_GUI_NewTextBasic(04, "If you're unsure what any of the abbreviations mean, all of", False)
+	_GUI_NewTextBasic(05, " them should have a tooltip when hovered over.", False)
+	
+	_GUI_NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
+	
+	GUICtrlCreateTabItem("")
+	UpdateGUI()
+	GUIRegisterMsg($WM_COMMAND, "WM_COMMAND")
+	
+	GUISetState(@SW_SHOW)
+endfunc
+
+func UpdateGUIOptions()
+	local $sType, $sOption, $idControl, $sFunc, $vValue, $vOld
+	
+	for $i = 1 to _GUI_OptionCount()
+		_GUI_OptionByRef($i, $sOption, $idControl, $sFunc)
+		
+		$sType = _GUI_OptionType($sOption)
+		$vOld = _GUI_Option($sOption)
+		$vValue = $vOld
+		
+		switch $sType
+			case "hk"
+				$vValue = _GUICtrlHKI_GetHotKey($idControl)
+			case "cb"
+				$vValue = BitAND(GUICtrlRead($idControl), $GUI_CHECKED) ? 1 : 0
+		endswitch
+		
+		if ($vOld <> $vValue) then
+			_GUI_Option($sOption, $vValue)
+			
+			if ($sType == "hk") then
+				if ($vOld) then _HotKey_Assign($vOld, 0, $HK_FLAG_D2STATS)
+				if ($vValue) then _HotKey_Assign($vValue, $sFunc, $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
+			endif
+		endif
+	next
+
+	local $bEnable = IsIngame()
+	if ($bEnable <> $g_bHotkeysEnabled) then
+		if ($bEnable) then
+			_HotKey_Enable()
+		else
+			_HotKey_Disable($HK_FLAG_D2STATS)
+		endif
+		$g_bHotkeysEnabled = $bEnable
+	endif
+endfunc
+
+func SaveGUISettings()
+	local $sWrite = "", $vValue
+	for $i = 0 to UBound($g_avGUIOptionList) - 1
+		$vValue = $g_avGUIOptionList[$i][1]
+		if ($g_avGUIOptionList[$i][2] == "tx") then $vValue = StringToBinary($vValue)
+		$sWrite &= StringFormat("%s=%s%s", $g_avGUIOptionList[$i][0], $vValue, @LF)
+	next
+	IniWriteSection(@AutoItExe & ".ini", "General", $sWrite)
+endfunc
+
+func LoadGUISettings()
+	local $asIniGeneral = IniReadSection(@AutoItExe & ".ini", "General")
+	if (not @error) then
+		local $vValue
+		for $i = 1 to $asIniGeneral[0][0]
+			$vValue = $asIniGeneral[$i][1]
+			$vValue = _GUI_OptionType($asIniGeneral[$i][0]) == "tx" ? BinaryToString($vValue) : Int($vValue)
+			_GUI_Option($asIniGeneral[$i][0], $vValue)
+		next
+	endif
+endfunc
+
+func DummySelectAll()
+    local $hWnd = _WinAPI_GetFocus()
+    local $sClass = _WinAPI_GetClassName($hWnd)
+    if ($sClass == "Edit") then _GUICtrlEdit_SetSel($hWnd, 0, -1)
+endfunc
+
+Func WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
+	Local $iIDFrom = BitAND($wParam, 0xFFFF)
+	Local $iCode = BitShift($wParam, 16)
+	
+	If $iCode = $EN_CHANGE Then
+		Switch $iIDFrom
+			Case $g_idNotifyEdit
+				OnChange_NotifyEdit()
+		EndSwitch
+	EndIf
+EndFunc   ;==>WM_COMMAND
 
 Func _GetDPI()
-    Local $a1[3]
-    Local $iDPI, $iDPIRat, $Logpixelsy = 90, $hWnd = 0
+    Local $avRet[3]
+    Local $iDPI, $iDPIRat, $hWnd = 0
     Local $hDC = DllCall("user32.dll", "long", "GetDC", "long", $hWnd)
-    Local $aRet = DllCall("gdi32.dll", "long", "GetDeviceCaps", "long", $hDC[0], "long", $Logpixelsy)
+    Local $aResult = DllCall("gdi32.dll", "long", "GetDeviceCaps", "long", $hDC[0], "long", 90)
     DllCall("user32.dll", "long", "ReleaseDC", "long", $hWnd, "long", $hDC)
-    $iDPI = $aRet[0]
+    $iDPI = $aResult[0]
 
     Select
         Case $iDPI = 0
@@ -713,326 +1186,58 @@ Func _GetDPI()
         Case Else
             $iDPIRat = $iDPI / 94
     EndSelect
-    $a1[0] = 2
-    $a1[1] = $iDPI
-    $a1[2] = $iDPIRat
+	
+    $avRet[0] = 2
+    $avRet[1] = $iDPI
+    $avRet[2] = $iDPIRat
 
-    Return $a1
+    Return $avRet
 EndFunc   ;==>_GetDPI
-
-func CreateGUI()
-	local $clr_red	= 0xFF0000
-	local $clr_blue	= 0x0066CC
-	local $clr_gold	= 0x808000
-	local $clr_green= 0x008000
-	local $clr_pink	= 0xFF00FF
-	
-	local $groupLines = 14
-	local $groupWidth = 110
-	local $groupXStart = 8 + $groupWidth/2
-
-	local $title = not @Compiled ? "Test" : StringFormat("D2Stats%s %s - [%s]", @AutoItX64 ? "-64" : "", FileGetVersion(@AutoItExe, "FileVersion"), FileGetVersion(@AutoItExe, "Comments"))
-	local $guiWidth = 16 + 4*$groupWidth
-	local $guiHeight = 34 + 15*$groupLines
-	GUICreate($title, $guiWidth, $guiHeight)
-	GUISetFont(9 / _GetDPI()[2], 0, 0, "Courier New")
-	
-	global $btnRead = GUICtrlCreateButton("Read", $groupXStart-35, $guiHeight-31, 70, 25)
-
-	global $tab = GUICtrlCreateTab(0, 0, $guiWidth, 0, 0x8000)
-	
-	GUICtrlCreateTabItem("Page 1")
-	$gui[0][1] = $groupXStart
-	NewText(00, "Base stats")
-	NewItem(01, "{000} Strength")
-	NewItem(02, "{002} Dexterity")
-	NewItem(03, "{003} Vitality")
-	NewItem(04, "{001} Energy")
-	
-	NewItem(06, "{080}% M.Find", "Magic Find")
-	NewItem(07, "{085}% Exp.Gain", "Experience gained")
-	NewItem(08, "{479} M.Skill", "Maximum Skill Level")
-	NewItem(09, "{185} Sig.Stat [185:500/500]", "Signets of Learning. Up to 500 can be used||Any sacred unique item x1-25 + Catalyst of Learning → Signet of Learning x1-25 + Catalyst of Learning|Any set item x1-25 + Catalyst of Learning → Signet of Learning x1-25 + Catalyst of Learning|Unique ring/amulet/jewel/quiver + Catalyst of Learning → Signet of Learning + Catalyst of Learning")
-	NewItem(10, "{186} Sig.Skill [186:3/3]", "Signets of Skill. Up to 3 can be used||On Destruction difficulty, monsters in the Torajan Jungles have a chance to drop these")
-	NewItem(11, "Veteran tokens [219:1/1]", "On Terror and Destruction difficulty, you can find veteran monsters near the end of|each Act. There are five types of veteran monsters, one for each Act||[Class Charm] + each of the 5 tokens → returns [Class Charm] with added bonuses| +1 to [Your class] Skill Levels| +20% to Experience Gained")
-	
-	
-	$gui[0][1] += $groupWidth
-	NewText(00, "Bonus stats")
-	NewItem(01, "{359}% Strength")
-	NewItem(02, "{360}% Dexterity")
-	NewItem(03, "{362}% Vitality")
-	NewItem(04, "{361}% Energy")
-	
-	NewText(06, "Item/Skill", "Speed from items and skills behave differently. Use SpeedCalc to find your breakpoints")
-	NewItem(07, "{093}%/{068}% IAS", "Increased Attack Speed")
-	NewItem(08, "{099}%/{069}% FHR", "Faster Hit Recovery")
-	NewItem(09, "{102}%/{069}% FBR", "Faster Block Rate")
-	NewItem(10, "{096}%/{067}% FRW", "Faster Run/Walk")
-	NewItem(11, "{105}%/0% FCR", "Faster Cast Rate")
-	
-	
-	$gui[0][1] += $groupWidth
-	NewItem(00, "{076}% Life", "Maximum Life")
-	NewItem(01, "{077}% Mana", "Maximum Mana")
-	NewItem(02, "{025}% EWD", "Enchanced Weapon Damage")
-	NewItem(03, "{171}% TCD", "Total Character Defense")
-	NewItem(04, "{119}% AR", "Attack Rating")
-	NewItem(05, "{035} MDR", "Magic Damage Reduction")
-	NewItem(06, "{338}% Dodge", "Chance to avoid melee attacks while standing still")
-	NewItem(07, "{339}% Avoid", "Chance to avoid projectiles while standing still")
-	NewItem(08, "{340}% Evade", "Chance to avoid any attack while moving")
-
-	NewItem(10, "{136}% CB", "Crushing Blow. Chance to deal physical damage based on target's current health")
-	NewItem(11, "{135}% OW", "Open Wounds. Chance to disable target's natural health regen for 8 seconds")
-	NewItem(12, "{141}% DS", "Deadly Strike. Chance to double physical damage of attack")
-	NewItem(13, "{164}% UA", "Uninterruptable Attack")
-	
-	
-	$gui[0][1] += $groupWidth
-	NewText(00, "Res/Abs/Flat", "Resist / Absorb / Flat absorb")
-	NewItem(01, "{039}%/{142}%/{143}", "Fire", $clr_red)
-	NewItem(02, "{043}%/{148}%/{149}", "Cold", $clr_blue)
-	NewItem(03, "{041}%/{144}%/{145}", "Lightning", $clr_gold)
-	NewItem(04, "{045}%/0%/0", "Poison", $clr_green)
-	NewItem(05, "{037}%/{146}%/{147}", "Magic", $clr_pink)
-	NewItem(06, "{036}%/{034}", "Physical (aka Damage Reduction)")
-	
-	NewText(08, "Damage/Pierce", "Spell damage / -Enemy resist")
-	NewItem(09, "{329}%/{333}%", "Fire", $clr_red)
-	NewItem(10, "{331}%/{335}%", "Cold", $clr_blue)
-	NewItem(11, "{330}%/{334}%", "Lightning", $clr_gold)
-	NewItem(12, "{332}%/{336}%", "Poison", $clr_green)
-	NewItem(13, "{377}%/0%", "Physical/Magic", $clr_pink)
-	
-	
-	GUICtrlCreateTabItem("Page 2")
-	$gui[0][1] = $groupXStart
-	NewItem(00, "{278} SF", "Strength Factor")
-	NewItem(01, "{485} EF", "Energy Factor")
-	NewItem(02, "{431}% PSD", "Poison Skill Duration")
-	NewItem(03, "{409}% Buff.Dur", "Buff/Debuff/Cold Skill Duration")
-	NewItem(04, "{27}% Mana.Reg", "Mana Regeneration")
-	NewItem(05, "{109}% CLR", "Curse Length Reduction")
-	NewItem(06, "{110}% PLR", "Poison Length Reduction")
-	NewItem(07, "{489} TTAD", "Target Takes Additional Damage")
-	
-	NewText(09, "Slow")
-	NewItem(10, "{150}%/{376}% Tgt.", "Slows Target / Slows Melee Target")
-	NewItem(11, "{363}%/{493}% Att.", "Slows Attacker / Slows Ranged Attacker")
-	
-	
-	$gui[0][1] += $groupWidth
-	NewText(00, "Weapon Damage")
-	NewItem(01, "{048}-{049}", "Fire", $clr_red)
-	NewItem(02, "{054}-{055}", "Cold", $clr_blue)
-	NewItem(03, "{050}-{051}", "Lightning", $clr_gold)
-	NewItem(04, "{057}-{058}/s", "Poison/sec", $clr_green)
-	NewItem(05, "{052}-{053}", "Magic", $clr_pink)
-	
-	NewText(07, "Life/Mana")
-	NewItem(08, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
-	NewItem(09, "{086}/{138} *aeK", "Life/Mana after each Kill")
-	NewItem(10, "{208}/{209} *oS", "Life/Mana on Striking")
-	NewItem(11, "{210}/{295} *oSiM", "Life/Mana on Striking in Melee")
-	
-	
-	$gui[0][1] += $groupWidth
-	NewText(00, "Minions")
-	NewItem(01, "{444}% Life")
-	NewItem(02, "{470}% Damage")
-	NewItem(03, "{487}% Resist")
-	NewItem(04, "{500}% AR", "Attack Rating")
-	
-	
-	$gui[0][1] += $groupWidth
-
-	LoadGUIOptions()
-	$gui[0][1] = 8
-	
-	GUICtrlCreateTabItem("Options")
-	local $i = 0
-	
-	for $j = 1 to $opts_general
-		NewOption($j-1, $options[$i][0], $options[$i][3], $options[$i][4])
-		$i += 1
-	next
-	
-	GUICtrlCreateTabItem("Hotkeys")
-	for $j = 1 to $opts_hotkey
-		NewOption($j-1, $options[$i][0], $options[$i][3], $options[$i][4])
-		$i += 1
-	next
-	
-	
-	GUICtrlCreateTabItem("Drop notifier")
-	for $j = 1 to $opts_notify
-		$gui[0][1] = $j == 1 ? 8 : 16
-		NewOption($j-1, $options[$i][0], $options[$i][3], $options[$i][4])
-		$i += 1
-	next
-	
-
-	GUICtrlCreateTabItem("Drop filter")
-	$gui[0][1] = 8
-	NewTextBasic(00, "The latest drop filter hides:", False)
-	NewTextBasic(01, " White/magic/rare tiered equipment with no filled sockets.", False)
-	NewTextBasic(02, " Runes below and including Zod.", False)
-	NewTextBasic(03, " Gems below Perfect.", False)
-	NewTextBasic(04, " Gold stacks below 2,000.", False)
-	NewTextBasic(05, " Magic rings, amulets and quivers.", False)
-	NewTextBasic(06, " Elixirs of Experience/Greed/Concentration.", False)
-	NewTextBasic(07, " Various junk (mana potions, TP/ID scrolls and tomes, keys).", False)
-	NewTextBasic(08, " Health potions below Greater.", False)
-	
-	
-	GUICtrlCreateTabItem("About")
-	$gui[0][1] = 8
-	NewTextBasic(00, "Made by Wojen and Kyromyr, using Shaggi's offsets.", False)
-	NewTextBasic(01, "Layout help by krys.", False)
-	NewTextBasic(02, "Additional help by suchbalance and Quirinus.", False)
-	
-	NewTextBasic(04, "If you're unsure what any of the abbreviations mean, all of", False)
-	NewTextBasic(05, " them should have a tooltip when hovered over.", False)
-	
-	NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
-	
-	
-	GUICtrlCreateTabItem("")
-	UpdateGUI()
-	GUISetState(@SW_SHOW)
-endfunc
-#EndRegion
-
-#Region GUI-options
-func NewOption($line, $opt, $text, $extra = 0)
-	local $arrPos = $gui_opt[0][0] + 1
-	local $y = GetLineHeight($line)*2 - GetLineHeight(0)
-	
-	local $control
-	local $type = GetGUIOptionType($opt)
-	if ($type == null) then
-		_Log("NewOption", "Invalid option '" & $opt & "'")
-		exit
-	elseif ($type == "hk") then
-		if (not $extra) then
-			_Log("NewOption", "No hotkey function for option '" & $opt & "'")
-			exit
-		endif
-		
-		local $key = GetGUIOption($opt)
-		if ($key) then
-			_KeyLock($key)
-			_HotKey_Assign($key, $extra, $HK_FLAG_D2STATS, "[CLASS:Diablo II]")
-		endif
-		
-		$control = _GUICtrlHKI_Create($key, $gui[0][1], $y, 120, 25)
-		GUICtrlCreateLabel($text, $gui[0][1] + 124, $y+4)
-	elseif ($type == "cb") then
-		$control = GUICtrlCreateCheckbox($text, $gui[0][1], $y)
-		GUICtrlSetState(-1, GetGUIOption($opt) ? 1 : 4)
-	else
-		_Log("NewOption", "Invalid option type '" & $type & "'")
-		exit
-	endif
-	
-	$gui_opt[$arrPos][0] = $opt
-	$gui_opt[$arrPos][1] = $control
-	$gui_opt[$arrPos][2] = $extra
-	
-	$gui_opt[0][0] = $arrPos
-endfunc
-
-func SetGUIOption($name, $value)
-	for $i = 0 to UBound($options)-1
-		if ($options[$i][0] == $name) then
-			$options[$i][1] = $value
-			return
-		endif
-	next
-endfunc
-
-func GetGUIOption($name)
-	for $i = 0 to UBound($options)-1
-		if ($options[$i][0] == $name) then return $options[$i][1]
-	next
-	return null
-endfunc
-
-func GetGUIOptionType($name)
-	for $i = 0 to UBound($options)-1
-		if ($options[$i][0] == $name) then return $options[$i][2]
-	next
-	return null
-endfunc
-
-func UpdateGUIOptions()
-	local $save = False
-	local $opt, $type, $value
-	for $i = 1 to $gui_opt[0][0]
-		$opt = $gui_opt[$i][0]
-		$type = GetGUIOptionType($opt)
-		
-		if ($type == "hk") then
-			$value = _GUICtrlHKI_GetHotKey($gui_opt[$i][1])
-		elseif ($type == "cb") then
-			$value = (GUICtrlRead($gui_opt[$i][1]) == 1) ? 1 : 0
-		endif
-		
-		if (GetGUIOption($opt) <> $value) then
-			$save = True
-			SetGUIOption($opt, $value)
-		endif
-	next
-
-	if ($save) then SaveGUIOptions()
-endfunc
-
-func SaveGUIOptions()
-	local $write = ""
-	for $i = 0 to UBound($options)-1
-		$write &= StringFormat("%s=%s%s", $options[$i][0], $options[$i][1], @LF)
-	next
-	IniWriteSection(@AutoItExe & ".ini", "General", $write)
-endfunc
-
-func LoadGUIOptions()
-	local $ini = IniReadSection(@AutoItExe & ".ini", "General")
-	if (not @error) then
-		for $i = 1 to $ini[0][0]
-			SetGUIOption($ini[$i][0], Int($ini[$i][1]))
-		next
-	endif
-endfunc
 #EndRegion
 
 #Region Injection
-func GetOffsetAddress($addr)
-	return StringFormat("%08s", StringLeft(Hex(Binary($addr)), 8))
+func RemoteThread($pFunc, $iVar = 0) ; $var is in EBX register
+	local $aResult = DllCall($g_ahD2Handle[0], "ptr", "CreateRemoteThread", "ptr", $g_ahD2Handle[1], "ptr", 0, "uint", 0, "ptr", $pFunc, "ptr", $iVar, "dword", 0, "ptr", 0)
+	local $hThread = $aResult[0]
+	if ($hThread == 0) then return _Debug("RemoteThread", "Couldn't create remote thread.")
+	
+	_WinAPI_WaitForSingleObject($hThread)
+	
+	local $tDummy = DllStructCreate("dword")
+	DllCall($g_ahD2Handle[0], "bool", "GetExitCodeThread", "handle", $hThread, "ptr", DllStructGetPtr($tDummy))
+	local $iRet = Dec(Hex(DllStructGetData($tDummy, 1)))
+	
+	_WinAPI_CloseHandle($hThread)
+	return $iRet
 endfunc
 
-func PrintString($string, $color = 0)
-	if (not WriteWString($string)) then return _Log("PrintString", "Failed to write string.")
+func GetOffsetAddress($pAddress)
+	return StringFormat("%08s", StringLeft(Hex(Binary($pAddress)), 8))
+endfunc
+
+func PrintString($sString, $iColor = $ePrintWhite)
+	if (not IsIngame()) then return
+	if (not WriteWString($sString)) then return _Log("PrintString", "Failed to write string.")
 	
-	_CreateRemoteThread($d2inject_print, $color)
+	RemoteThread($g_pD2InjectPrint, $iColor)
 	if (@error) then return _Log("PrintString", "Failed to create remote thread.")
 	
 	return True
 endfunc
 
-func WriteString($string)
+func WriteString($sString)
 	if (not IsIngame()) then return _Log("WriteString", "Not ingame.")
 	
-	_MemoryWrite($d2inject_string, $d2handle, $string, StringFormat("char[%s]", StringLen($string)+1))
+	_MemoryWrite($g_pD2InjectString, $g_ahD2Handle, $sString, StringFormat("char[%s]", StringLen($sString) + 1))
 	if (@error) then return _Log("WriteString", "Failed to write string.")
 	
 	return True
 endfunc
 	
-func WriteWString($string)
+func WriteWString($sString)
 	if (not IsIngame()) then return _Log("WriteWString", "Not ingame.")
 	
-	_MemoryWrite($d2inject_string, $d2handle, $string, StringFormat("wchar[%s]", StringLen($string)+1))
+	_MemoryWrite($g_pD2InjectString, $g_ahD2Handle, $sString, StringFormat("wchar[%s]", StringLen($sString) + 1))
 	if (@error) then return _Log("WriteWString", "Failed to write string.")
 	
 	return True
@@ -1041,10 +1246,10 @@ endfunc
 func GetDropFilterHandle()
 	if (not WriteString("DropFilter.dll")) then return _Debug("GetDropFilterHandle", "Failed to write string.")
 	
-	local $gethandle = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
-	if (not $gethandle) then return _Debug("GetDropFilterHandle", "Couldn't retrieve GetModuleHandleA address.")
+	local $pGetModuleHandleA = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "GetModuleHandleA")
+	if (not $pGetModuleHandleA) then return _Debug("GetDropFilterHandle", "Couldn't retrieve GetModuleHandleA address.")
 	
-	return _CreateRemoteThread($gethandle, $d2inject_string)
+	return RemoteThread($pGetModuleHandleA, $g_pD2InjectString)
 endfunc
 
 #cs
@@ -1055,50 +1260,50 @@ D2Client.dll+5907E - E9 *           - jmp DropFilter.dll+15D0 { PATCH_DropFilter
 #ce
 
 func InjectDropFilter()
-	local $path = FileGetLongName("DropFilter.dll", 1)
-	if (not FileExists($path)) then return _Debug("InjectDropFilter", "Couldn't find DropFilter.dll. Make sure it's in the same folder as " & @ScriptName & ".")
-	if (not WriteString($path)) then return _Debug("InjectDropFilter", "Failed to write DropFilter.dll path.")
+	local $sPath = FileGetLongName("DropFilter.dll", $FN_RELATIVEPATH)
+	if (not FileExists($sPath)) then return _Debug("InjectDropFilter", "Couldn't find DropFilter.dll. Make sure it's in the same folder as " & @ScriptName & ".")
+	if (not WriteString($sPath)) then return _Debug("InjectDropFilter", "Failed to write DropFilter.dll path.")
 	
-	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
-	if (not $loadlib) then return _Debug("InjectDropFilter", "Couldn't retrieve LoadLibraryA address.")
+	local $pLoadLibraryA = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
+	if (not $pLoadLibraryA) then return _Debug("InjectDropFilter", "Couldn't retrieve LoadLibraryA address.")
 
-	local $ret = _CreateRemoteThread($loadlib, $d2inject_string)
+	local $iRet = RemoteThread($pLoadLibraryA, $g_pD2InjectString)
 	if (@error) then return _Debug("InjectDropFilter", "Failed to create remote thread.")
 	
-	local $injected = _MemoryRead($d2client + 0x5907E, $d2handle, "byte")
+	local $bInjected = 233 <> _MemoryRead($g_hD2Client + 0x5907E, $g_ahD2Handle, "byte")
 	
 	; TODO: Check if this is still needed
-	if ($ret and $injected <> 233) then
-		local $handle = _WinAPI_LoadLibrary("DropFilter.dll")
-		if ($handle) then
-			local $addr = _WinAPI_GetProcAddress($handle, "_PATCH_DropFilter@0")
-			if ($addr) then
-				local $jmp = $addr - 0x5 - ($d2client + 0x5907E)
-				_MemoryWrite($d2client + 0x5907E, $d2handle, "0xE9" & GetOffsetAddress($jmp), "byte[5]")
+	if ($iRet and $bInjected) then
+		local $hDropFilter = _WinAPI_LoadLibrary("DropFilter.dll")
+		if ($hDropFilter) then
+			local $pEntryAddress = _WinAPI_GetProcAddress($hDropFilter, "_PATCH_DropFilter@0")
+			if ($pEntryAddress) then
+				local $pJumpAddress = $pEntryAddress - 0x5 - ($g_hD2Client + 0x5907E)
+				_MemoryWrite($g_hD2Client + 0x5907E, $g_ahD2Handle, "0xE9" & GetOffsetAddress($pJumpAddress), "byte[5]")
 			else
 				_Debug("InjectDropFilter", "Couldn't find DropFilter.dll entry point.")
-				$ret = False
+				$iRet = 0
 			endif
-			_WinAPI_FreeLibrary($handle)
+			_WinAPI_FreeLibrary($hDropFilter)
 		else
 			_Debug("InjectDropFilter", "Failed to load DropFilter.dll.")
-			$ret = False
+			$iRet = 0
 		endif
 	endif
 	
-	return $ret
+	return $iRet
 endfunc
 
-func EjectDropFilter($handle)
-	local $freelib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "FreeLibrary")
-	if (not $freelib) then return _Debug("EjectDropFilter", "Couldn't retrieve FreeLibrary address.")
+func EjectDropFilter($hDropFilter)
+	local $pFreeLibrary = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "FreeLibrary")
+	if (not $pFreeLibrary) then return _Debug("EjectDropFilter", "Couldn't retrieve FreeLibrary address.")
 
-	local $ret = _CreateRemoteThread($freelib, $handle)
+	local $iRet = RemoteThread($pFreeLibrary, $hDropFilter)
 	if (@error) then return _Debug("EjectDropFilter", "Failed to create remote thread.")
 	
-	if ($ret) then _MemoryWrite($d2client + 0x5907E, $d2handle, "0x833E040F85", "byte[5]")
+	if ($iRet) then _MemoryWrite($g_hD2Client + 0x5907E, $g_ahD2Handle, "0x833E040F85", "byte[5]")
 	
-	return $ret
+	return $iRet
 endfunc
 
 #cs
@@ -1117,16 +1322,13 @@ D2Client.dll+42AE9 - 90                    - nop
 D2Client.dll+42AEA - 90                    - nop 
 #ce
 
-func IsMouseFixToggle()
-	return _MemoryRead($d2client + 0x42AE1, $d2handle, "byte") == 0x90 ? 1 : 0
+func IsMouseFixEnabled()
+	return _MemoryRead($g_hD2Client + 0x42AE1, $g_ahD2Handle, "byte") == 0x90
 endfunc
 
 func ToggleMouseFix()
-	local $restore = IsMouseFixToggle()
-	local $write = $restore ? "0xA3" & GetOffsetAddress($d2client + 0x11C3DC) & "A3" & GetOffsetAddress($d2client + 0x11C3E0) : "0x90909090909090909090" 
-
-	_MemoryWrite($d2client + 0x42AE1, $d2handle, $write, "byte[10]")
-	; PrintString($restore ? "Mouse fix disabled." : "Mouse fix enabled.", 3)
+	local $sWrite = IsMouseFixEnabled() ? "0xA3" & GetOffsetAddress($g_hD2Client + 0x11C3DC) & "A3" & GetOffsetAddress($g_hD2Client + 0x11C3E0) : "0x90909090909090909090" 
+	_MemoryWrite($g_hD2Client + 0x42AE1, $g_ahD2Handle, $sWrite, "byte[10]")
 endfunc
 
 #cs
@@ -1162,28 +1364,28 @@ D2Client.dll+3B2E1 - E9 3EFFFFFF           - jmp D2Client.dll+3B224
 D2Client.dll+3B2E6 - 90                    - nop 
 #ce
 
-func IsShowItemsToggle()
-	return _MemoryRead($d2client + 0x3AECF, $d2handle, "byte") == 0x90
+func IsShowItemsEnabled()
+	return _MemoryRead($g_hD2Client + 0x3AECF, $g_ahD2Handle, "byte") == 0x90
 endfunc
 
 func ToggleShowItems()
-	local $write1 = "0x9090909090"
-	local $write2 = "0x8335" & GetOffsetAddress($d2client + 0xFADB4) & "01E9B6000000"
-	local $write3 = "0xE93EFFFFFF90" ; Jump within same DLL shouldn't require offset fixing
+	local $sWrite1 = "0x9090909090"
+	local $sWrite2 = "0x8335" & GetOffsetAddress($g_hD2Client + 0xFADB4) & "01E9B6000000"
+	local $sWrite3 = "0xE93EFFFFFF90" ; Jump within same DLL shouldn't require offset fixing
 	
-	local $restore = IsShowItemsToggle()
-	if ($restore) then
-		$write1 = "0xA3" & GetOffsetAddress($d2client + 0xFADB4)
-		$write2	= "0xCCCCCCCCCCCCCCCCCCCCCCCC"
-		$write3 = "0x891D" & GetOffsetAddress($d2client + 0xFADB4)
+	local $bRestore = IsShowItemsEnabled()
+	if ($bRestore) then
+		$sWrite1 = "0xA3" & GetOffsetAddress($g_hD2Client + 0xFADB4)
+		$sWrite2 = "0xCCCCCCCCCCCCCCCCCCCCCCCC"
+		$sWrite3 = "0x891D" & GetOffsetAddress($g_hD2Client + 0xFADB4)
 	endif
 	
-	_MemoryWrite($d2client + 0x3AECF, $d2handle, $write1, "byte[5]")
-	_MemoryWrite($d2client + 0x3B224, $d2handle, $write2, "byte[12]")
-	_MemoryWrite($d2client + 0x3B2E1, $d2handle, $write3, "byte[6]")
+	_MemoryWrite($g_hD2Client + 0x3AECF, $g_ahD2Handle, $sWrite1, "byte[5]")
+	_MemoryWrite($g_hD2Client + 0x3B224, $g_ahD2Handle, $sWrite2, "byte[12]")
+	_MemoryWrite($g_hD2Client + 0x3B2E1, $g_ahD2Handle, $sWrite3, "byte[6]")
 	
-	_MemoryWrite($d2client + 0xFADB4, $d2handle, 0)
-	PrintString($restore ? "Hold to show items." : "Toggle to show items.", 3)
+	_MemoryWrite($g_hD2Client + 0xFADB4, $g_ahD2Handle, 0)
+	PrintString($bRestore ? "Hold to show items." : "Toggle to show items.", $ePrintBlue)
 endfunc
 
 #cs
@@ -1200,96 +1402,138 @@ D2Client.dll+CDE19 - FF D3                 - call ebx
 D2Client.dll+CDE1B - C3                    - ret 
 #ce
 
-func InjectFunctions()
-	return InjectPrintFunction() and InjectGetStringFunction()
-endfunc
-
-func InjectPrintFunction()
-	local $sCode = "0x5368" & GetOffsetAddress($d2inject_string) & "31C0E843FAFAFFC3"
-	local $ret = _MemoryWrite($d2inject_print, $d2handle, $sCode, "byte[14]")
+func InjectCode($pWhere, $sCode)
+	_MemoryWrite($pWhere, $g_ahD2Handle, $sCode, StringFormat("byte[%s]", StringLen($sCode)/2 - 1))
 	
-	local $injected = _MemoryRead($d2inject_print, $d2handle)
-	return Hex($injected, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
+	local $iConfirm = _MemoryRead($pWhere, $g_ahD2Handle)
+	return Hex($iConfirm, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
 endfunc
 
-func InjectGetStringFunction()
-	local $sCode = "0x8BCB31C0BB" & GetOffsetAddress($d2lang + 0x9450) & "FFD3C3"
-	local $ret = _MemoryWrite($d2inject_getstring, $d2handle, $sCode, "byte[12]")
-
-	local $injected = _MemoryRead($d2inject_getstring, $d2handle)
-	return Hex($injected, 8) == Hex(Binary(Int(StringLeft($sCode, 10))))
+func InjectFunctions()
+	local $bPrint = InjectCode($g_pD2InjectPrint, "0x5368" & GetOffsetAddress($g_pD2InjectString) & "31C0E843FAFAFFC3")
+	local $bGetString = InjectCode($g_pD2InjectGetString, "0x8BCB31C0BB" & GetOffsetAddress($g_hD2Lang + 0x9450) & "FFD3C3")
+	
+	return $bPrint and $bGetString
 endfunc
 
 func UpdateDllHandles()
-	local $loadlib = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
-	if (not $loadlib) then return _Debug("UpdateDllHandles", "Couldn't retrieve LoadLibraryA address.")
+	local $pLoadLibraryA = _WinAPI_GetProcAddress(_WinAPI_GetModuleHandle("kernel32.dll"), "LoadLibraryA")
+	if (not $pLoadLibraryA) then return _Debug("UpdateDllHandles", "Couldn't retrieve LoadLibraryA address.")
 	
-	local $addr = _MemVirtualAllocEx($d2handle[1], 0, 0x100, 0x3000, 0x40)
+	local $pAllocAddress = _MemVirtualAllocEx($g_ahD2Handle[1], 0, 0x100, BitOR($MEM_COMMIT, $MEM_RESERVE), $PAGE_EXECUTE_READWRITE)
 	if (@error) then return _Debug("UpdateDllHandles", "Failed to allocate memory.")
 
-	local $nDlls = UBound($dlls)
-	local $handles[$nDlls]
-	local $failed = False
+	local $iDLLs = UBound($g_asDLL)
+	local $hDLLHandle[$iDLLs]
+	local $bFailed = False
 	
-	for $i = 0 to $nDlls-1
-		_MemoryWrite($addr, $d2handle, $dlls[$i], StringFormat("char[%s]", StringLen($dlls[$i])+1))
-		$handles[$i] = _CreateRemoteThread($loadlib, $addr)
-		if ($handles[$i] == 0) then $failed = True
+	for $i = 0 to $iDLLs - 1
+		_MemoryWrite($pAllocAddress, $g_ahD2Handle, $g_asDLL[$i], StringFormat("char[%s]", StringLen($g_asDLL[$i]) + 1))
+		$hDLLHandle[$i] = RemoteThread($pLoadLibraryA, $pAllocAddress)
+		if ($hDLLHandle[$i] == 0) then $bFailed = True
 	next
 	
-	$d2client = $handles[0]
-	$d2common = $handles[1]
-	$d2win = $handles[2]
-	$d2lang = $handles[3]
+	$g_hD2Client = $hDLLHandle[0]
+	$g_hD2Common = $hDLLHandle[1]
+	$g_hD2Win = $hDLLHandle[2]
+	$g_hD2Lang = $hDLLHandle[3]
 	
-	local $d2inject = $d2client + 0xCDE00
-	$d2inject_print = $d2inject + 0x0
-	$d2inject_getstring = $d2inject + 0x10
-	$d2inject_string = $d2inject + 0x20
+	local $pD2Inject = $g_hD2Client + 0xCDE00
+	$g_pD2InjectPrint = $pD2Inject + 0x0
+	$g_pD2InjectGetString = $pD2Inject + 0x10
+	$g_pD2InjectString = $pD2Inject + 0x20
 	
-	$d2sgpt = _MemoryRead($d2common + 0x99E1C, $d2handle)
+	$g_pD2sgpt = _MemoryRead($g_hD2Common + 0x99E1C, $g_ahD2Handle)
 
-	_MemVirtualFreeEx($d2handle[1], $addr, 0x100, 0x8000)
+	_MemVirtualFreeEx($g_ahD2Handle[1], $pAllocAddress, 0x100, $MEM_RELEASE)
 	if (@error) then return _Debug("UpdateDllHandles", "Failed to free memory.")
-	if ($failed) then return _Debug("UpdateDllHandles", "Couldn't retrieve dll addresses.")
+	if ($bFailed) then return _Debug("UpdateDllHandles", "Couldn't retrieve dll addresses.")
 	
 	return True
 endfunc
+#EndRegion
 
-func _CreateRemoteThread($func, $var = 0) ; $var is in EBX register
-	local $call = DllCall($d2handle[0], "ptr", "CreateRemoteThread", "ptr", $d2handle[1], "ptr", 0, "uint", 0, "ptr", $func, "ptr", $var, "dword", 0, "ptr", 0)
-	if ($call[0] == 0) then return _Debug("UpdateDllHandles", "Couldn't create remote thread.")
+#Region Global Variables
+func DefineGlobals()
+	global $g_sLog = ""
 	
-	_WinAPI_WaitForSingleObject($call[0])
-	local $ret = _GetExitCodeThread($call[0])
+	global const $HK_FLAG_D2STATS = BitOR($HK_FLAG_DEFAULT, $HK_FLAG_NOUNHOOK)
+
+	global const $g_iColorRed	= 0xFF0000
+	global const $g_iColorBlue	= 0x0066CC
+	global const $g_iColorGold	= 0x808000
+	global const $g_iColorGreen	= 0x008000
+	global const $g_iColorPink	= 0xFF00FF
 	
-	_WinAPI_CloseHandle($call[0])
-	return $ret
+	global enum $ePrintWhite, $ePrintRed, $ePrintLime, $ePrintBlue, $ePrintGold, $ePrintGrey, $ePrintBlack, $ePrintUnk, $ePrintOrange, $ePrintYellow, $ePrintGreen, $ePrintPurple
+	global enum $eQualityNone, $eQualityLow, $eQualityNormal, $eQualitySuperior, $eQualityMagic, $eQualitySet, $eQualityRare, $eQualityUnique, $eQualityCraft, $eQualityHonorific
+	global $g_iQualityColor[] = [0x0, $ePrintWhite, $ePrintWhite, $ePrintWhite, $ePrintBlue, $ePrintLime, $ePrintYellow, $ePrintGold, $ePrintOrange, $ePrintGreen]
+	
+	global $g_avGUI[256][3] = [[0]]			; Text, X, Control [0] Count
+	global $g_avGUIOption[32][3] = [[0]]	; Option, Control, Function [0] Count
+	
+	global $g_asNotifyFlags[32]
+	global $g_asNotifyFlagsTier[] = [ "0", "1", "2", "3", "4", "5", "6", "sacred" ]
+	global $g_asNotifyFlagsQuality[] = [ "low", "normal", "superior", "magic", "set", "rare", "unique", "craft", "honor" ]
+	global $g_asNotifyFlagsMisc[] = [ "eth", "socket" ]
+	
+	local $iCount = 0
+	global $g_iNotifyFlagsMaskTier = 0
+	global $g_iNotifyFlagsMaskQuality = 0
+	global $g_iNotifyFlagsMaskMisc = 0
+	
+	for $sFlag in $g_asNotifyFlagsTier
+		$g_iNotifyFlagsMaskTier += BitRotate(1, $iCount, "D")
+		$g_asNotifyFlags[$iCount] = $sFlag
+		$iCount += 1
+	next
+	for $sFlag in $g_asNotifyFlagsQuality
+		$g_iNotifyFlagsMaskQuality += BitRotate(1, $iCount, "D")
+		$g_asNotifyFlags[$iCount] = $sFlag
+		$iCount += 1
+	next
+	for $sFlag in $g_asNotifyFlagsMisc
+		$g_iNotifyFlagsMaskMisc += BitRotate(1, $iCount, "D")
+		$g_asNotifyFlags[$iCount] = $sFlag
+		$iCount += 1
+	next
+	
+	redim $g_asNotifyFlags[$iCount]
+	
+	global $g_avNotifyCache[0][2]	; Name, Tier flag
+	global $g_avNotifyCompile[0][2]	; Regex, Flags
+	global $g_bNotifyCache = True
+	global $g_bNotifyCompile = True
+
+	global const $g_iNumStats = 1024
+	global $g_aiStatsCache[2][$g_iNumStats]
+
+	global $g_asDLL[] = ["D2Client.dll", "D2Common.dll", "D2Win.dll", "D2Lang.dll"]
+	global $g_hD2Client, $g_hD2Common, $g_hD2Win, $g_hD2Lang
+	global $g_ahD2Handle
+	
+	global $g_iD2pid, $g_iUpdateFailCounter
+
+	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString
+
+	global $g_bHotkeysEnabled = False
+
+	global const $g_iGUIOptionsGeneral = 4
+	global const $g_iGUIOptionsHotkey = 5
+
+	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020202020232053616372656420756E69717565730D0A225E2852696E677C416D756C65747C4A6577656C29242220756E69717565202320556E69717565206A6577656C72790D0A222E2B5175697665722220756E6971756520202020202020202020202020202320556E6971756520717569766572730D0A7365740D0A2242656C6C61646F6E6E612E2B220D0A22282E2B536872696E6529205C2831305C29222020202020202020202020202320536872696E65730D0A0D0A222E2A5369676E6574206F6620283F3A536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E65742E2B220D0A22456D626C656D2E2B220D0A222E2B2054726F70687924220D0A222E2A4379636C65220D0A22456E6368616E74696E67220D0A2257696E67732E2B220D0A222E2B20457373656E636524220D0A2252756E6573746F6E65220D0A2247726561742052756E655C7C282E2A29220D0A224D7973746963204F72625C7C282E2A2922")
+	
+	global $g_avGUIOptionList[][5] = [ _
+		["nopickup", 0, "cb", "Automatically enable /nopickup"], _
+		["hidePass", 0, "cb", "Hide game password when minimap is open"], _
+		["mousefix", 0, "cb", "Continue attacking when monster dies under cursor"], _
+		["notify-enabled", 1, "cb", "Enable notifier"], _
+		["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
+		["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
+		["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
+		["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
+		["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
+		["notify-text", $g_sNotifyTextDefault, "tx"] _
+	]
 endfunc
-
-func _GetExitCodeThread($thread)
-	local $dummy = DllStructCreate("dword")
-	local $call = DllCall($d2handle[0], "bool", "GetExitCodeThread", "handle", $thread, "ptr", DllStructGetPtr($dummy))
-	return Dec(Hex(DllStructGetData($dummy, 1)))
-endfunc
-
-; #FUNCTION# ====================================================================================================================
-; Author ........: Paul Campbell (PaulIA)
-; Modified.......:
-; ===============================================================================================================================
-Func _MemVirtualAllocEx($hProcess, $pAddress, $iSize, $iAllocation, $iProtect)
-	Local $aResult = DllCall($d2handle[0], "ptr", "VirtualAllocEx", "handle", $hProcess, "ptr", $pAddress, "ulong_ptr", $iSize, "dword", $iAllocation, "dword", $iProtect)
-	If @error Then Return SetError(@error, @extended, 0)
-	Return $aResult[0]
-EndFunc   ;==>_MemVirtualAllocEx
-
-; #FUNCTION# ====================================================================================================================
-; Author ........: Paul Campbell (PaulIA)
-; Modified.......:
-; ===============================================================================================================================
-Func _MemVirtualFreeEx($hProcess, $pAddress, $iSize, $iFreeType)
-	Local $aResult = DllCall("kernel32.dll", "bool", "VirtualFreeEx", "handle", $hProcess, "ptr", $pAddress, "ulong_ptr", $iSize, "dword", $iFreeType)
-	If @error Then Return SetError(@error, @extended, False)
-	Return $aResult[0]
-EndFunc   ;==>_MemVirtualFreeEx
 #EndRegion
