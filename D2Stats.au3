@@ -65,6 +65,8 @@ func Main()
 	local $bIsIngame, $bShowItems
 	
 	while 1
+		Sleep(20)
+		
 		if (TimerDiff($hTimerUpdateDelay) > 250) then
 			$hTimerUpdateDelay = TimerInit()
 			
