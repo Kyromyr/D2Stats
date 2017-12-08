@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.9.1)
-#pragma compile(FileVersion, 3.9.1)
-#pragma compile(Comments, 07.12.2017)
+#pragma compile(ProductVersion, 3.9.2)
+#pragma compile(FileVersion, 3.9.2)
+#pragma compile(Comments, 08.12.2017)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -427,10 +427,35 @@ endfunc
 
 #Region Drop notifier
 func NotifierFlag($sFlag)
-	for $i = 0 to UBound($g_asNotifyFlags) - 1
-		if ($g_asNotifyFlags[$i] == $sFlag) then return BitRotate(1, $i, "D")
+	for $i = 0 to $eNotifyFlagsLast - 1
+		for $j = 0 to UBound($g_asNotifyFlags, $UBOUND_COLUMNS) - 1
+			if ($g_asNotifyFlags[$i][$j] == "") then
+				exitloop
+			elseif ($g_asNotifyFlags[$i][$j] == $sFlag) then
+				return BitRotate(1, $j, "D")
+			endif
+		next
 	next
-	return 0
+	return SetError(1, 0, 0)
+endfunc
+
+func NotifierFlagRef($sFlag, ByRef $iFlag, ByRef $iGroup)
+	$iFlag = 0
+	$iGroup = 0
+	
+	for $i = 0 to $eNotifyFlagsLast - 1
+		for $j = 0 to UBound($g_asNotifyFlags, $UBOUND_COLUMNS) - 1
+			if ($g_asNotifyFlags[$i][$j] == "") then
+				exitloop
+			elseif ($g_asNotifyFlags[$i][$j] == $sFlag) then
+				$iGroup = $i
+				$iFlag = $j
+				return 1
+			endif
+		next
+	next
+	
+	return SetError(1, 0, 0)
 endfunc
 
 func NotifierCache()
@@ -462,40 +487,56 @@ func NotifierCache()
 		
 		$g_avNotifyCache[$iClass][0] = $sName
 		$g_avNotifyCache[$iClass][1] = NotifierFlag($sTier)
+		
+		if (@error) then
+			_Debug("NotifierCache", StringFormat("Invalid tier flag '%s'", $sTier))
+			exit
+		endif
 	next
 endfunc
 
-func NotifierCompileLine($sLine, ByRef $sMatch, ByRef $iFlags)
+func NotifierCompileFlag($sFlag, ByRef $avRet)
+	if ($sFlag == "") then return False
+	
+	local $iFlag, $iGroup
+	if (not NotifierFlagRef($sFlag, $iFlag, $iGroup)) then return False
+	
+	if ($iGroup <> $eNotifyFlagsColour) then $iFlag = BitOR(BitRotate(1, $iFlag, "D"), $avRet[$iGroup])
+	$avRet[$iGroup] = $iFlag
+
+	return $iGroup <> $eNotifyFlagsColour
+endfunc
+
+func NotifierCompileLine($sLine, ByRef $avRet)
 	$sLine = StringStripWS(StringRegExpReplace($sLine, "#.*", ""), BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING, $STR_STRIPSPACES))
 	local $iLineLength = StringLen($sLine)
 	
 	local $sArg = "", $sChar
-	local $bQuoted = False
+	local $bQuoted = False, $bHasFlags = False
 	
-	$sMatch = ""
-	$iFlags = 0
+	redim $avRet[0]
+	redim $avRet[$eNotifyFlagsLast]
 	
 	for $i = 1 to $iLineLength
 		$sChar = StringMid($sLine, $i, 1)
 		
 		if ($sChar == '"') then
 			if ($bQuoted) then
-				$sMatch = $sArg
+				$avRet[$eNotifyFlagsMatch] = $sArg
 				$sArg = ""
 			endif
 			
 			$bQuoted = not $bQuoted
 		elseif ($sChar == " " and not $bQuoted) then
-			$iFlags = BitOR($iFlags, NotifierFlag($sArg))
+			if (NotifierCompileFlag($sArg, $avRet)) then $bHasFlags = True
 			$sArg = ""
 		else
 			$sArg &= $sChar
 		endif
 	next
 
-	if ($sArg <> "") then $iFlags = BitOr($iFlags, NotifierFlag($sArg))
-	
-	if ($sMatch == "" and $iFlags <> 0) then $sMatch = ".+"
+	if (NotifierCompileFlag($sArg, $avRet)) then $bHasFlags = True
+	if ($bHasFlags and $avRet[$eNotifyFlagsMatch] == "") then $avRet[$eNotifyFlagsMatch] = ".+"
 endfunc
 
 func NotifierCompile()
@@ -505,30 +546,34 @@ func NotifierCompile()
 	local $asLines = StringSplit(_GUI_Option("notify-text"), @LF)
 	local $iLines = $asLines[0]
 	
-	redim $g_avNotifyCompile[0][2]
-	redim $g_avNotifyCompile[$iLines][2]
+	redim $g_avNotifyCompile[0][0]
+	redim $g_avNotifyCompile[$iLines][$eNotifyFlagsLast]
 	
-	local $sMatch, $iFlags
+	local $avRet[0]
 	local $iCount = 0
 	
 	for $i = 1 to $iLines
-		NotifierCompileLine($asLines[$i], $sMatch, $iFlags)
+		NotifierCompileLine($asLines[$i], $avRet)
 		
-		if ($sMatch <> "" or $iFlags <> 0) then
-			$g_avNotifyCompile[$iCount][0] = $sMatch
-			$g_avNotifyCompile[$iCount][1] = $iFlags
+		if ($avRet[$eNotifyFlagsMatch] <> "") then
+			for $j = 0 to $eNotifyFlagsLast - 1
+				$g_avNotifyCompile[$iCount][$j] = $avRet[$j]
+			next
 			$iCount += 1
 		endif
 	next
 	
-	redim $g_avNotifyCompile[$iCount][2]
+	redim $g_avNotifyCompile[$iCount][$eNotifyFlagsLast]
 endfunc
 
 func NotifierTest($sInput)
 	NotifierCache()
 	
-	local $sMatch, $iFlags
-	NotifierCompileLine($sInput, $sMatch, $iFlags)
+	local $avRet[0]
+	NotifierCompileLine($sInput, $avRet)
+	
+	local $sMatch = $avRet[$eNotifyFlagsMatch]
+	local $iFlagsTier = $avRet[$eNotifyFlagsTier]
 	
 	local $sFlags = StringRegExpReplace($sInput, '("[^"]+")|(#.*)', "")
 	$sFlags = StringStripWS($sFlags, BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING))
@@ -539,16 +584,14 @@ func NotifierTest($sInput)
 	local $sName, $iTierFlag, $asMatch, $bRequireTier
 	local $iCount = 1
 	
-	if ($sMatch <> "" or $iFlags <> 0) then
+	if ($sMatch <> "" or $iFlagsTier) then
 		for $i = 0 to $iItems - 1
 			$sName = $g_avNotifyCache[$i][0]
 			$iTierFlag = $g_avNotifyCache[$i][1]
 			
 			$asMatch = StringRegExp($sName, $sMatch == "" ? ".*" : $sMatch, $STR_REGEXPARRAYGLOBALMATCH)
 			if (not @error) then
-				$bRequireTier = BitAND($iFlags, $g_iNotifyFlagsMaskTier) <> 0
-				
-				if ($bRequireTier and not BitAND($iFlags, $iTierFlag)) then continueloop
+				if ($iFlagsTier and not BitAND($iFlagsTier, $iTierFlag)) then continueloop
 				
 				$asMatches[$iCount][0] = $sName
 				$asMatches[$iCount][1] = $asMatch[0]
@@ -574,8 +617,9 @@ func NotifierMain()
 	if (not $pPaths or not $iPaths) then return
 	
 	local $pPath, $pUnit, $pUnitData
-	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iFlags, $iFlagsQuality, $sName, $iTierFlag
-	local $bIsNewItem, $bIsSocketed, $bIsEthereal, $bRequireTier, $bRequireQuality
+	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iFlags, $sName, $iTierFlag
+	local $bIsNewItem, $bIsSocketed, $bIsEthereal
+	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour
 	local $asMatch, $sText, $iColor, $bNotify
 
 	local $tUnitAny = DllStructCreate("dword iUnitType;dword iClass;dword pad1[3];dword pUnitData;dword pad2[52];dword pUnit;")
@@ -614,46 +658,40 @@ func NotifierMain()
 				$bNotify = False
 				
 				for $j = 0 to UBound($g_avNotifyCompile) - 1
-					$asMatch = StringRegExp($sName, $g_avNotifyCompile[$j][0], $STR_REGEXPARRAYGLOBALMATCH)
+					$asMatch = StringRegExp($sName, $g_avNotifyCompile[$j][$eNotifyFlagsMatch], $STR_REGEXPARRAYGLOBALMATCH)
 
 					if (not @error) then
 						$sText = $asMatch[0]
-						$iFlags = $g_avNotifyCompile[$j][1]
-						
-						$bRequireTier = BitAND($iFlags, $g_iNotifyFlagsMaskTier) <> 0
-						$bRequireQuality = BitAND($iFlags, $g_iNotifyFlagsMaskQuality) <> 0
-						
 						if ($sText == "") then continueloop
 						
-						if ($bRequireTier and not BitAND($iFlags, $iTierFlag)) then continueloop
-						
-						if ($bRequireQuality) then
-							if (not BitAND($iFlags, NotifierFlag($g_asNotifyFlagsQuality[$iQuality - 1]))) then continueloop
-						endif
+						$iFlagsTier = $g_avNotifyCompile[$j][$eNotifyFlagsTier]
+						$iFlagsQuality = $g_avNotifyCompile[$j][$eNotifyFlagsQuality]
+						$iFlagsMisc = $g_avNotifyCompile[$j][$eNotifyFlagsMisc]
+						$iFlagsColour = $g_avNotifyCompile[$j][$eNotifyFlagsColour]
+
+						if ($iFlagsTier and not BitAND($iFlagsTier, $iTierFlag)) then continueloop
+						if ($iFlagsQuality and not BitAND($iFlagsQuality, BitRotate(1, $iQuality - 1, "D"))) then continueloop
+						if (not $bIsSocketed and BitAND($iFlagsMisc, NotifierFlag("socket"))) then continueloop
 						
 						if ($bIsEthereal) then
 							$sText &= " (Eth)"
-						elseif (BitAND($iFlags, NotifierFlag("eth"))) then
+						elseif (BitAND($iFlagsMisc, NotifierFlag("eth"))) then
 							continueloop
 						endif
-						
-						if ($bIsSocketed) then
-							$sText &= " (Socket)"
-						elseif (BitAND($iFlags, NotifierFlag("socket"))) then
-							continueloop
-						endif
-						
 						$bNotify = True
 						exitloop
 					endif
 				next
 				
 				if ($bNotify) then
-					$iColor = $g_iQualityColor[$iQuality]
-					if ($iQuality == $eQualityNormal and $iTierFlag == NotifierFlag("0")) then
+					if ($iFlagsColour) then
+						$iColor = $iFlagsColour - 1
+					elseif ($iQuality == $eQualityNormal and $iTierFlag == NotifierFlag("0")) then
 						$iColor = $ePrintOrange
+					else
+						$iColor = $g_iQualityColor[$iQuality]
 					endif
-					
+
 					PrintString("- " & $sText, $iColor)
 				endif
 			endif
@@ -871,6 +909,7 @@ func OnClick_NotifyTest()
 		'   Tier 0 means untiered items (runes, amulets, etc).', _
 		'> superior rare set unique - Item must be one of these qualities.', _
 		'> eth socket - Item must be ethereal and/or socketed.', _
+		'> white red lime blue gold orange yellow green purple - Notification color', _
 		'', _
 		'Example:', _
 		'"Battle" sacred unique eth', _
@@ -1474,36 +1513,16 @@ func DefineGlobals()
 	global $g_avGUI[256][3] = [[0]]			; Text, X, Control [0] Count
 	global $g_avGUIOption[32][3] = [[0]]	; Option, Control, Function [0] Count
 	
-	global $g_asNotifyFlags[32]
-	global $g_asNotifyFlagsTier[] = [ "0", "1", "2", "3", "4", "5", "6", "sacred" ]
-	global $g_asNotifyFlagsQuality[] = [ "low", "normal", "superior", "magic", "set", "rare", "unique", "craft", "honor" ]
-	global $g_asNotifyFlagsMisc[] = [ "eth", "socket" ]
-	
-	local $iCount = 0
-	global $g_iNotifyFlagsMaskTier = 0
-	global $g_iNotifyFlagsMaskQuality = 0
-	global $g_iNotifyFlagsMaskMisc = 0
-	
-	for $sFlag in $g_asNotifyFlagsTier
-		$g_iNotifyFlagsMaskTier += BitRotate(1, $iCount, "D")
-		$g_asNotifyFlags[$iCount] = $sFlag
-		$iCount += 1
-	next
-	for $sFlag in $g_asNotifyFlagsQuality
-		$g_iNotifyFlagsMaskQuality += BitRotate(1, $iCount, "D")
-		$g_asNotifyFlags[$iCount] = $sFlag
-		$iCount += 1
-	next
-	for $sFlag in $g_asNotifyFlagsMisc
-		$g_iNotifyFlagsMaskMisc += BitRotate(1, $iCount, "D")
-		$g_asNotifyFlags[$iCount] = $sFlag
-		$iCount += 1
-	next
-	
-	redim $g_asNotifyFlags[$iCount]
-	
-	global $g_avNotifyCache[0][2]	; Name, Tier flag
-	global $g_avNotifyCompile[0][2]	; Regex, Flags
+	global enum $eNotifyFlagsTier, $eNotifyFlagsQuality, $eNotifyFlagsMisc, $eNotifyFlagsColour, $eNotifyFlagsMatch, $eNotifyFlagsLast
+	global $g_asNotifyFlags[4][32] = [ _
+		[ "0", "1", "2", "3", "4", "5", "6", "sacred" ], _
+		[ "low", "normal", "superior", "magic", "set", "rare", "unique", "craft", "honor" ], _
+		[ "eth", "socket" ], _
+		[ "clr_none", "white", "red", "lime", "blue", "gold", "grey", "black", "clr_unk", "orange", "yellow", "green", "purple" ] _
+	]
+
+	global $g_avNotifyCache[0][2]					; Name, Tier flag
+	global $g_avNotifyCompile[0][$eNotifyFlagsLast]	; Flags, Regex
 	global $g_bNotifyCache = True
 	global $g_bNotifyCompile = True
 
