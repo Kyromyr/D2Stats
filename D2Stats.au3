@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.9.2)
-#pragma compile(FileVersion, 3.9.2)
-#pragma compile(Comments, 08.12.2017)
+#pragma compile(ProductVersion, 3.9.3)
+#pragma compile(FileVersion, 3.9.3)
+#pragma compile(Comments, 16.12.2017)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -495,11 +495,14 @@ func NotifierCache()
 	next
 endfunc
 
-func NotifierCompileFlag($sFlag, ByRef $avRet)
+func NotifierCompileFlag($sFlag, ByRef $avRet, $sLine)
 	if ($sFlag == "") then return False
 	
 	local $iFlag, $iGroup
-	if (not NotifierFlagRef($sFlag, $iFlag, $iGroup)) then return False
+	if (not NotifierFlagRef($sFlag, $iFlag, $iGroup)) then
+		MsgBox(0, "D2Stats", StringFormat("Unknown notifier flag '%s' in line:%s%s", $sFlag, @CRLF, $sLine))
+		return False
+	endif
 	
 	if ($iGroup <> $eNotifyFlagsColour) then $iFlag = BitOR(BitRotate(1, $iFlag, "D"), $avRet[$iGroup])
 	$avRet[$iGroup] = $iFlag
@@ -528,14 +531,14 @@ func NotifierCompileLine($sLine, ByRef $avRet)
 			
 			$bQuoted = not $bQuoted
 		elseif ($sChar == " " and not $bQuoted) then
-			if (NotifierCompileFlag($sArg, $avRet)) then $bHasFlags = True
+			if (NotifierCompileFlag($sArg, $avRet, $sLine)) then $bHasFlags = True
 			$sArg = ""
 		else
 			$sArg &= $sChar
 		endif
 	next
 
-	if (NotifierCompileFlag($sArg, $avRet)) then $bHasFlags = True
+	if (NotifierCompileFlag($sArg, $avRet, $sLine)) then $bHasFlags = True
 	if ($bHasFlags and $avRet[$eNotifyFlagsMatch] == "") then $avRet[$eNotifyFlagsMatch] = ".+"
 endfunc
 
@@ -1514,7 +1517,7 @@ func DefineGlobals()
 	global $g_avGUIOption[32][3] = [[0]]	; Option, Control, Function [0] Count
 	
 	global enum $eNotifyFlagsTier, $eNotifyFlagsQuality, $eNotifyFlagsMisc, $eNotifyFlagsColour, $eNotifyFlagsMatch, $eNotifyFlagsLast
-	global $g_asNotifyFlags[4][32] = [ _
+	global $g_asNotifyFlags[$eNotifyFlagsLast][32] = [ _
 		[ "0", "1", "2", "3", "4", "5", "6", "sacred" ], _
 		[ "low", "normal", "superior", "magic", "set", "rare", "unique", "craft", "honor" ], _
 		[ "eth", "socket" ], _
