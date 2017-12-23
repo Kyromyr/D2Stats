@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.9.3)
-#pragma compile(FileVersion, 3.9.3)
-#pragma compile(Comments, 16.12.2017)
+#pragma compile(ProductVersion, 3.9.4)
+#pragma compile(FileVersion, 3.9.4)
+#pragma compile(Comments, 23.12.2017)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -318,6 +318,7 @@ func UpdateStatValueMem($iVector)
 
 	local $iStart = $iVector == 1 ? 5 : 0
 	local $iStatIndex, $iStatValue
+	
 	for $i = $iStart to $iStatCount
 		$iStatIndex = DllStructGetData($tStats, 2 + (3 * $i))
 		if ($iStatIndex >= $g_iNumStats) then
@@ -392,6 +393,7 @@ func FixStatVelocities() ; This game is stupid
 		
 			for $i = 0 to 4
 				$iStatIndex = _MemoryRead($pSkill + 0x98 + $i*2, $g_ahD2Handle, "word")
+				
 				switch $iStatIndex
 					case 67 to 69
 						$bHasStat[$iStatIndex-67] = True
@@ -400,6 +402,7 @@ func FixStatVelocities() ; This game is stupid
 			
 			for $i = 0 to 5
 				$iStatIndex = _MemoryRead($pSkill + 0x54 + $i*2, $g_ahD2Handle, "word")
+				
 				switch $iStatIndex
 					case 67 to 69
 						$bHasStat[$iStatIndex-67] = True
@@ -408,8 +411,9 @@ func FixStatVelocities() ; This game is stupid
 		endif
 		
 		for $i = 0 to $iStatCount - 1
-			$iStatIndex = _MemoryRead($pStatList + $i*8 + 2, $g_ahD2Handle, "word")
-			$iStatValue = _MemoryRead($pStatList + $i*8 + 4, $g_ahD2Handle, "int")
+			$iStatIndex = _MemoryRead($pStats + $i*8 + 2, $g_ahD2Handle, "word")
+			$iStatValue = _MemoryRead($pStats + $i*8 + 4, $g_ahD2Handle, "int")
+			
 			switch $iStatIndex
 				case 67 to 69
 					if (not $iSkillID or $bHasStat[$iStatIndex-67]) then $g_aiStatsCache[1][$iStatIndex] += $iStatValue
