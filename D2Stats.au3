@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.9.4)
-#pragma compile(FileVersion, 3.9.4)
-#pragma compile(Comments, 23.12.2017)
+#pragma compile(ProductVersion, 3.9.5)
+#pragma compile(FileVersion, 3.9.5)
+#pragma compile(Comments, 26.12.2017)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -79,6 +79,7 @@ func Main()
 					$g_bNotifyCache = True
 				endif
 				
+				InjectFunctions()
 				_MemoryWrite($g_hD2Client + 0x6011B, $g_ahD2Handle, _GUI_Option("hidePass") ? 0x7F : 0x01, "byte")
 				
 				if (_GUI_Option("mousefix") <> IsMouseFixEnabled()) then ToggleMouseFix()
@@ -345,6 +346,7 @@ func UpdateStatValues()
 		UpdateStatValueMem(0)
 		UpdateStatValueMem(1)
 		FixStatVelocities()
+		FixVeteranToken()
 		
 		; Poison damage to damage/second
 		$g_aiStatsCache[1][57] *= (25/256)
@@ -368,10 +370,10 @@ func FixStatVelocities() ; This game is stupid
 
 	while $pStatList
 		$iOwnerType = _MemoryRead($pStatList + 0x08, $g_ahD2Handle)
-		$iStateID = _MemoryRead($pStatList + 0x14, $g_ahD2Handle)
 		$pStats = _MemoryRead($pStatList + 0x24, $g_ahD2Handle)
 		$iStatCount = _MemoryRead($pStatList + 0x28, $g_ahD2Handle, "word")
 		$pStatList = _MemoryRead($pStatList + 0x2C, $g_ahD2Handle)
+		
 		$iSkillID = 0
 
 		for $i = 0 to $iStatCount - 1
@@ -381,8 +383,10 @@ func FixStatVelocities() ; This game is stupid
 			if ($iStatIndex == 350 and $iStatValue <> 511) then $iSkillID = $iStatValue
 			if ($iOwnerType == 4 and $iStatIndex == 67) then $g_aiStatsCache[1][$iStatIndex] += $iStatValue ; Armor FRW penalty
 		next
+		
 		if ($iOwnerType == 4) then continueloop
 		
+		$iStateID = _MemoryRead($pStatList + 0x14, $g_ahD2Handle)
 		if ($iStateID == 195) then ; Dark Power / Tome of Possession aura
 			$iSkillID = 687 ; Dark Power
 		endif
@@ -419,6 +423,42 @@ func FixStatVelocities() ; This game is stupid
 					if (not $iSkillID or $bHasStat[$iStatIndex-67]) then $g_aiStatsCache[1][$iStatIndex] += $iStatValue
 			endswitch
 		next
+	wend
+endfunc
+
+func FixVeteranToken()
+	$g_aiStatsCache[1][219] = 0 ; Veteran token
+
+	local $aiOffsets[3] = [0, 0x60, 0x0C]
+	local $pItem = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
+	
+	local $pItemData, $pStatsEx, $pStats, $iStatCount, $iStatIndex, $iVeteranTokenCounter
+	
+	while $pItem
+		$pItemData = _MemoryRead($pItem + 0x14, $g_ahD2Handle)
+		$pStatsEx = _MemoryRead($pItem + 0x5C, $g_ahD2Handle)
+		$pItem = _MemoryRead($pItemData + 0x64, $g_ahD2Handle)
+		if (not $pStatsEx) then continueloop
+		
+		$pStats = _MemoryRead($pStatsEx + 0x48, $g_ahD2Handle)
+		if (not $pStats) then continueloop
+		
+		$iStatCount = _MemoryRead($pStatsEx + 0x4C, $g_ahD2Handle, "word")
+		$iVeteranTokenCounter = 0
+		
+		for $i = 0 to $iStatCount - 1
+			$iStatIndex = _MemoryRead($pStats + $i*8 + 2, $g_ahD2Handle, "word")
+			
+			switch $iStatIndex
+				case 83, 85, 219
+					$iVeteranTokenCounter += 1
+			endswitch
+		next
+		
+		if ($iVeteranTokenCounter == 3) then
+			$g_aiStatsCache[1][219] = 1 ; Veteran token
+			return
+		endif
 	wend
 endfunc
 
