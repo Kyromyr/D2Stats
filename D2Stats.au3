@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.9.5)
-#pragma compile(FileVersion, 3.9.5)
-#pragma compile(Comments, 26.12.2017)
+#pragma compile(ProductVersion, 3.9.6)
+#pragma compile(FileVersion, 3.9.6)
+#pragma compile(Comments, 05.01.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -511,7 +511,7 @@ func NotifierCache()
 
 	local $pBaseAddr, $iNameID, $sName, $asMatch, $sTier
 	
-	redim $g_avNotifyCache[$iItemsTxt][2]
+	redim $g_avNotifyCache[$iItemsTxt][3]
 	
 	for $iClass = 0 to $iItemsTxt - 1
 		$pBaseAddr = $pItemsTxt + 0x1A8 * $iClass
@@ -531,7 +531,8 @@ func NotifierCache()
 		
 		$g_avNotifyCache[$iClass][0] = $sName
 		$g_avNotifyCache[$iClass][1] = NotifierFlag($sTier)
-		
+		$g_avNotifyCache[$iClass][2] = StringRegExpReplace($sName, ".+\|", "")
+
 		if (@error) then
 			_Debug("NotifierCache", StringFormat("Invalid tier flag '%s'", $sTier))
 			exit
@@ -544,7 +545,7 @@ func NotifierCompileFlag($sFlag, ByRef $avRet, $sLine)
 	
 	local $iFlag, $iGroup
 	if (not NotifierFlagRef($sFlag, $iFlag, $iGroup)) then
-		MsgBox(0, "D2Stats", StringFormat("Unknown notifier flag '%s' in line:%s%s", $sFlag, @CRLF, $sLine))
+		MsgBox($MB_ICONWARNING, "D2Stats", StringFormat("Unknown notifier flag '%s' in line:%s%s", $sFlag, @CRLF, $sLine))
 		return False
 	endif
 	
@@ -583,7 +584,13 @@ func NotifierCompileLine($sLine, ByRef $avRet)
 	next
 
 	if (NotifierCompileFlag($sArg, $avRet, $sLine)) then $bHasFlags = True
-	if ($bHasFlags and $avRet[$eNotifyFlagsMatch] == "") then $avRet[$eNotifyFlagsMatch] = ".+"
+
+	if ($avRet[$eNotifyFlagsMatch] == "") then
+		if (not $bHasFlags) then return False
+		$avRet[$eNotifyFlagsMatch] = ".+"
+	endif
+	
+	return True
 endfunc
 
 func NotifierCompile()
@@ -600,9 +607,7 @@ func NotifierCompile()
 	local $iCount = 0
 	
 	for $i = 1 to $iLines
-		NotifierCompileLine($asLines[$i], $avRet)
-		
-		if ($avRet[$eNotifyFlagsMatch] <> "") then
+		if (NotifierCompileLine($asLines[$i], $avRet)) then
 			for $j = 0 to $eNotifyFlagsLast - 1
 				$g_avNotifyCompile[$iCount][$j] = $avRet[$j]
 			next
@@ -613,42 +618,37 @@ func NotifierCompile()
 	redim $g_avNotifyCompile[$iCount][$eNotifyFlagsLast]
 endfunc
 
-func NotifierTest($sInput)
+func NotifierHelp($sInput)
 	NotifierCache()
 	
-	local $avRet[0]
-	NotifierCompileLine($sInput, $avRet)
-	
-	local $sMatch = $avRet[$eNotifyFlagsMatch]
-	local $iFlagsTier = $avRet[$eNotifyFlagsTier]
-	
-	local $sFlags = StringRegExpReplace($sInput, '("[^"]+")|(#.*)', "")
-	$sFlags = StringStripWS($sFlags, BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING))
-	
 	local $iItems = UBound($g_avNotifyCache)
-	local $asMatches[$iItems + 1][2] = [ [$sMatch, $sFlags] ]
+	local $asMatches[$iItems][2]
+	local $iCount = 0
 	
-	local $sName, $iTierFlag, $asMatch, $bRequireTier
-	local $iCount = 1
+	local $avRet[0]
 	
-	if ($sMatch <> "" or $iFlagsTier) then
+	if (NotifierCompileLine($sInput, $avRet)) then
+		local $sMatch = $avRet[$eNotifyFlagsMatch]
+		local $iFlagsTier = $avRet[$eNotifyFlagsTier]
+		
+		local $sName, $iTierFlag
+	
 		for $i = 0 to $iItems - 1
 			$sName = $g_avNotifyCache[$i][0]
 			$iTierFlag = $g_avNotifyCache[$i][1]
 			
-			$asMatch = StringRegExp($sName, $sMatch == "" ? ".*" : $sMatch, $STR_REGEXPARRAYGLOBALMATCH)
-			if (not @error) then
+			if (StringRegExp($sName, $sMatch)) then
 				if ($iFlagsTier and not BitAND($iFlagsTier, $iTierFlag)) then continueloop
 				
 				$asMatches[$iCount][0] = $sName
-				$asMatches[$iCount][1] = $asMatch[0]
+				$asMatches[$iCount][1] = $g_avNotifyCache[$i][2]
 				$iCount += 1
 			endif
 		next
 	endif
 	
 	redim $asMatches[$iCount][2]
-	_ArrayDisplay($asMatches, "Notifier Test", default, 32, @LF, "Item|Text")
+	_ArrayDisplay($asMatches, "Notifier Help", default, 32, @LF, "Item|Text")
 endfunc
 
 func NotifierMain()
@@ -667,7 +667,9 @@ func NotifierMain()
 	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iFlags, $sName, $iTierFlag
 	local $bIsNewItem, $bIsSocketed, $bIsEthereal
 	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour
-	local $asMatch, $sText, $iColor, $bNotify
+	local $bNotify, $sText, $iColor
+	
+	local $bNotifySuperior = _GUI_Option("notify-superior")
 
 	local $tUnitAny = DllStructCreate("dword iUnitType;dword iClass;dword pad1[3];dword pUnitData;dword pad2[52];dword pUnit;")
 	local $tItemData = DllStructCreate("dword iQuality;dword pad1[5];dword iFlags;dword pad2[11];byte iEarLevel;")
@@ -705,11 +707,8 @@ func NotifierMain()
 				$bNotify = False
 				
 				for $j = 0 to UBound($g_avNotifyCompile) - 1
-					$asMatch = StringRegExp($sName, $g_avNotifyCompile[$j][$eNotifyFlagsMatch], $STR_REGEXPARRAYGLOBALMATCH)
-
-					if (not @error) then
-						$sText = $asMatch[0]
-						if ($sText == "") then continueloop
+					if (StringRegExp($sName, $g_avNotifyCompile[$j][$eNotifyFlagsMatch])) then
+						$sText = $g_avNotifyCache[$iClass][2]
 						
 						$iFlagsTier = $g_avNotifyCompile[$j][$eNotifyFlagsTier]
 						$iFlagsQuality = $g_avNotifyCompile[$j][$eNotifyFlagsQuality]
@@ -725,6 +724,7 @@ func NotifierMain()
 						elseif (BitAND($iFlagsMisc, NotifierFlag("eth"))) then
 							continueloop
 						endif
+						
 						$bNotify = True
 						exitloop
 					endif
@@ -738,6 +738,8 @@ func NotifierMain()
 					else
 						$iColor = $g_iQualityColor[$iQuality]
 					endif
+					
+					if ($bNotifySuperior and $iQuality == $eQualitySuperior) then $sText = "Superior " & $sText
 
 					PrintString("- " & $sText, $iColor)
 				endif
@@ -960,9 +962,10 @@ func OnClick_NotifyTest()
 		'', _
 		'Example:', _
 		'"Battle" sacred unique eth', _
-		'', _
 		'This would notify for ethereal SU Battle Axe, Battle Staff,', _
-		'Short Battle Bow and Long Battle Bow' _
+		'Short Battle Bow and Long Battle Bow', _
+		'', _
+		'Write something in this box and click OK to see what matches!' _
 	]
 	
 	local $sText = ""
@@ -971,7 +974,13 @@ func OnClick_NotifyTest()
 	next
 	
 	local $sInput = InputBox("Notifier Test", $sText, default, default, 420, 120 + UBound($asText) * 13, default, default, default, $g_hGUI)
-	if (not @error) then NotifierTest($sInput)
+	if (not @error) then
+		if (IsIngame()) then
+			NotifierHelp($sInput)
+		else
+			MsgBox($MB_ICONINFORMATION, "D2Stats", "You need to be ingame to do that.")
+		endif
+	endif
 endfunc
 
 func OnClick_NotifyDefault()
@@ -1138,7 +1147,7 @@ func CreateGUI()
 	GUICtrlSetOnEvent(-1, "OnClick_NotifySave")
 	global $g_idNotifyReset = GUICtrlCreateButton("Reset", 4 + 1*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyReset")
-	global $g_idNotifyTest = GUICtrlCreateButton("Test", 4 + 2*62, $iNotifyY, 60, 25)
+	global $g_idNotifyTest = GUICtrlCreateButton("Help", 4 + 2*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyTest")
 	GUICtrlCreateButton("Default", 4 + 3*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyDefault")
@@ -1479,7 +1488,7 @@ endfunc
 D2Client.dll+CDE00 - 53                    - push ebx
 D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE10
 D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
-D2Client.dll+CDE08 - E8 43FAFAFF           - call D2Client.dll+7D850
+D2Client.dll+CDE08 - E8 *                  - call D2Client.dll+7D850
 D2Client.dll+CDE0D - C3                    - ret 
 
 D2Client.dll+CDE10 - 8B CB                 - mov ecx,ebx
@@ -1497,8 +1506,16 @@ func InjectCode($pWhere, $sCode)
 endfunc
 
 func InjectFunctions()
-	local $bPrint = InjectCode($g_pD2InjectPrint, "0x5368" & GetOffsetAddress($g_pD2InjectString) & "31C0E843FAFAFFC3")
-	local $bGetString = InjectCode($g_pD2InjectGetString, "0x8BCB31C0BB" & GetOffsetAddress($g_hD2Lang + 0x9450) & "FFD3C3")
+	local $iPrintOffset = ($g_hD2Client + 0x7D850) - ($g_hD2Client + 0xCDE0D)
+	local $sWrite = "0x5368" & GetOffsetAddress($g_pD2InjectString) & "31C0E8" & GetOffsetAddress($iPrintOffset) & "C3"
+	
+	; _Log("Debug", _MemoryRead($g_pD2InjectPrint, $g_ahD2Handle, "byte[256]"))
+	; _Log("Debug", _MemoryRead($g_hD2Client + 0x7D850, $g_ahD2Handle, "byte[256]"))
+	
+	local $bPrint = InjectCode($g_pD2InjectPrint, $sWrite)
+	
+	$sWrite = "0x8BCB31C0BB" & GetOffsetAddress($g_hD2Lang + 0x9450) & "FFD3C3"
+	local $bGetString = InjectCode($g_pD2InjectGetString, $sWrite)
 	
 	return $bPrint and $bGetString
 endfunc
@@ -1567,7 +1584,7 @@ func DefineGlobals()
 		[ "clr_none", "white", "red", "lime", "blue", "gold", "grey", "black", "clr_unk", "orange", "yellow", "green", "purple" ] _
 	]
 
-	global $g_avNotifyCache[0][2]					; Name, Tier flag
+	global $g_avNotifyCache[0][3]					; Name, Tier flag, Last line of name
 	global $g_avNotifyCompile[0][$eNotifyFlagsLast]	; Flags, Regex
 	global $g_bNotifyCache = True
 	global $g_bNotifyCompile = True
@@ -1585,16 +1602,16 @@ func DefineGlobals()
 
 	global $g_bHotkeysEnabled = False
 
-	global const $g_iGUIOptionsGeneral = 4
+	global const $g_iGUIOptionsGeneral = 5
 	global const $g_iGUIOptionsHotkey = 5
 
-	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020202020232053616372656420756E69717565730D0A225E2852696E677C416D756C65747C4A6577656C29242220756E69717565202320556E69717565206A6577656C72790D0A222E2B5175697665722220756E6971756520202020202020202020202020202320556E6971756520717569766572730D0A7365740D0A2242656C6C61646F6E6E612E2B220D0A22282E2B536872696E6529205C2831305C29222020202020202020202020202320536872696E65730D0A0D0A222E2A5369676E6574206F6620283F3A536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E65742E2B220D0A22456D626C656D2E2B220D0A222E2B2054726F70687924220D0A222E2A4379636C65220D0A22456E6368616E74696E67220D0A2257696E67732E2B220D0A222E2B20457373656E636524220D0A2252756E6573746F6E65220D0A2247726561742052756E655C7C282E2A29220D0A224D7973746963204F72625C7C282E2A2922")
-	
+	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C65747C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E69717565202020202020202020202020202320556E6971756520717569766572730D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C283130222020202020202020202020202020202320536872696E65730D0A0D0A225369676E6574206F662028536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F73")
 	global $g_avGUIOptionList[][5] = [ _
 		["nopickup", 0, "cb", "Automatically enable /nopickup"], _
 		["hidePass", 0, "cb", "Hide game password when minimap is open"], _
 		["mousefix", 0, "cb", "Continue attacking when monster dies under cursor"], _
 		["notify-enabled", 1, "cb", "Enable notifier"], _
+		["notify-superior", 0, "cb", "Notifier prefixes superior items with 'Superior'"], _
 		["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
 		["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
 		["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
