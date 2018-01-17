@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.9.6)
-#pragma compile(FileVersion, 3.9.6)
-#pragma compile(Comments, 05.01.2018)
+#pragma compile(ProductVersion, 3.9.7)
+#pragma compile(FileVersion, 3.9.7)
+#pragma compile(Comments, 17.01.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -107,6 +107,13 @@ func Main()
 				if ($bIsIngame) then GUICtrlSetState($g_idNotifyTest, $GUI_DISABLE)
 				
 				$bIsIngame = False
+				$g_hTimerCopyName = 0
+			endif
+			
+			if ($g_hTimerCopyName and TimerDiff($g_hTimerCopyName) > 10000) then
+				$g_hTimerCopyName = 0
+				
+				if ($bIsIngame) then PrintString("Item name multi-copy expired.")
 			endif
 		endif
 	wend
@@ -254,6 +261,18 @@ func HotKey_CopyItem($TEST = False)
 	
 	$sOutput = StringRegExpReplace($sOutput, "ÿc.", "")
 	local $asLines = StringSplit($sOutput, @LF)
+
+	if (_GUI_Option("copy-name")) then
+		if ($g_hTimerCopyName == 0 or ClipGet() <> $g_sCopyName) then $g_sCopyName = ""
+		$g_hTimerCopyName = TimerInit()
+		
+		$g_sCopyName &= $asLines[$asLines[0]] & @CRLF
+		ClipPut($g_sCopyName)
+		
+		local $avItems = StringRegExp($g_sCopyName, @CRLF, $STR_REGEXPARRAYGLOBALMATCH)
+		PrintString(StringFormat("%s item name(s) copied.", UBound($avItems)))
+		return
+	endif
 	
 	$sOutput = ""
 	for $i = $asLines[0] to 1 step -1
@@ -1601,9 +1620,11 @@ func DefineGlobals()
 	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString
 
 	global $g_bHotkeysEnabled = False
+	global $g_hTimerCopyName = 0
+	global $g_sCopyName = ""
 
 	global const $g_iGUIOptionsGeneral = 5
-	global const $g_iGUIOptionsHotkey = 5
+	global const $g_iGUIOptionsHotkey = 6
 
 	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C65747C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E69717565202020202020202020202020202320556E6971756520717569766572730D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C283130222020202020202020202020202020202320536872696E65730D0A0D0A225369676E6574206F662028536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F73")
 	global $g_avGUIOptionList[][5] = [ _
@@ -1613,6 +1634,7 @@ func DefineGlobals()
 		["notify-enabled", 1, "cb", "Enable notifier"], _
 		["notify-superior", 0, "cb", "Notifier prefixes superior items with 'Superior'"], _
 		["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
+		["copy-name", 0, "cb", "Only copy item name"], _
 		["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
 		["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
 		["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
