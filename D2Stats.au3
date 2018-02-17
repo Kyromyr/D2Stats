@@ -1019,7 +1019,7 @@ func CreateGUI()
 	global $g_iGUIWidth = 16 + 4*$g_iGroupWidth
 	global $g_iGUIHeight = 34 + 15*$g_iGroupLines
 
-	local $sTitle = not @Compiled ? "Test" : StringFormat("D2Stats%s %s - [%s]", @AutoItX64 ? "-64" : "", FileGetVersion(@AutoItExe, "FileVersion"), FileGetVersion(@AutoItExe, "Comments"))
+	local $sTitle = not @Compiled ? "Test" : StringFormat("D2Stats %s - [%s]", FileGetVersion(@AutoItExe, "FileVersion"), FileGetVersion(@AutoItExe, "Comments"))
 	
 	global $g_hGUI = GUICreate($sTitle, $g_iGUIWidth, $g_iGUIHeight)
 	GUISetFont(9 / _GetDPI()[2], 0, 0, "Courier New")
