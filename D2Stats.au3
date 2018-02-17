@@ -205,8 +205,8 @@ func GetIlvl()
 	return $iRet
 endfunc
 
-func HotKey_CopyStatsToClipboard($TEST = False)
-	if ($TEST or not IsIngame()) then return
+func HotKey_CopyStatsToClipboard()
+	if (not IsIngame()) then return
 	
 	UpdateStatValues()
 	local $sOutput = ""
@@ -223,8 +223,8 @@ func HotKey_CopyStatsToClipboard($TEST = False)
 	PrintString("Stats copied to clipboard.")
 endfunc
 
-func HotKey_CopyItemsToClipboard($TEST = False)
-	if ($TEST or not IsIngame()) then return
+func HotKey_CopyItemsToClipboard()
+	if (not IsIngame()) then return
 	
 	local $iItemsTxt = _MemoryRead($g_hD2Common + 0x9FB94, $g_ahD2Handle)
 	local $pItemsTxt = _MemoryRead($g_hD2Common + 0x9FB98, $g_ahD2Handle)
@@ -1126,7 +1126,7 @@ func CreateGUI()
 	_GUI_NewItem(08, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
 	_GUI_NewItem(09, "{086}/{138} *aeK", "Life/Mana after each Kill")
 	_GUI_NewItem(10, "{208}/{209} *oS", "Life/Mana on Striking")
-	_GUI_NewItem(11, "{210}/{295} *oSiM", "Life/Mana on Striking in Melee")
+	_GUI_NewItem(11, "{210}/{295} *oA", "Life/Mana on Attack")
 	
 	_GUI_GroupNext()
 	_GUI_NewText(00, "Minions")
@@ -1325,7 +1325,7 @@ func RemoteThread($pFunc, $iVar = 0) ; $var is in EBX register
 	return $iRet
 endfunc
 
-func GetOffsetAddress($pAddress)
+func SwapEndian($pAddress)
 	return StringFormat("%08s", StringLeft(Hex(Binary($pAddress)), 8))
 endfunc
 
@@ -1393,7 +1393,7 @@ func InjectDropFilter()
 			local $pEntryAddress = _WinAPI_GetProcAddress($hDropFilter, "_PATCH_DropFilter@0")
 			if ($pEntryAddress) then
 				local $pJumpAddress = $pEntryAddress - 0x5 - ($g_hD2Client + 0x5907E)
-				_MemoryWrite($g_hD2Client + 0x5907E, $g_ahD2Handle, "0xE9" & GetOffsetAddress($pJumpAddress), "byte[5]")
+				_MemoryWrite($g_hD2Client + 0x5907E, $g_ahD2Handle, "0xE9" & SwapEndian($pJumpAddress), "byte[5]")
 			else
 				_Debug("InjectDropFilter", "Couldn't find DropFilter.dll entry point.")
 				$iRet = 0
@@ -1441,7 +1441,7 @@ func IsMouseFixEnabled()
 endfunc
 
 func ToggleMouseFix()
-	local $sWrite = IsMouseFixEnabled() ? "0xA3" & GetOffsetAddress($g_hD2Client + 0x11C3DC) & "A3" & GetOffsetAddress($g_hD2Client + 0x11C3E0) : "0x90909090909090909090" 
+	local $sWrite = IsMouseFixEnabled() ? "0xA3" & SwapEndian($g_hD2Client + 0x11C3DC) & "A3" & SwapEndian($g_hD2Client + 0x11C3E0) : "0x90909090909090909090" 
 	_MemoryWrite($g_hD2Client + 0x42AE1, $g_ahD2Handle, $sWrite, "byte[10]")
 endfunc
 
@@ -1484,14 +1484,14 @@ endfunc
 
 func ToggleShowItems()
 	local $sWrite1 = "0x9090909090"
-	local $sWrite2 = "0x8335" & GetOffsetAddress($g_hD2Client + 0xFADB4) & "01E9B6000000"
+	local $sWrite2 = "0x8335" & SwapEndian($g_hD2Client + 0xFADB4) & "01E9B6000000"
 	local $sWrite3 = "0xE93EFFFFFF90" ; Jump within same DLL shouldn't require offset fixing
 	
 	local $bRestore = IsShowItemsEnabled()
 	if ($bRestore) then
-		$sWrite1 = "0xA3" & GetOffsetAddress($g_hD2Client + 0xFADB4)
+		$sWrite1 = "0xA3" & SwapEndian($g_hD2Client + 0xFADB4)
 		$sWrite2 = "0xCCCCCCCCCCCCCCCCCCCCCCCC"
-		$sWrite3 = "0x891D" & GetOffsetAddress($g_hD2Client + 0xFADB4)
+		$sWrite3 = "0x891D" & SwapEndian($g_hD2Client + 0xFADB4)
 	endif
 	
 	_MemoryWrite($g_hD2Client + 0x3AECF, $g_ahD2Handle, $sWrite1, "byte[5]")
@@ -1504,7 +1504,7 @@ endfunc
 
 #cs
 D2Client.dll+CDE00 - 53                    - push ebx
-D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE10
+D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE20
 D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
 D2Client.dll+CDE08 - E8 *                  - call D2Client.dll+7D850
 D2Client.dll+CDE0D - C3                    - ret 
@@ -1525,16 +1525,12 @@ endfunc
 
 func InjectFunctions()
 	local $iPrintOffset = ($g_hD2Client + 0x7D850) - ($g_hD2Client + 0xCDE0D)
-	local $sWrite = "0x5368" & GetOffsetAddress($g_pD2InjectString) & "31C0E8" & GetOffsetAddress($iPrintOffset) & "C3"
-	
-	; _Log("Debug", _MemoryRead($g_pD2InjectPrint, $g_ahD2Handle, "byte[256]"))
-	; _Log("Debug", _MemoryRead($g_hD2Client + 0x7D850, $g_ahD2Handle, "byte[256]"))
-	
+	local $sWrite = "0x5368" & SwapEndian($g_pD2InjectString) & "31C0E8" & SwapEndian($iPrintOffset) & "C3"
 	local $bPrint = InjectCode($g_pD2InjectPrint, $sWrite)
 	
-	$sWrite = "0x8BCB31C0BB" & GetOffsetAddress($g_hD2Lang + 0x9450) & "FFD3C3"
+	$sWrite = "0x8BCB31C0BB" & SwapEndian($g_hD2Lang + 0x9450) & "FFD3C3"
 	local $bGetString = InjectCode($g_pD2InjectGetString, $sWrite)
-	
+
 	return $bPrint and $bGetString
 endfunc
 
