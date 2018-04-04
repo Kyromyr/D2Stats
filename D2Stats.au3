@@ -6,6 +6,8 @@
 #include <Misc.au3>
 #include <NomadMemory.au3>
 #include <WinAPI.au3>
+#include <Inet.au3>
+#include <JSON.au3>
 
 #include <AutoItConstants.au3>
 #include <FileConstants.au3>
@@ -1068,6 +1070,18 @@ func OnClick_NotifyDefault()
 	OnChange_NotifyEdit()
 endfunc
 
+func OnClick_UpdateCheck()
+	local $data = _INetGetSource("https://api.github.com/repos/Kyromyr/D2Stats/releases/latest")
+	local $json = Json_Decode($data)
+	local $currentVersion = FileGetVersion(@AutoItExe, "FileVersion")
+	local $latestVersion = Json_Get($json, '["name"]')
+	
+	if (not $latestVersion > $currentVersion) then
+		GUICtrlSetData($g_idUpdateCheck, "No updates available")
+	endif
+
+endfunc
+
 func OnChange_NotifyEdit()
 	local $iState = _GUI_Option("notify-text") == GUICtrlRead($g_idNotifyEdit) ? $GUI_DISABLE : $GUI_ENABLE
 	GUICtrlSetState($g_idNotifySave, $iState)
@@ -1261,6 +1275,9 @@ func CreateGUI()
 	_GUI_NewTextBasic(05, " them should have a tooltip when hovered over.", False)
 	
 	_GUI_NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
+
+	global $g_idUpdateCheck = GUICtrlCreateButton("Check for updates", $g_iGroupXStart-35, $g_iGUIHeight-31, 70, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_UpdateCheck")
 	
 	GUICtrlCreateButton("Forum", 4 + 0*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_Forum")
