@@ -22,7 +22,7 @@
 #pragma compile(ProductName, D2Stats)
 #pragma compile(ProductVersion, 3.9.8)
 #pragma compile(FileVersion, 3.9.8)
-#pragma compile(Comments, 19.01.2018)
+#pragma compile(Comments, 04.04.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -336,10 +336,9 @@ func UpdateStatValueMem($iVector)
 	local $tStats = DllStructCreate($tagStatsAll)
 	_WinAPI_ReadProcessMemory($g_ahD2Handle[1], $pStatList, DllStructGetPtr($tStats), DllStructGetSize($tStats), 0)
 
-	local $iStart = $iVector == 1 ? 5 : 0
 	local $iStatIndex, $iStatValue
 	
-	for $i = $iStart to $iStatCount
+	for $i = 0 to $iStatCount
 		$iStatIndex = DllStructGetData($tStats, 2 + (3 * $i))
 		if ($iStatIndex >= $g_iNumStats) then
 			continueloop ; Should never happen
@@ -366,11 +365,74 @@ func UpdateStatValues()
 		UpdateStatValueMem(1)
 		FixStatVelocities()
 		FixVeteranToken()
+		CalculateWeaponDamage()
 		
 		; Poison damage to damage/second
 		$g_aiStatsCache[1][57] *= (25/256)
 		$g_aiStatsCache[1][58] *= (25/256)
 	endif
+endfunc
+
+func CalculateWeaponDamage()
+	local $pPlayer = _MemoryRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle)
+	local $pInventory = _MemoryRead($pPlayer + 0x60, $g_ahD2Handle)
+	
+	local $pItem = _MemoryRead($pInventory + 0x0C, $g_ahD2Handle)
+	local $iWeaponID = _MemoryRead($pInventory + 0x1C, $g_ahD2Handle)
+	
+	local $pItemData, $pWeapon = 0
+	
+	while $pItem
+		if ($iWeaponID == _MemoryRead($pItem + 0x0C, $g_ahD2Handle)) then
+			$pWeapon = $pItem
+			exitloop
+		endif
+		
+		$pItemData = _MemoryRead($pItem + 0x14, $g_ahD2Handle)
+		$pItem = _MemoryRead($pItemData + 0x64, $g_ahD2Handle)
+	wend
+	
+	if (not $pWeapon) then return
+	
+	local $iWeaponClass = _MemoryRead($pWeapon + 0x04, $g_ahD2Handle)
+	local $pItemsTxt = _MemoryRead($g_hD2Common + 0x9FB98, $g_ahD2Handle)
+	local $pBaseAddr = $pItemsTxt + 0x1A8 * $iWeaponClass
+	
+	local $iStrBonus = _MemoryRead($pBaseAddr + 0x106, $g_ahD2Handle, "word")
+	local $iDexBonus = _MemoryRead($pBaseAddr + 0x108, $g_ahD2Handle, "word")
+	local $bIs2H = _MemoryRead($pBaseAddr + 0x11C, $g_ahD2Handle, "byte")
+	local $bIs1H = $bIs2H ? _MemoryRead($pBaseAddr + 0x13D, $g_ahD2Handle, "byte") : 1
+	
+	local $iMinDamage1 = 0, $iMinDamage2 = 0, $iMaxDamage1 = 0, $iMaxDamage2 = 0
+	
+	if ($bIs2H) then
+		; 2h weapon
+		$iMinDamage2 = GetStatValue(23)
+		$iMaxDamage2 = GetStatValue(24)
+	endif
+	
+	if ($bIs1H) then
+		; 1h weapon
+		$iMinDamage1 = GetStatValue(21)
+		$iMaxDamage1 = GetStatValue(22)
+		
+		if (not $bIs2H) then
+			; thrown weapon
+			$iMinDamage2 = GetStatValue(159)
+			$iMaxDamage2 = GetStatValue(160)
+		endif
+	endif
+
+	local $iStatBonus = Floor((GetStatValue(0, 1) * $iStrBonus + GetStatValue(2, 1) * $iDexBonus) / 100) - 1
+	local $iEWD = GetStatValue(25)
+	
+	local $aiDamage[4] = [$iMinDamage1, $iMaxDamage1, $iMinDamage2, $iMaxDamage2]
+	for $i = 0 to 3
+		$aiDamage[$i] = Floor($aiDamage[$i] * (1 + $iStatBonus / 100))
+		$aiDamage[$i] = Floor($aiDamage[$i] * (1 + $iEWD / 100))
+		
+		$g_aiStatsCache[1][21+$i] = $aiDamage[$i]
+	next
 endfunc
 
 func FixStatVelocities() ; This game is stupid
@@ -481,8 +543,8 @@ func FixVeteranToken()
 	wend
 endfunc
 
-func GetStatValue($iStatID)
-	local $iVector = $iStatID < 4 ? 0 : 1
+func GetStatValue($iStatID, $iVector = default)
+	if ($iVector == default) then $iVector = $iStatID < 4 ? 0 : 1
 	local $iStatValue = $g_aiStatsCache[$iVector][$iStatID]
 	return Floor($iStatValue ? $iStatValue : 0)
 endfunc
@@ -1012,6 +1074,10 @@ func OnChange_NotifyEdit()
 	GUICtrlSetState($g_idNotifyReset, $iState)
 endfunc
 
+func OnClick_Forum()
+	ShellExecute("https://forum.median-xl.com/viewtopic.php?f=4&t=3702")
+endfunc
+
 func CreateGUI()
 	global $g_iGroupLines = 14
 	global $g_iGroupWidth = 110
@@ -1121,12 +1187,14 @@ func CreateGUI()
 	_GUI_NewItem(03, "{050}-{051}", "Lightning", $g_iColorGold)
 	_GUI_NewItem(04, "{057}-{058}/s", "Poison/sec", $g_iColorGreen)
 	_GUI_NewItem(05, "{052}-{053}", "Magic", $g_iColorPink)
+	_GUI_NewItem(06, "{021}-{022}", "One-hand physical damage. Estimated; may be inaccurate, especially when dual wielding")
+	_GUI_NewItem(07, "{023}-{024}", "Two-hand/Ranged physical damage. Estimated; may be inaccurate, especially when dual wielding")
 	
-	_GUI_NewText(07, "Life/Mana")
-	_GUI_NewItem(08, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
-	_GUI_NewItem(09, "{086}/{138} *aeK", "Life/Mana after each Kill")
-	_GUI_NewItem(10, "{208}/{209} *oS", "Life/Mana on Striking")
-	_GUI_NewItem(11, "{210}/{295} *oA", "Life/Mana on Attack")
+	_GUI_NewText(09, "Life/Mana")
+	_GUI_NewItem(10, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
+	_GUI_NewItem(11, "{086}/{138} *aeK", "Life/Mana after each Kill")
+	_GUI_NewItem(12, "{208}/{209} *oS", "Life/Mana on Striking")
+	_GUI_NewItem(13, "{210}/{295} *oA", "Life/Mana on Attack")
 	
 	_GUI_GroupNext()
 	_GUI_NewText(00, "Minions")
@@ -1174,7 +1242,7 @@ func CreateGUI()
 
 	GUICtrlCreateTabItem("Drop filter")
 	_GUI_GroupX(8)
-	_GUI_NewTextBasic(00, "The latest drop filter hides:", False)
+	_GUI_NewTextBasic(00, "The drop filter for 3.9.8 hides:", False)
 	_GUI_NewTextBasic(01, " White/magic/rare tiered equipment with no filled sockets.", False)
 	_GUI_NewTextBasic(02, " Runes below and including Zod.", False)
 	_GUI_NewTextBasic(03, " Gems below Perfect.", False)
@@ -1193,6 +1261,9 @@ func CreateGUI()
 	_GUI_NewTextBasic(05, " them should have a tooltip when hovered over.", False)
 	
 	_GUI_NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
+	
+	GUICtrlCreateButton("Forum", 4 + 0*62, $iNotifyY, 60, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_Forum")
 	
 	GUICtrlCreateTabItem("")
 	UpdateGUI()
@@ -1621,7 +1692,7 @@ func DefineGlobals()
 	global const $g_iGUIOptionsGeneral = 5
 	global const $g_iGUIOptionsHotkey = 6
 
-	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C65747C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E697175650D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C283130222020202020202020202020202020202320536872696E65730D0A23225175697665722220726172650D0A232252696E67247C416D756C65742220726172652020202020202020202320526172652072696E677320616E6420616D756C6574730D0A2373616372656420657468207375706572696F7220726172650D0A0D0A225369676E6574206F662028536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F730D0A222844656D6F6E7C45647972656D29204B6579220D0A224F696C206F6620436F6E6A75726174696F6E220D0A22476F64737C476C6F72696F7573220D0A232252696E67206F6620746865204669766522")
+	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C65747C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E697175650D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C283130222020202020202020202020202020202320536872696E65730D0A23225175697665722220726172650D0A232252696E67247C416D756C65742220726172652020202020202020202320526172652072696E677320616E6420616D756C6574730D0A2373616372656420657468207375706572696F7220726172650D0A0D0A225369676E6574206F662028536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F730D0A222844656D6F6E7C45647972656D29204B6579220D0A224F696C206F6620436F6E6A75726174696F6E220D0A224C7563696F6E7C466F6F6C7C4D79737469632053686172647C476F64737C476C6F72696F75737C20456172220D0A232252696E67206F6620746865204669766522")
 	global $g_avGUIOptionList[][5] = [ _
 		["nopickup", 0, "cb", "Automatically enable /nopickup"], _
 		["hidePass", 0, "cb", "Hide game password when minimap is open"], _
