@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.9.9)
-#pragma compile(FileVersion, 3.9.9)
-#pragma compile(Comments, 13.04.2018)
+#pragma compile(ProductVersion, 3.10.0)
+#pragma compile(FileVersion, 3.10.0)
+#pragma compile(Comments, 16.04.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -319,14 +319,21 @@ endfunc
 #EndRegion
 
 #Region Stat reading
+func GetUnitToRead()
+	local $bMercenary = BitAND(GUICtrlRead($g_idReadMercenary), $GUI_CHECKED) ? True : False
+	return $g_hD2Client + ($bMercenary ? 0x10A80C : 0x11BBFC)
+endfunc
+
 func UpdateStatValueMem($iVector)
 	if ($iVector <> 0 and $iVector <> 1) then _Debug("UpdateStatValueMem", "Invalid $iVector value.")
 	
+	local $pUnitAddress = GetUnitToRead()
+	
 	local $aiOffsets[3] = [0, 0x5C, ($iVector+1)*0x24]
-	local $pStatList = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
+	local $pStatList = _MemoryPointerRead($pUnitAddress, $g_ahD2Handle, $aiOffsets)
 
 	$aiOffsets[2] += 0x4
-	local $iStatCount = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets, "word") - 1
+	local $iStatCount = _MemoryPointerRead($pUnitAddress, $g_ahD2Handle, $aiOffsets, "word") - 1
 
 	local $tagStat = "word wSubIndex;word wStatIndex;int dwStatValue;", $tagStatsAll
 	for $i = 0 to $iStatCount
@@ -374,8 +381,9 @@ func UpdateStatValues()
 endfunc
 
 func CalculateWeaponDamage()
-	local $pPlayer = _MemoryRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle)
-	local $pInventory = _MemoryRead($pPlayer + 0x60, $g_ahD2Handle)
+	local $pUnitAddress = GetUnitToRead()
+	local $pUnit = _MemoryRead($pUnitAddress, $g_ahD2Handle)
+	local $pInventory = _MemoryRead($pUnit + 0x60, $g_ahD2Handle)
 	
 	local $pItem = _MemoryRead($pInventory + 0x0C, $g_ahD2Handle)
 	local $iWeaponID = _MemoryRead($pInventory + 0x1C, $g_ahD2Handle)
@@ -443,11 +451,10 @@ func FixStatVelocities() ; This game is stupid
 	local $pSkillsTxt = _MemoryRead($g_pD2sgpt + 0xB98, $g_ahD2Handle)
 	local $iSkillID, $pStats, $iStatCount, $pSkill, $iStatIndex, $iStatValue, $iOwnerType, $iStateID
 	
-	; local $wep_main_offsets[3] = [0, 0x60, 0x1C]
-	; local $wep_main = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $wep_main_offsets)
+	local $pUnitAddress = GetUnitToRead()
 	
 	local $aiOffsets[3] = [0, 0x5C, 0x3C]
-	local $pStatList = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
+	local $pStatList = _MemoryPointerRead($pUnitAddress, $g_ahD2Handle, $aiOffsets)
 
 	while $pStatList
 		$iOwnerType = _MemoryRead($pStatList + 0x08, $g_ahD2Handle)
@@ -510,8 +517,10 @@ endfunc
 func FixVeteranToken()
 	$g_aiStatsCache[1][219] = 0 ; Veteran token
 
+	local $pUnitAddress = GetUnitToRead()
+	
 	local $aiOffsets[3] = [0, 0x60, 0x0C]
-	local $pItem = _MemoryPointerRead($g_hD2Client + 0x11BBFC, $g_ahD2Handle, $aiOffsets)
+	local $pItem = _MemoryPointerRead($pUnitAddress, $g_ahD2Handle, $aiOffsets)
 	
 	local $pItemData, $pStatsEx, $pStats, $iStatCount, $iStatIndex, $iVeteranTokenCounter
 	
@@ -1006,13 +1015,15 @@ func UpdateGUI()
 	next
 endfunc
 
-func OnClick_ReadStats()
+func OnClick_ReadStats()	
 	UpdateStatValues()
 	UpdateGUI()
 endfunc
 
 func OnClick_Tab()
-	GUICtrlSetState($g_idReadStats, GUICtrlRead($g_idTab) < 2 ? $GUI_SHOW : $GUI_HIDE)
+	local $iState = GUICtrlRead($g_idTab) < 2 ? $GUI_SHOW : $GUI_HIDE
+	GUICtrlSetState($g_idReadStats, $iState)
+	GUICtrlSetState($g_idReadMercenary, $iState)
 endfunc
 
 func OnClick_NotifySave()
@@ -1093,6 +1104,8 @@ func CreateGUI()
 	
 	global $g_idReadStats = GUICtrlCreateButton("Read", $g_iGroupXStart-35, $g_iGUIHeight-31, 70, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_ReadStats")
+	
+	global $g_idReadMercenary = GUICtrlCreateCheckbox("Mercenary", $g_iGroupXStart-35 + 78, $g_iGUIHeight-31)
 
 	global $g_idTab = GUICtrlCreateTab(0, 0, $g_iGUIWidth, 0, $TCS_FOCUSNEVER)
 	GUICtrlSetOnEvent(-1, "OnClick_Tab")
@@ -1181,6 +1194,19 @@ func CreateGUI()
 	_GUI_NewItem(11, "{363}%/{493}% Att.", "Slows Attacker / Slows Ranged Attacker")
 	
 	_GUI_GroupNext()
+	_GUI_NewText(00, "Minions")
+	_GUI_NewItem(01, "{444}% Life")
+	_GUI_NewItem(02, "{470}% Damage")
+	_GUI_NewItem(03, "{487}% Resist")
+	_GUI_NewItem(04, "{500}% AR", "Attack Rating")
+	
+	_GUI_NewText(06, "Life/Mana")
+	_GUI_NewItem(07, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
+	_GUI_NewItem(08, "{086}/{138} *aeK", "Life/Mana after each Kill")
+	_GUI_NewItem(09, "{208}/{209} *oS", "Life/Mana on Striking")
+	_GUI_NewItem(10, "{210}/{295} *oA", "Life/Mana on Attack")
+	
+	_GUI_GroupNext()
 	_GUI_NewText(00, "Weapon Damage")
 	_GUI_NewItem(01, "{048}-{049}", "Fire", $g_iColorRed)
 	_GUI_NewItem(02, "{054}-{055}", "Cold", $g_iColorBlue)
@@ -1189,19 +1215,6 @@ func CreateGUI()
 	_GUI_NewItem(05, "{052}-{053}", "Magic", $g_iColorPink)
 	_GUI_NewItem(06, "{021}-{022}", "One-hand physical damage. Estimated; may be inaccurate, especially when dual wielding")
 	_GUI_NewItem(07, "{023}-{024}", "Two-hand/Ranged physical damage. Estimated; may be inaccurate, especially when dual wielding")
-	
-	_GUI_NewText(09, "Life/Mana")
-	_GUI_NewItem(10, "{060}%/{062}% Leech", "Life/Mana Stolen per Hit")
-	_GUI_NewItem(11, "{086}/{138} *aeK", "Life/Mana after each Kill")
-	_GUI_NewItem(12, "{208}/{209} *oS", "Life/Mana on Striking")
-	_GUI_NewItem(13, "{210}/{295} *oA", "Life/Mana on Attack")
-	
-	_GUI_GroupNext()
-	_GUI_NewText(00, "Minions")
-	_GUI_NewItem(01, "{444}% Life")
-	_GUI_NewItem(02, "{470}% Damage")
-	_GUI_NewItem(03, "{487}% Resist")
-	_GUI_NewItem(04, "{500}% AR", "Attack Rating")
 	
 	_GUI_GroupNext()
 #EndRegion
