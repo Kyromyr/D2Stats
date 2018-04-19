@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.10.0)
-#pragma compile(FileVersion, 3.10.0)
-#pragma compile(Comments, 16.04.2018)
+#pragma compile(ProductVersion, 3.10.1)
+#pragma compile(FileVersion, 3.10.1)
+#pragma compile(Comments, 19.04.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -377,6 +377,19 @@ func UpdateStatValues()
 		; Poison damage to damage/second
 		$g_aiStatsCache[1][57] *= (25/256)
 		$g_aiStatsCache[1][58] *= (25/256)
+		
+		; Bonus stats from items; str, dex, vit, ene
+		local $aiStats[] = [0, 359, 2, 360, 3, 362, 1, 361]
+		local $iBase, $iTotal, $iPercent
+		
+		for $i = 0 to 3
+			$iBase = GetStatValue($aiStats[$i*2 + 0])
+			$iTotal = GetStatValue($aiStats[$i*2 + 0], 1)
+			$iPercent = GetStatValue($aiStats[$i*2 + 1])
+			
+			$g_aiStatsCache[1][900+$i] = Ceiling($iTotal / (1 + $iPercent / 100) - $iBase)
+			
+		next
 	endif
 endfunc
 
@@ -433,13 +446,11 @@ func CalculateWeaponDamage()
 
 	local $iStatBonus = Floor((GetStatValue(0, 1) * $iStrBonus + GetStatValue(2, 1) * $iDexBonus) / 100) - 1
 	local $iEWD = GetStatValue(25)
+	local $fTotalMult = 1 + $iEWD / 100 + $iStatBonus / 100
 	
 	local $aiDamage[4] = [$iMinDamage1, $iMaxDamage1, $iMinDamage2, $iMaxDamage2]
 	for $i = 0 to 3
-		$aiDamage[$i] = Floor($aiDamage[$i] * (1 + $iStatBonus / 100))
-		$aiDamage[$i] = Floor($aiDamage[$i] * (1 + $iEWD / 100))
-		
-		$g_aiStatsCache[1][21+$i] = $aiDamage[$i]
+		$g_aiStatsCache[1][21+$i] = Floor($aiDamage[$i] * $fTotalMult)
 	next
 endfunc
 
@@ -1134,10 +1145,10 @@ func CreateGUI()
 	
 	_GUI_GroupNext()
 	_GUI_NewText(00, "Bonus stats")
-	_GUI_NewItem(01, "{359}% Strength")
-	_GUI_NewItem(02, "{360}% Dexterity")
-	_GUI_NewItem(03, "{362}% Vitality")
-	_GUI_NewItem(04, "{361}% Energy")
+	_GUI_NewItem(01, "{359}%/{900}", "Strength")
+	_GUI_NewItem(02, "{360}%/{901}", "Dexterity")
+	_GUI_NewItem(03, "{362}%/{902}", "Vitality")
+	_GUI_NewItem(04, "{361}%/{903}", "Energy")
 	
 	_GUI_NewText(06, "Item/Skill", "Speed from items and skills behave differently. Use SpeedCalc to find your breakpoints")
 	_GUI_NewItem(07, "{093}%/{068}% IAS", "Increased Attack Speed")
