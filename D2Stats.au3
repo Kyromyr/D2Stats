@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.10.1)
-#pragma compile(FileVersion, 3.10.1)
-#pragma compile(Comments, 19.04.2018)
+#pragma compile(ProductVersion, 3.10.2)
+#pragma compile(FileVersion, 3.10.2)
+#pragma compile(Comments, 22.04.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -443,6 +443,9 @@ func CalculateWeaponDamage()
 			$iMaxDamage2 = GetStatValue(160)
 		endif
 	endif
+	
+	if ($iMaxDamage1 < $iMinDamage1) then $iMaxDamage1 = $iMinDamage1 + 1
+	if ($iMaxDamage2 < $iMinDamage2) then $iMaxDamage2 = $iMinDamage2 + 1
 
 	local $iStatBonus = Floor((GetStatValue(0, 1) * $iStrBonus + GetStatValue(2, 1) * $iDexBonus) / 100) - 1
 	local $iEWD = GetStatValue(25)
