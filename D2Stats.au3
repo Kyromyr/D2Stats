@@ -316,6 +316,10 @@ func HotKey_ToggleShowItems($TEST = False)
 	if ($TEST or not IsIngame()) then return
 	ToggleShowItems()
 endfunc
+
+func HotKey_ReadStats()
+	OnClick_ReadStats()
+endfunc
 #EndRegion
 
 #Region Stat reading
@@ -1356,6 +1360,24 @@ func LoadGUISettings()
 			$vValue = _GUI_OptionType($asIniGeneral[$i][0]) == "tx" ? BinaryToString($vValue) : Int($vValue)
 			_GUI_Option($asIniGeneral[$i][0], $vValue)
 		next
+
+		local $bConflict = False
+		local $iEnd = UBound($g_avGUIOptionList) - 1
+		
+		for $i = 0 to $iEnd
+			if ($g_avGUIOptionList[$i][2] <> "hk" or $g_avGUIOptionList[$i][1] == 0x0000) then continueloop
+			
+			for $j = $i+1 to $iEnd
+				if ($g_avGUIOptionList[$j][2] <> "hk") then continueloop
+				
+				if ($g_avGUIOptionList[$i][1] == $g_avGUIOptionList[$j][1]) then
+					$g_avGUIOptionList[$j][1] = 0
+					$bConflict = True
+				endif
+			next
+		next
+		
+		if ($bConflict) then MsgBox($MB_ICONWARNING, "D2Stats", "Hotkey conflict! One or more hotkeys disabled.")
 	endif
 endfunc
 
@@ -1717,7 +1739,7 @@ func DefineGlobals()
 	global $g_sCopyName = ""
 
 	global const $g_iGUIOptionsGeneral = 5
-	global const $g_iGUIOptionsHotkey = 6
+	global const $g_iGUIOptionsHotkey = 7
 
 	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C65747C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E697175650D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C283130222020202020202020202020202020202320536872696E65730D0A23225175697665722220726172650D0A232252696E67247C416D756C65742220726172652020202020202020202320526172652072696E677320616E6420616D756C6574730D0A2373616372656420657468207375706572696F7220726172650D0A0D0A225369676E6574206F662028536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F730D0A222844656D6F6E7C45647972656D29204B6579220D0A224F696C206F6620436F6E6A75726174696F6E220D0A224C7563696F6E7C466F6F6C7C4D79737469632053686172647C476F64737C476C6F72696F75737C20456172220D0A232252696E67206F6620746865204669766522")
 	global $g_avGUIOptionList[][5] = [ _
@@ -1732,6 +1754,7 @@ func DefineGlobals()
 		["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
 		["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
 		["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
+		["readstats", 0x0000, "hk", "Read stats without tabbing out of the game", "HotKey_ReadStats"], _
 		["notify-text", $g_sNotifyTextDefault, "tx"] _
 	]
 endfunc
