@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.10.2)
-#pragma compile(FileVersion, 3.10.2)
-#pragma compile(Comments, 22.04.2018)
+#pragma compile(ProductVersion, 3.10.3)
+#pragma compile(FileVersion, 3.10.3)
+#pragma compile(Comments, 24.04.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -374,7 +374,7 @@ func UpdateStatValues()
 	if (IsIngame()) then
 		UpdateStatValueMem(0)
 		UpdateStatValueMem(1)
-		FixStatVelocities()
+		FixStats()
 		FixVeteranToken()
 		CalculateWeaponDamage()
 		
@@ -392,14 +392,11 @@ func UpdateStatValues()
 			$iPercent = GetStatValue($aiStats[$i*2 + 1])
 			
 			$g_aiStatsCache[1][900+$i] = Ceiling($iTotal / (1 + $iPercent / 100) - $iBase)
-			
 		next
 	endif
 endfunc
 
-func CalculateWeaponDamage()
-	local $pUnitAddress = GetUnitToRead()
-	local $pUnit = _MemoryRead($pUnitAddress, $g_ahD2Handle)
+func GetUnitWeapon($pUnit)
 	local $pInventory = _MemoryRead($pUnit + 0x60, $g_ahD2Handle)
 	
 	local $pItem = _MemoryRead($pInventory + 0x0C, $g_ahD2Handle)
@@ -417,6 +414,14 @@ func CalculateWeaponDamage()
 		$pItem = _MemoryRead($pItemData + 0x64, $g_ahD2Handle)
 	wend
 	
+	return $pWeapon
+endfunc
+
+func CalculateWeaponDamage()
+	local $pUnitAddress = GetUnitToRead()
+	local $pUnit = _MemoryRead($pUnitAddress, $g_ahD2Handle)
+	
+	local $pWeapon = GetUnitWeapon($pUnit)
 	if (not $pWeapon) then return
 	
 	local $iWeaponClass = _MemoryRead($pWeapon + 0x04, $g_ahD2Handle)
@@ -452,7 +457,7 @@ func CalculateWeaponDamage()
 	if ($iMaxDamage2 < $iMinDamage2) then $iMaxDamage2 = $iMinDamage2 + 1
 
 	local $iStatBonus = Floor((GetStatValue(0, 1) * $iStrBonus + GetStatValue(2, 1) * $iDexBonus) / 100) - 1
-	local $iEWD = GetStatValue(25)
+	local $iEWD = GetStatValue(25) + GetStatValue(343) ; global EWD, itemtype-specific EWD
 	local $fTotalMult = 1 + $iEWD / 100 + $iStatBonus / 100
 	
 	local $aiDamage[4] = [$iMinDamage1, $iMaxDamage1, $iMinDamage2, $iMaxDamage2]
@@ -461,15 +466,21 @@ func CalculateWeaponDamage()
 	next
 endfunc
 
-func FixStatVelocities() ; This game is stupid
-	for $i = 67 to 69
+func FixStats() ; This game is stupid
+	for $i = 67 to 69 ; Velocities
 		$g_aiStatsCache[1][$i] = 0
 	next
+	$g_aiStatsCache[1][343] = 0 ; itemtype-specific EWD (Elfin Weapons, Shadow Dancer)
 	
 	local $pSkillsTxt = _MemoryRead($g_pD2sgpt + 0xB98, $g_ahD2Handle)
 	local $iSkillID, $pStats, $iStatCount, $pSkill, $iStatIndex, $iStatValue, $iOwnerType, $iStateID
 	
+	local $pItemTypesTxt = _MemoryRead($g_pD2sgpt + 0xBF8, $g_ahD2Handle)
+	local $pItemsTxt = _MemoryRead($g_hD2Common + 0x9FB98, $g_ahD2Handle)
+	local $iWeaponClass, $pWeapon, $iWeaponType, $iItemType
+	
 	local $pUnitAddress = GetUnitToRead()
+	local $pUnit = _MemoryRead($pUnitAddress, $g_ahD2Handle)
 	
 	local $aiOffsets[3] = [0, 0x5C, 0x3C]
 	local $pStatList = _MemoryPointerRead($pUnitAddress, $g_ahD2Handle, $aiOffsets)
@@ -493,11 +504,12 @@ func FixStatVelocities() ; This game is stupid
 		if ($iOwnerType == 4) then continueloop
 		
 		$iStateID = _MemoryRead($pStatList + 0x14, $g_ahD2Handle)
-		if ($iStateID == 195) then ; Dark Power / Tome of Possession aura
-			$iSkillID = 687 ; Dark Power
-		endif
+		switch $iStateID
+			case 195 ; Dark Power, Tome of Possession aura
+				$iSkillID = 687 ; Dark Power
+		endswitch
 
-		local $bHasStat[3] = [False,False,False]
+		local $bHasVelocity[3] = [False,False,False]
 		if ($iSkillID) then ; Game doesn't even bother setting the skill id for some skills, so we'll just have to hope the state is correct or the stat list isn't lying...
 			$pSkill = $pSkillsTxt + 0x23C*$iSkillID
 		
@@ -506,7 +518,7 @@ func FixStatVelocities() ; This game is stupid
 				
 				switch $iStatIndex
 					case 67 to 69
-						$bHasStat[$iStatIndex-67] = True
+						$bHasVelocity[$iStatIndex-67] = True
 				endswitch
 			next
 			
@@ -515,7 +527,7 @@ func FixStatVelocities() ; This game is stupid
 				
 				switch $iStatIndex
 					case 67 to 69
-						$bHasStat[$iStatIndex-67] = True
+						$bHasVelocity[$iStatIndex-67] = True
 				endswitch
 			next
 		endif
@@ -526,7 +538,38 @@ func FixStatVelocities() ; This game is stupid
 			
 			switch $iStatIndex
 				case 67 to 69
-					if (not $iSkillID or $bHasStat[$iStatIndex-67]) then $g_aiStatsCache[1][$iStatIndex] += $iStatValue
+					if (not $iSkillID or $bHasVelocity[$iStatIndex-67]) then $g_aiStatsCache[1][$iStatIndex] += $iStatValue
+				case 343
+					$iItemType = _MemoryRead($pStats + $i*8 + 0, $g_ahD2Handle, "word")
+					$pWeapon = GetUnitWeapon($pUnit)
+					if (not $pWeapon or not $iItemType) then continueloop
+					
+					$iWeaponClass = _MemoryRead($pWeapon + 0x04, $g_ahD2Handle)
+					$iWeaponType = _MemoryRead($pItemsTxt + 0x1A8 * $iWeaponClass + 0x11E, $g_ahD2Handle, "word")
+					
+					local $bApply = False
+					local $aiItemTypes[256] = [1, $iWeaponType]
+					local $iEquiv
+					local $j = 1
+					
+					while ($j <= $aiItemTypes[0])
+						if ($aiItemTypes[$j] == $iItemType) then
+							$bApply = True
+							exitloop
+						endif
+					
+						for $k = 0 to 1
+							$iEquiv = _MemoryRead($pItemTypesTxt + 0xE4 * $aiItemTypes[$j] + 0x04 + $k*2, $g_ahD2Handle, "word")
+							if ($iEquiv) then
+								$aiItemTypes[0] += 1
+								$aiItemTypes[ $aiItemTypes[0] ] = $iEquiv
+							endif
+						next
+
+						$j += 1
+					wend
+					
+					if ($bApply) then $g_aiStatsCache[1][343] += $iStatValue
 			endswitch
 		next
 	wend
