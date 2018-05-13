@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.10.3)
-#pragma compile(FileVersion, 3.10.3)
-#pragma compile(Comments, 24.04.2018)
+#pragma compile(ProductVersion, 3.10.4)
+#pragma compile(FileVersion, 3.10.4)
+#pragma compile(Comments, 13.05.2018)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -81,6 +81,7 @@ func Main()
 				
 				InjectFunctions()
 				_MemoryWrite($g_hD2Client + 0x6011B, $g_ahD2Handle, _GUI_Option("hidePass") ? 0x7F : 0x01, "byte")
+				_MemoryWrite($g_pD2InjectNotifyFilter, $g_ahD2Handle, _GUI_Option("notify-filter") ? 0x1 : 0x0, "byte")
 				
 				if (_GUI_Option("mousefix") <> IsMouseFixEnabled()) then ToggleMouseFix()
 				
@@ -892,6 +893,7 @@ func NotifierMain()
 					if ($bNotifySuperior and $iQuality == $eQualitySuperior) then $sText = "Superior " & $sText
 
 					PrintString("- " & $sText, $iColor)
+					_MemoryWrite($pUnitData + 0x48, $g_ahD2Handle, 2, "byte") ; Experimental, used for Drop Filter.
 				endif
 			endif
 		wend
@@ -1014,7 +1016,7 @@ func _GUI_OptionID($sOption)
 	for $i = 0 to UBound($g_avGUIOptionList) - 1
 		if ($g_avGUIOptionList[$i][0] == $sOption) then return $i
 	next
-	_Log("_GUI_OptionID", "Invalid option '" & $sOption "'")
+	_Log("_GUI_OptionID", "Invalid option '" & $sOption & "'")
 	exit
 endfunc
 
@@ -1722,7 +1724,8 @@ func UpdateDllHandles()
 	local $pD2Inject = $g_hD2Client + 0xCDE00
 	$g_pD2InjectPrint = $pD2Inject + 0x0
 	$g_pD2InjectGetString = $pD2Inject + 0x10
-	$g_pD2InjectString = $pD2Inject + 0x20
+	$g_pD2InjectNotifyFilter = $pD2Inject + 0x20
+	$g_pD2InjectString = $pD2Inject + 0x30
 	
 	$g_pD2sgpt = _MemoryRead($g_hD2Common + 0x99E1C, $g_ahD2Handle)
 
@@ -1775,13 +1778,13 @@ func DefineGlobals()
 	
 	global $g_iD2pid, $g_iUpdateFailCounter
 
-	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString
+	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString, $g_pD2InjectNotifyFilter
 
 	global $g_bHotkeysEnabled = False
 	global $g_hTimerCopyName = 0
 	global $g_sCopyName = ""
 
-	global const $g_iGUIOptionsGeneral = 5
+	global const $g_iGUIOptionsGeneral = 6
 	global const $g_iGUIOptionsHotkey = 7
 
 	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C65747C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E697175650D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C283130222020202020202020202020202020202320536872696E65730D0A23225175697665722220726172650D0A232252696E67247C416D756C65742220726172652020202020202020202320526172652072696E677320616E6420616D756C6574730D0A2373616372656420657468207375706572696F7220726172650D0A0D0A225369676E6574206F662028536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F730D0A222844656D6F6E7C45647972656D29204B6579220D0A224F696C206F6620436F6E6A75726174696F6E220D0A224C7563696F6E7C466F6F6C7C4D79737469632053686172647C476F64737C476C6F72696F75737C20456172220D0A232252696E67206F6620746865204669766522")
@@ -1791,6 +1794,7 @@ func DefineGlobals()
 		["mousefix", 0, "cb", "Continue attacking when monster dies under cursor"], _
 		["notify-enabled", 1, "cb", "Enable notifier"], _
 		["notify-superior", 0, "cb", "Notifier prefixes superior items with 'Superior'"], _
+		["notify-filter", 0, "cb", "Drop Filter only shows items that are notified"], _
 		["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
 		["copy-name", 0, "cb", "Only copy item name"], _
 		["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
