@@ -20,9 +20,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.10.4)
-#pragma compile(FileVersion, 3.10.4)
-#pragma compile(Comments, 13.05.2018)
+#pragma compile(ProductVersion, 3.10.5)
+#pragma compile(FileVersion, 3.10.5)
+#pragma compile(Comments, 20.01.2019)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -80,8 +80,6 @@ func Main()
 				endif
 				
 				InjectFunctions()
-				_MemoryWrite($g_hD2Client + 0x6011B, $g_ahD2Handle, _GUI_Option("hidePass") ? 0x7F : 0x01, "byte")
-				_MemoryWrite($g_pD2InjectNotifyFilter, $g_ahD2Handle, _GUI_Option("notify-filter") ? 0x1 : 0x0, "byte")
 				
 				if (_GUI_Option("mousefix") <> IsMouseFixEnabled()) then ToggleMouseFix()
 				
@@ -121,7 +119,7 @@ func Main()
 endfunc
 
 func _Exit()
-	if (BitAND(GUICtrlGetState($g_idNotifySave), $GUI_ENABLE)) then
+	if (IsDeclared("g_idNotifySave") and BitAND(GUICtrlGetState($g_idNotifySave), $GUI_ENABLE)) then
 		local $iButton = MsgBox(BitOR($MB_ICONQUESTION, $MB_YESNO), "D2Stats", "There are unsaved changes in the notifier rules. Save?", 0, $g_hGUI)
 		if ($iButton == $IDYES) then OnClick_NotifySave()
 	endif
@@ -257,7 +255,8 @@ func HotKey_CopyItem($TEST = False)
 	local $sOutput = ""
 	
 	while ($sOutput == "" and TimerDiff($hTimerRetry) < 10)
-		$sOutput = _MemoryRead($g_hD2Win + 0xC9E58, $g_ahD2Handle, "wchar[800]")
+		; $sOutput = _MemoryRead($g_hD2Sigma + 0x96AF28, $g_ahD2Handle, "wchar[8192]")
+		$sOutput = _MemoryRead(0x00191FA4, $g_ahD2Handle, "wchar[2048]") ; Magic?
 	wend
 	
 	$sOutput = StringRegExpReplace($sOutput, "ÿc.", "")
@@ -277,18 +276,11 @@ func HotKey_CopyItem($TEST = False)
 	
 	$sOutput = ""
 	for $i = $asLines[0] to 1 step -1
-		$sOutput &= $asLines[$i] & @CRLF
+		if ($asLines[$i] <> "") then $sOutput &= $asLines[$i] & @CRLF
 	next
 
 	ClipPut($sOutput)
 	PrintString("Item text copied.")
-endfunc
-
-func HotKey_ShowIlvl($TEST = False)
-	if ($TEST or not IsIngame()) then return
-
-	local $iItemLevel = GetIlvl()
-	if ($iItemLevel) then PrintString(StringFormat("ilvl: %02s", $iItemLevel))
 endfunc
 
 func HotKey_DropFilter($TEST = False)
@@ -628,7 +620,7 @@ func NotifierFlag($sFlag)
 			if ($g_asNotifyFlags[$i][$j] == "") then
 				exitloop
 			elseif ($g_asNotifyFlags[$i][$j] == $sFlag) then
-				return BitRotate(1, $j, "D")
+				return $i == $eNotifyFlagsColour ? $j : BitRotate(1, $j, "D")
 			endif
 		next
 	next
@@ -677,7 +669,7 @@ func NotifierCache()
 		$sTier = "0"
 		
 		if (_MemoryRead($pBaseAddr + 0x84, $g_ahD2Handle)) then ; Weapon / Armor
-			$asMatch = StringRegExp($sName, "[1-6]|\Q(Sacred)\E", $STR_REGEXPARRAYGLOBALMATCH)
+			$asMatch = StringRegExp($sName, "[1-4]|\Q(Sacred)\E", $STR_REGEXPARRAYGLOBALMATCH)
 			if (not @error) then $sTier = $asMatch[0] == "(Sacred)" ? "sacred" : $asMatch[0]
 		endif
 		
@@ -748,6 +740,7 @@ endfunc
 func NotifierCompile()
 	if (not $g_bNotifyCompile) then return
 	$g_bNotifyCompile = False
+	$g_bNotifierChanged = True
 	
 	local $asLines = StringSplit(_GUI_Option("notify-text"), @LF)
 	local $iLines = $asLines[0]
@@ -816,7 +809,7 @@ func NotifierMain()
 	if (not $pPaths or not $iPaths) then return
 	
 	local $pPath, $pUnit, $pUnitData
-	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iFlags, $sName, $iTierFlag
+	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iNewEarLevel, $iFlags, $sName, $iTierFlag
 	local $bIsNewItem, $bIsSocketed, $bIsEthereal
 	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour
 	local $bNotify, $sText, $iColor
@@ -846,8 +839,8 @@ func NotifierMain()
 				
 				; Using the ear level field to check if we've seen this item on the ground before
 				; Resets when the item is picked up or we move too far away
-				if ($iEarLevel <> 0) then continueloop
-				_MemoryWrite($pUnitData + 0x48, $g_ahD2Handle, 1, "byte")
+				if (not $g_bNotifierChanged and $iEarLevel <> 0) then continueloop
+				$iNewEarLevel = 1
 				
 				$bIsNewItem = BitAND(0x2000, $iFlags) <> 0
 				$bIsSocketed = BitAND(0x800, $iFlags) <> 0
@@ -876,11 +869,18 @@ func NotifierMain()
 							continueloop
 						endif
 						
-						$bNotify = True
+						if ($iFlagsColour == NotifierFlag("hide")) then
+							$iNewEarLevel = 2
+						elseif ($iFlagsColour <> NotifierFlag("show")) then
+							$bNotify = True
+						endif
+						
 						exitloop
 					endif
 				next
 				
+				_MemoryWrite($pUnitData + 0x48, $g_ahD2Handle, $iNewEarLevel, "byte")
+
 				if ($bNotify) then
 					if ($iFlagsColour) then
 						$iColor = $iFlagsColour - 1
@@ -893,11 +893,12 @@ func NotifierMain()
 					if ($bNotifySuperior and $iQuality == $eQualitySuperior) then $sText = "Superior " & $sText
 
 					PrintString("- " & $sText, $iColor)
-					_MemoryWrite($pUnitData + 0x48, $g_ahD2Handle, 2, "byte") ; Experimental, used for Drop Filter.
 				endif
 			endif
 		wend
 	next
+	
+	$g_bNotifierChanged = False
 endfunc
 #EndRegion
 
@@ -1012,6 +1013,13 @@ func _GUI_OptionByRef($iOption, byref $sOption, byref $idControl, byref $sFunc)
 	$sFunc = $g_avGUIOption[$iOption][2]
 endfunc
 
+func _GUI_OptionExists($sOption)
+	for $i = 0 to UBound($g_avGUIOptionList) - 1
+		if ($g_avGUIOptionList[$i][0] == $sOption) then return True
+	next
+	return False
+endfunc
+
 func _GUI_OptionID($sOption)
 	for $i = 0 to UBound($g_avGUIOptionList) - 1
 		if ($g_avGUIOptionList[$i][0] == $sOption) then return $i
@@ -1108,11 +1116,12 @@ func OnClick_NotifyTest()
 		'If you''re unsure what regex is, use letters only.', _
 		'', _
 		'Flags:', _
-		'> 0-6 sacred - Item must be one of these tiers.', _
+		'> 0-4 sacred - Item must be one of these tiers.', _
 		'   Tier 0 means untiered items (runes, amulets, etc).', _
-		'> superior rare set unique - Item must be one of these qualities.', _
-		'> eth socket - Item must be ethereal and/or socketed.', _
-		'> white red lime blue gold orange yellow green purple - Notification color', _
+		'> normal superior rare set unique - Item must be one of these qualities.', _
+		'> eth - Item must be ethereal.', _
+		'> white red lime blue gold orange yellow green purple - Notification color.', _
+		'> hide - Hides matching items on ground, without notification. Requires DropFilter.dll', _
 		'', _
 		'Example:', _
 		'"Battle" sacred unique eth', _
@@ -1127,7 +1136,7 @@ func OnClick_NotifyTest()
 		$sText &= $asText[$i] & @CRLF
 	next
 	
-	local $sInput = InputBox("Notifier Test", $sText, default, default, 420, 120 + UBound($asText) * 13, default, default, default, $g_hGUI)
+	local $sInput = InputBox("Notifier Help", $sText, default, default, 450, 120 + UBound($asText) * 13, default, default, default, $g_hGUI)
 	if (not @error) then
 		if (IsIngame()) then
 			NotifierHelp($sInput)
@@ -1315,17 +1324,6 @@ func CreateGUI()
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyDefault")
 	
 	OnClick_NotifyReset()
-
-	GUICtrlCreateTabItem("Drop filter")
-	_GUI_GroupX(8)
-	_GUI_NewTextBasic(00, "The drop filter for 3.9.8 hides:", False)
-	_GUI_NewTextBasic(01, " White/magic/rare tiered equipment with no filled sockets.", False)
-	_GUI_NewTextBasic(02, " Runes below and including Zod.", False)
-	_GUI_NewTextBasic(03, " Gems below Perfect.", False)
-	_GUI_NewTextBasic(04, " Gold stacks below 2,000.", False)
-	_GUI_NewTextBasic(05, " Magic rings, amulets and quivers.", False)
-	_GUI_NewTextBasic(06, " Various junk (mana potions, TP/ID scrolls and tomes, keys).", False)
-	_GUI_NewTextBasic(07, " Health potions below Greater.", False)
 	
 	GUICtrlCreateTabItem("About")
 	_GUI_GroupX(8)
@@ -1401,9 +1399,11 @@ func LoadGUISettings()
 	if (not @error) then
 		local $vValue
 		for $i = 1 to $asIniGeneral[0][0]
-			$vValue = $asIniGeneral[$i][1]
-			$vValue = _GUI_OptionType($asIniGeneral[$i][0]) == "tx" ? BinaryToString($vValue) : Int($vValue)
-			_GUI_Option($asIniGeneral[$i][0], $vValue)
+			if (_GUI_OptionExists($asIniGeneral[$i][0])) then
+				$vValue = $asIniGeneral[$i][1]
+				$vValue = _GUI_OptionType($asIniGeneral[$i][0]) == "tx" ? BinaryToString($vValue) : Int($vValue)
+				_GUI_Option($asIniGeneral[$i][0], $vValue)
+			endif
 		next
 
 		local $bConflict = False
@@ -1724,8 +1724,7 @@ func UpdateDllHandles()
 	local $pD2Inject = $g_hD2Client + 0xCDE00
 	$g_pD2InjectPrint = $pD2Inject + 0x0
 	$g_pD2InjectGetString = $pD2Inject + 0x10
-	$g_pD2InjectNotifyFilter = $pD2Inject + 0x20
-	$g_pD2InjectString = $pD2Inject + 0x30
+	$g_pD2InjectString = $pD2Inject + 0x20
 	
 	$g_pD2sgpt = _MemoryRead($g_hD2Common + 0x99E1C, $g_ahD2Handle)
 
@@ -1758,16 +1757,17 @@ func DefineGlobals()
 	
 	global enum $eNotifyFlagsTier, $eNotifyFlagsQuality, $eNotifyFlagsMisc, $eNotifyFlagsColour, $eNotifyFlagsMatch, $eNotifyFlagsLast
 	global $g_asNotifyFlags[$eNotifyFlagsLast][32] = [ _
-		[ "0", "1", "2", "3", "4", "5", "6", "sacred" ], _
+		[ "0", "1", "2", "3", "4", "sacred" ], _
 		[ "low", "normal", "superior", "magic", "set", "rare", "unique", "craft", "honor" ], _
 		[ "eth", "socket" ], _
-		[ "clr_none", "white", "red", "lime", "blue", "gold", "grey", "black", "clr_unk", "orange", "yellow", "green", "purple" ] _
+		[ "clr_none", "white", "red", "lime", "blue", "gold", "grey", "black", "clr_unk", "orange", "yellow", "green", "purple", "show", "hide" ] _
 	]
 
 	global $g_avNotifyCache[0][3]					; Name, Tier flag, Last line of name
 	global $g_avNotifyCompile[0][$eNotifyFlagsLast]	; Flags, Regex
 	global $g_bNotifyCache = True
 	global $g_bNotifyCompile = True
+	global $g_bNotifierChanged = False
 
 	global const $g_iNumStats = 1024
 	global $g_aiStatsCache[2][$g_iNumStats]
@@ -1778,26 +1778,23 @@ func DefineGlobals()
 	
 	global $g_iD2pid, $g_iUpdateFailCounter
 
-	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString, $g_pD2InjectNotifyFilter
+	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString
 
 	global $g_bHotkeysEnabled = False
 	global $g_hTimerCopyName = 0
 	global $g_sCopyName = ""
 
-	global const $g_iGUIOptionsGeneral = 6
-	global const $g_iGUIOptionsHotkey = 7
+	global const $g_iGUIOptionsGeneral = 4
+	global const $g_iGUIOptionsHotkey = 6
 
-	global const $g_sNotifyTextDefault = BinaryToString("0x312032203320342035203620756E6971756520202020202020202020232054696572656420756E69717565730D0A73616372656420756E69717565202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C65747C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E697175650D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C283130222020202020202020202020202020202320536872696E65730D0A23225175697665722220726172650D0A232252696E67247C416D756C65742220726172652020202020202020202320526172652072696E677320616E6420616D756C6574730D0A2373616372656420657468207375706572696F7220726172650D0A0D0A225369676E6574206F662028536B696C6C7C4C6561726E696E6729220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F730D0A222844656D6F6E7C45647972656D29204B6579220D0A224F696C206F6620436F6E6A75726174696F6E220D0A224C7563696F6E7C466F6F6C7C4D79737469632053686172647C476F64737C476C6F72696F75737C20456172220D0A232252696E67206F6620746865204669766522")
+	global const $g_sNotifyTextDefault = BinaryToString("0x3120322033203420756E69717565202020202020202020202020202020232054696572656420756E69717565730D0A73616372656420756E6971756520202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C6574247C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E697175650D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C28313022202020202020202020202020202020202320536872696E65730D0A23225175697665722220726172650D0A232252696E67247C416D756C6574222072617265202020202020202020202320526172652072696E677320616E6420616D756C6574730D0A2373616372656420657468207375706572696F7220726172650D0A0D0A225369676E6574206F66204C6561726E696E67220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F730D0A224F696C206F6620436F6E6A75726174696F6E220D0A232252696E67206F66207468652046697665220D0A0D0A232048696465206974656D730D0A686964652031203220332034206C6F77206E6F726D616C207375706572696F72206D6167696320726172650D0A6869646520225E2852696E677C416D756C6574292422206D616769630D0A68696465202251756976657222206E6F726D616C206D616769630D0A6869646520225E28416D6574687973747C546F70617A7C53617070686972657C456D6572616C647C527562797C4469616D6F6E647C536B756C6C7C4F6E79787C426C6F6F6473746F6E657C54757271756F6973657C416D6265727C5261696E626F772053746F6E652924220D0A6869646520225E466C61776C657373220D0A73686F77202228477265617465727C537570657229204865616C696E6720506F74696F6E220D0A686964652022284865616C696E677C4D616E612920506F74696F6E220D0A6869646520225E4B657924220D0A6869646520225E28456C7C456C647C5469727C4E65667C4574687C4974687C54616C7C52616C7C4F72747C5468756C7C416D6E7C536F6C7C536861656C7C446F6C7C48656C7C496F7C4C756D7C4B6F7C46616C7C4C656D7C50756C7C4D616C7C4973747C47756C7C5665787C4F686D7C4C6F7C5375727C4265727C4A61687C4368616D7C5A6F64292052756E652422")
 	global $g_avGUIOptionList[][5] = [ _
 		["nopickup", 0, "cb", "Automatically enable /nopickup"], _
-		["hidePass", 0, "cb", "Hide game password when minimap is open"], _
 		["mousefix", 0, "cb", "Continue attacking when monster dies under cursor"], _
 		["notify-enabled", 1, "cb", "Enable notifier"], _
 		["notify-superior", 0, "cb", "Notifier prefixes superior items with 'Superior'"], _
-		["notify-filter", 0, "cb", "Drop Filter only shows items that are notified"], _
 		["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
 		["copy-name", 0, "cb", "Only copy item name"], _
-		["ilvl", 0x002E, "hk", "Display item ilvl", "HotKey_ShowIlvl"], _
 		["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
 		["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
 		["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
