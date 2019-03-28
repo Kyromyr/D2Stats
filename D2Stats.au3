@@ -1,6 +1,7 @@
 #RequireAdmin
 #include <Array.au3>
 #include <GuiEdit.au3>
+#include <GuiSlider.au3>
 #include <HotKey.au3>
 #include <HotKeyInput.au3>
 #include <Misc.au3>
@@ -20,9 +21,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.10.6)
-#pragma compile(FileVersion, 3.10.6)
-#pragma compile(Comments, 20.01.2019)
+#pragma compile(ProductVersion, 3.11.0)
+#pragma compile(FileVersion, 3.11.0)
+#pragma compile(Comments, 28.03.2019)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -32,16 +33,20 @@
 ;#pragma compile(LegalCopyright, Legal stuff here)
 ;#pragma compile(LegalTrademarks, '"Trademark something, and some text in "quotes" and stuff')
 
-if (not _Singleton("D2Stats-Singleton")) then
+if ($CmdLine[0] == 3 and $CmdLine[1] == "sound") then ; Notifier sounds
+	SoundSetWaveVolume($CmdLine[3])
+	SoundPlay(StringFormat("%s\Sounds\%s.mp3", @ScriptDir, $CmdLine[2]), $SOUND_WAIT)
+	SoundPlay("")
 	exit
-endif
-
-if (not IsAdmin()) then
+elseif (not _Singleton("D2Stats-Singleton")) then
+	exit
+elseif (@AutoItExe == @DesktopDir or @AutoItExe == @DesktopCommonDir) then
+	MsgBox($MB_ICONERROR, "D2Stats", "Don't place D2Stats.exe on the desktop.")
+	exit
+elseif (not IsAdmin()) then
 	MsgBox($MB_ICONERROR, "D2Stats", "Admin rights needed!")
 	exit
-endif
-
-if (not @Compiled) then
+elseif (not @Compiled) then
 	HotKeySet("+{INS}", "HotKey_CopyStatsToClipboard")
 	HotKeySet("+{PgUp}", "HotKey_CopyItemsToClipboard")
 endif
@@ -624,7 +629,7 @@ func NotifierFlag($sFlag)
 			if ($g_asNotifyFlags[$i][$j] == "") then
 				exitloop
 			elseif ($g_asNotifyFlags[$i][$j] == $sFlag) then
-				return $i == $eNotifyFlagsColour ? $j : BitRotate(1, $j, "D")
+				return $i > $eNotifyFlagsNoMask ? $j : BitRotate(1, $j, "D")
 			endif
 		next
 	next
@@ -697,7 +702,7 @@ func NotifierCompileFlag($sFlag, ByRef $avRet, $sLine)
 		return False
 	endif
 	
-	if ($iGroup <> $eNotifyFlagsColour) then $iFlag = BitOR(BitRotate(1, $iFlag, "D"), $avRet[$iGroup])
+	if ($iGroup < $eNotifyFlagsNoMask) then $iFlag = BitOR(BitRotate(1, $iFlag, "D"), $avRet[$iGroup])
 	$avRet[$iGroup] = $iFlag
 
 	return $iGroup <> $eNotifyFlagsColour
@@ -815,7 +820,7 @@ func NotifierMain()
 	local $pPath, $pUnit, $pUnitData
 	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iNewEarLevel, $iFlags, $sName, $iTierFlag
 	local $bIsNewItem, $bIsSocketed, $bIsEthereal
-	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour
+	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour, $iFlagsSound
 	local $bNotify, $sText, $iColor
 	
 	local $bNotifySuperior = _GUI_Option("notify-superior")
@@ -862,6 +867,7 @@ func NotifierMain()
 						$iFlagsQuality = $g_avNotifyCompile[$j][$eNotifyFlagsQuality]
 						$iFlagsMisc = $g_avNotifyCompile[$j][$eNotifyFlagsMisc]
 						$iFlagsColour = $g_avNotifyCompile[$j][$eNotifyFlagsColour]
+						$iFlagsSound = $g_avNotifyCompile[$j][$eNotifyFlagsSound]
 
 						if ($iFlagsTier and not BitAND($iFlagsTier, $iTierFlag)) then continueloop
 						if ($iFlagsQuality and not BitAND($iFlagsQuality, BitRotate(1, $iQuality - 1, "D"))) then continueloop
@@ -897,12 +903,23 @@ func NotifierMain()
 					if ($bNotifySuperior and $iQuality == $eQualitySuperior) then $sText = "Superior " & $sText
 
 					PrintString("- " & $sText, $iColor)
+					
+					if ($iFlagsSound <> NotifierFlag("sound_none")) then NotifierPlaySound($iFlagsSound)
 				endif
 			endif
 		wend
 	next
 	
 	$g_bNotifierChanged = False
+endfunc
+
+func NotifierPlaySound($iSound)
+	local $iVolume = _GUI_Volume($iSound - 1) * 10
+	if ($iVolume > 0) then
+		local $sScriptFile = @Compiled ? "" : StringFormat(' "%s"', @ScriptFullPath)
+		local $sRun = StringFormat('"%s"%s %s %s %s', @AutoItExe, $sScriptFile, "sound", $iSound, $iVolume)
+		Run($sRun)
+	endif
 endfunc
 #EndRegion
 
@@ -1047,6 +1064,14 @@ func _GUI_Option($sOption, $vValue = default)
 	
 	return $vOld
 endfunc
+
+func _GUI_Volume($iIndex, $iValue = default)
+	local $id = $g_idVolumeSlider + $iIndex * 3
+	
+	if not ($iValue == default) then GUICtrlSetData($id, $iValue)
+	
+	return GUICtrlRead($id)
+endfunc
 #EndRegion
 
 #Region GUI
@@ -1112,7 +1137,7 @@ func OnClick_NotifyReset()
 	OnChange_NotifyEdit()
 endfunc
 
-func OnClick_NotifyTest()
+func OnClick_NotifyHelp()
 	local $asText[] = [ _ 
 		'"Item Name" flag1 flag2 ... flagN # Everything after hashtag is a comment.', _
 		'', _
@@ -1125,12 +1150,13 @@ func OnClick_NotifyTest()
 		'> normal superior rare set unique - Item must be one of these qualities.', _
 		'> eth - Item must be ethereal.', _
 		'> white red lime blue gold orange yellow green purple - Notification color.', _
+		StringFormat('> sound[1-%s] - Notification sound.', $g_iNumSounds), _
 		'> hide - Hides matching items on ground, without notification. Requires DropFilter.dll', _
 		'', _
 		'Example:', _
-		'"Battle" sacred unique eth', _
+		'"Battle" sacred unique eth sound3', _
 		'This would notify for ethereal SU Battle Axe, Battle Staff,', _
-		'Short Battle Bow and Long Battle Bow', _
+		'Short Battle Bow and Long Battle Bow, and would play Sound 3', _
 		'', _
 		'Write something in this box and click OK to see what matches!' _
 	]
@@ -1159,6 +1185,18 @@ func OnChange_NotifyEdit()
 	local $iState = _GUI_Option("notify-text") == GUICtrlRead($g_idNotifyEdit) ? $GUI_DISABLE : $GUI_ENABLE
 	GUICtrlSetState($g_idNotifySave, $iState)
 	GUICtrlSetState($g_idNotifyReset, $iState)
+endfunc
+
+func OnChange_VolumeSlider()
+	SaveGUIVolume()
+endfunc
+
+func OnClick_VolumeTest()
+	; Hacky way of getting a sound test button's sound index through the Sound # label
+	local $sText = GUICtrlRead(@GUI_CtrlId - 1)
+	local $asWords = StringSplit($sText, " ")
+	local $iIndex = Int($asWords[2])
+	NotifierPlaySound($iIndex)
 endfunc
 
 func OnClick_Forum()
@@ -1239,19 +1277,21 @@ func CreateGUI()
 	_GUI_NewItem(13, "{164}% UA", "Uninterruptable Attack")
 	
 	_GUI_GroupNext()
-	_GUI_NewText(00, "Abs/Flat", "Absorb / Flat absorb")
-	_GUI_NewItem(01, "{142}%/{143}", "Fire", $g_iColorRed)
-	_GUI_NewItem(02, "{148}%/{149}", "Cold", $g_iColorBlue)
-	_GUI_NewItem(03, "{144}%/{145}", "Lightning", $g_iColorGold)
-	_GUI_NewItem(04, "{146}%/{147}", "Magic", $g_iColorPink)
+	_GUI_NewText(00, "Resistance")
+	_GUI_NewItem(01, "{039}%", "Fire", $g_iColorRed)
+	_GUI_NewItem(02, "{043}%", "Cold", $g_iColorBlue)
+	_GUI_NewItem(03, "{041}%", "Lightning", $g_iColorGold)
+	_GUI_NewItem(04, "{045}%", "Poison", $g_iColorGreen)
+	_GUI_NewItem(05, "{037}%", "Magic", $g_iColorPink)
+	_GUI_NewItem(06, "{036}%", "Physical")
 	
-	_GUI_NewText(06, "Damage/Pierce", "Spell damage / -Enemy resist")
-	_GUI_NewItem(07, "{329}%/{333}%", "Fire", $g_iColorRed)
-	_GUI_NewItem(08, "{331}%/{335}%", "Cold", $g_iColorBlue)
-	_GUI_NewItem(09, "{330}%/{334}%", "Lightning", $g_iColorGold)
-	_GUI_NewItem(10, "{332}%/{336}%", "Poison", $g_iColorGreen)
-	_GUI_NewItem(11, "{431}% PSD", "Poison Skill Duration", $g_iColorGreen)
-	_GUI_NewItem(12, "{357}%/0%", "Physical/Magic", $g_iColorPink)
+	_GUI_NewText(07, "Damage/Pierce", "Spell damage / -Enemy resist")
+	_GUI_NewItem(08, "{329}%/{333}%", "Fire", $g_iColorRed)
+	_GUI_NewItem(09, "{331}%/{335}%", "Cold", $g_iColorBlue)
+	_GUI_NewItem(10, "{330}%/{334}%", "Lightning", $g_iColorGold)
+	_GUI_NewItem(11, "{332}%/{336}%", "Poison", $g_iColorGreen)
+	_GUI_NewItem(12, "{431}% PSD", "Poison Skill Duration", $g_iColorGreen)
+	_GUI_NewItem(13, "{357}%/0%", "Physical/Magic", $g_iColorPink)
 	
 	GUICtrlCreateTabItem("Page 2")
 	_GUI_GroupFirst()
@@ -1292,7 +1332,13 @@ func CreateGUI()
 	_GUI_NewItem(07, "{023}-{024}", "Two-hand/Ranged physical damage. Estimated; may be inaccurate, especially when dual wielding")
 	
 	_GUI_GroupNext()
-	_GUI_NewItem(00, "RIP [108:1/1]", "Slain Monsters Rest In Peace")
+	_GUI_NewText(00, "Abs/Flat", "Absorb / Flat absorb")
+	_GUI_NewItem(01, "{142}%/{143}", "Fire", $g_iColorRed)
+	_GUI_NewItem(02, "{148}%/{149}", "Cold", $g_iColorBlue)
+	_GUI_NewItem(03, "{144}%/{145}", "Lightning", $g_iColorGold)
+	_GUI_NewItem(04, "{146}%/{147}", "Magic", $g_iColorPink)
+	
+	_GUI_NewItem(06, "RIP [108:1/1]", "Slain Monsters Rest In Peace")
 #EndRegion
 
 	LoadGUISettings()
@@ -1301,14 +1347,14 @@ func CreateGUI()
 	GUICtrlCreateTabItem("Options")
 	local $iOption = 0
 	
-	for $j = 1 to $g_iGUIOptionsGeneral
-		_GUI_NewOption($j-1, $g_avGUIOptionList[$iOption][0], $g_avGUIOptionList[$iOption][3], $g_avGUIOptionList[$iOption][4])
+	for $i = 1 to $g_iGUIOptionsGeneral
+		_GUI_NewOption($i-1, $g_avGUIOptionList[$iOption][0], $g_avGUIOptionList[$iOption][3], $g_avGUIOptionList[$iOption][4])
 		$iOption += 1
 	next
 	
 	GUICtrlCreateTabItem("Hotkeys")
-	for $j = 1 to $g_iGUIOptionsHotkey
-		_GUI_NewOption($j-1, $g_avGUIOptionList[$iOption][0], $g_avGUIOptionList[$iOption][3], $g_avGUIOptionList[$iOption][4])
+	for $i = 1 to $g_iGUIOptionsHotkey
+		_GUI_NewOption($i-1, $g_avGUIOptionList[$iOption][0], $g_avGUIOptionList[$iOption][3], $g_avGUIOptionList[$iOption][4])
 		$iOption += 1
 	next
 	
@@ -1323,22 +1369,42 @@ func CreateGUI()
 	global $g_idNotifyReset = GUICtrlCreateButton("Reset", 4 + 1*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyReset")
 	global $g_idNotifyTest = GUICtrlCreateButton("Help", 4 + 2*62, $iNotifyY, 60, 25)
-	GUICtrlSetOnEvent(-1, "OnClick_NotifyTest")
+	GUICtrlSetOnEvent(-1, "OnClick_NotifyHelp")
 	GUICtrlCreateButton("Default", 4 + 3*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyDefault")
 	
 	OnClick_NotifyReset()
+	
+	GUICtrlCreateTabItem("Sounds")
+	for $i = 0 to $g_iNumSounds - 1
+		local $iLine = 1 + $i*2
+		
+		local $id = GUICtrlCreateSlider(60, _GUI_LineY($iLine), 200, 25, BitOR($TBS_TOOLTIPS, $TBS_AUTOTICKS, $TBS_ENABLESELRANGE))
+		GUICtrlSetLimit(-1, 10, 0)
+		GUICtrlSetOnEvent(-1, "OnChange_VolumeSlider")
+		_GUICtrlSlider_SetTicFreq($id, 1)
+	
+		_GUI_NewTextBasic($iLine, "Sound " & ($i + 1), False)
+		
+		GUICtrlCreateButton("Test", 260, _GUI_LineY($iLine), 60, 25)
+		GUICtrlSetOnEvent(-1, "OnClick_VolumeTest")
+		
+		if ($i == 0) then $g_idVolumeSlider = $id
+		_GUI_Volume($i, 5)
+	next
+	LoadGUIVolume()
 	
 	GUICtrlCreateTabItem("About")
 	_GUI_GroupX(8)
 	_GUI_NewTextBasic(00, "Made by Wojen and Kyromyr, using Shaggi's offsets.", False)
 	_GUI_NewTextBasic(01, "Layout help by krys.", False)
 	_GUI_NewTextBasic(02, "Additional help by suchbalance and Quirinus.", False)
+	_GUI_NewTextBasic(03, "Sounds by MurderManTX and Cromi38.", False)
 	
-	_GUI_NewTextBasic(04, "If you're unsure what any of the abbreviations mean, all of", False)
-	_GUI_NewTextBasic(05, " them should have a tooltip when hovered over.", False)
+	_GUI_NewTextBasic(05, "If you're unsure what any of the abbreviations mean, all of", False)
+	_GUI_NewTextBasic(06, " them should have a tooltip when hovered over.", False)
 	
-	_GUI_NewTextBasic(07, "Hotkeys can be disabled by setting them to ESC.", False)
+	_GUI_NewTextBasic(08, "Hotkeys can be disabled by setting them to ESC.", False)
 	
 	GUICtrlCreateButton("Forum", 4 + 0*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_Forum")
@@ -1427,6 +1493,26 @@ func LoadGUISettings()
 		next
 		
 		if ($bConflict) then MsgBox($MB_ICONWARNING, "D2Stats", "Hotkey conflict! One or more hotkeys disabled.")
+	endif
+endfunc
+
+func SaveGUIVolume()
+	local $sWrite = ""
+	for $i = 0 to $g_iNumSounds - 1
+		$sWrite &= StringFormat("%s=%s%s", $i, _GUI_Volume($i), @LF)
+	next
+	IniWriteSection(@AutoItExe & ".ini", "Volume", $sWrite)
+endfunc
+
+func LoadGUIVolume()
+	local $asIniVolume = IniReadSection(@AutoItExe & ".ini", "Volume")
+	if (not @error) then
+		local $iIndex, $iValue
+		for $i = 1 to $asIniVolume[0][0]
+			$iIndex = Int($asIniVolume[$i][0])
+			$iValue = Int($asIniVolume[$i][1])
+			if ($iIndex < $g_iNumSounds) then _GUI_Volume($iIndex, $iValue)
+		next
 	endif
 endfunc
 
@@ -1759,13 +1845,22 @@ func DefineGlobals()
 	global $g_avGUI[256][3] = [[0]]			; Text, X, Control [0] Count
 	global $g_avGUIOption[32][3] = [[0]]	; Option, Control, Function [0] Count
 	
-	global enum $eNotifyFlagsTier, $eNotifyFlagsQuality, $eNotifyFlagsMisc, $eNotifyFlagsColour, $eNotifyFlagsMatch, $eNotifyFlagsLast
+	global enum $eNotifyFlagsTier, $eNotifyFlagsQuality, $eNotifyFlagsMisc, $eNotifyFlagsNoMask, $eNotifyFlagsColour, $eNotifyFlagsSound, $eNotifyFlagsMatch, $eNotifyFlagsLast
 	global $g_asNotifyFlags[$eNotifyFlagsLast][32] = [ _
 		[ "0", "1", "2", "3", "4", "sacred" ], _
 		[ "low", "normal", "superior", "magic", "set", "rare", "unique", "craft", "honor" ], _
 		[ "eth", "socket" ], _
-		[ "clr_none", "white", "red", "lime", "blue", "gold", "grey", "black", "clr_unk", "orange", "yellow", "green", "purple", "show", "hide" ] _
+		[], _
+		[ "clr_none", "white", "red", "lime", "blue", "gold", "grey", "black", "clr_unk", "orange", "yellow", "green", "purple", "show", "hide" ], _
+		[ "sound_none" ] _
 	]
+	
+	global const $g_iNumSounds = 6 ; Max 31
+	global $g_idVolumeSlider
+	
+	for $i = 1 to $g_iNumSounds
+		$g_asNotifyFlags[$eNotifyFlagsSound][$i] = "sound" & $i
+	next
 
 	global $g_avNotifyCache[0][3]					; Name, Tier flag, Last line of name
 	global $g_avNotifyCompile[0][$eNotifyFlagsLast]	; Flags, Regex
