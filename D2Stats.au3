@@ -1690,7 +1690,7 @@ func IsEntityInteractionOverrideEnabled()
 endfunc
 
 func ToggleEntityInteractionOverride()
-	local $sWrite = IsMouseFixEnabled() ? "0xC705" & SwapEndian($g_hD2Client + 0x11C2F4) & "00000000" : "0x90909090909090909090" 
+	local $sWrite = IsEntityInteractionOverrideEnabled() ? "0xC705" & SwapEndian($g_hD2Client + 0x11C2F4) & "00000000" : "0x90909090909090909090" 
 	_MemoryWrite($g_hD2Client + 0x594A1, $g_ahD2Handle, $sWrite, "byte[10]")
 endfunc
 
