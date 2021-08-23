@@ -91,6 +91,7 @@ func Main()
 							if ($bShowItems) then PrintString("Not showing items.", $ePrintBlue)
 							$bShowItems = False
 						else
+                            if (not $bShowItems) then PrintString("Now showing items.", $ePrintBlue)
 							$bShowItems = True
 						endif
 					endif
