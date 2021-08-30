@@ -197,13 +197,6 @@ endfunc
 #EndRegion
 
 #Region Hotkeys
-func GetIlvl()
-	local $apOffsetsIlvl[3] = [0, 0x14, 0x2C]
-	local $iRet = _MemoryPointerRead($g_hD2Client + 0x11BC38, $g_ahD2Handle, $apOffsetsIlvl)
-	if (not $iRet) then PrintString("Hover the cursor over an item first.", $ePrintRed)
-	return $iRet
-endfunc
-
 func HotKey_CopyStatsToClipboard()
 	if (not IsIngame()) then return
 	
@@ -249,15 +242,20 @@ func HotKey_CopyItemsToClipboard()
 endfunc
 
 func HotKey_CopyItem($TEST = False)
-	if ($TEST or not IsIngame() or GetIlvl() == 0) then return
+	if ($TEST or not IsIngame()) then return
 
 	local $hTimerRetry = TimerInit()
 	local $sOutput = ""
 	
 	while ($sOutput == "" and TimerDiff($hTimerRetry) < 10)
-		; $sOutput = _MemoryRead($g_hD2Sigma + 0x96AF28, $g_ahD2Handle, "wchar[8192]")
-		$sOutput = _MemoryRead(0x00191FA4, $g_ahD2Handle, "wchar[2048]") ; Magic?
+		$sOutput = _MemoryRead($g_hD2Sigma + 0x6E3DC8, $g_ahD2Handle, "wchar[8192]")
+		; $sOutput = _MemoryRead(0x00191FA4, $g_ahD2Handle, "wchar[2048]") ; Magic?
 	wend
+	
+	if (StringLen($sOutput) == 0) then
+		PrintString("Hover the cursor over an item first.", $ePrintRed)
+		return
+	endif
 	
 	$sOutput = StringRegExpReplace($sOutput, "ÿc.", "")
 	local $asLines = StringSplit($sOutput, @LF)
@@ -1805,6 +1803,7 @@ func UpdateDllHandles()
 	$g_hD2Common = $hDLLHandle[1]
 	$g_hD2Win = $hDLLHandle[2]
 	$g_hD2Lang = $hDLLHandle[3]
+	$g_hD2Sigma = $hDLLHandle[4]
 	
 	local $pD2Inject = $g_hD2Client + 0xCDE00
 	$g_pD2InjectPrint = $pD2Inject + 0x0
@@ -1866,8 +1865,8 @@ func DefineGlobals()
 	global const $g_iNumStats = 1024
 	global $g_aiStatsCache[2][$g_iNumStats]
 
-	global $g_asDLL[] = ["D2Client.dll", "D2Common.dll", "D2Win.dll", "D2Lang.dll"]
-	global $g_hD2Client, $g_hD2Common, $g_hD2Win, $g_hD2Lang
+	global $g_asDLL[] = ["D2Client.dll", "D2Common.dll", "D2Win.dll", "D2Lang.dll", "D2Sigma.dll"]
+	global $g_hD2Client, $g_hD2Common, $g_hD2Win, $g_hD2Lang, $g_hD2Sigma
 	global $g_ahD2Handle
 	
 	global $g_iD2pid, $g_iUpdateFailCounter
