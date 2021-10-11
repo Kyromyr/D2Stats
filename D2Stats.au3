@@ -21,9 +21,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.11.3)
-#pragma compile(FileVersion, 3.11.3)
-#pragma compile(Comments, 07.09.2021)
+#pragma compile(ProductVersion, 3.11.4)
+#pragma compile(FileVersion, 3.11.4)
+#pragma compile(Comments, 11.10.2021)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
@@ -246,9 +246,10 @@ func HotKey_CopyItem($TEST = False)
 
 	local $hTimerRetry = TimerInit()
 	local $sOutput = ""
+	local $aiOffsets[2] = [0, 0]
 	
 	while ($sOutput == "" and TimerDiff($hTimerRetry) < 10)
-		$sOutput = _MemoryRead($g_hD2Sigma + 0x6E5DC8, $g_ahD2Handle, "wchar[8192]")
+		$sOutput = _MemoryPointerRead($g_hD2Win + 0x1191F, $g_ahD2Handle, $aiOffsets, "wchar[8192]")
 		; $sOutput = _MemoryRead(0x00191FA4, $g_ahD2Handle, "wchar[2048]") ; Magic?
 	wend
 	
