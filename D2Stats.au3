@@ -1312,7 +1312,7 @@ func AskUserForNotifierRulesName(byref $sNewNotifierRulesName, $sInitialNotifier
 			return False
 		endif
 		
-		$sUserInput = StringStripWS($sUserInput, $STR_STRIPLEADING + $STR_STRIPTRAILING)
+		$sUserInput = StringStripWS($sUserInput, BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING))
 		$sInitialNotifierRulesName = $sUserInput
 		if ($sUserInput == "") then
 			MsgBox($MB_ICONERROR, "Invalid Name", 'No name entered.')
@@ -1547,7 +1547,7 @@ func CreateGUI()
 	local $iControlMargin = 4
 	local $iComboWidth = $g_iGUIWidth - 3 * $iButtonWidth - 3 * $iControlMargin - 8
 	
-	global $g_idNotifyRulesCombo = GUICtrlCreateCombo("", $iControlMargin, _GUI_LineY(0) + 1, $iComboWidth, 25, $CBS_DROPDOWNLIST)
+	global $g_idNotifyRulesCombo = GUICtrlCreateCombo("", $iControlMargin, _GUI_LineY(0) + 1, $iComboWidth, 25, BitOR($CBS_DROPDOWNLIST, $WS_VSCROLL))
 	GUICtrlSetOnEvent(-1, "OnChange_NotifyRulesCombo")
 	global $g_idNotifyRulesNew = GUICtrlCreateButton("New", $iComboWidth + 2 * $iControlMargin, _GUI_LineY(0), $iButtonWidth, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyNew")
