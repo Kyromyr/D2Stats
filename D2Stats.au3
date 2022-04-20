@@ -23,9 +23,9 @@
 #pragma compile(Icon, Assets/icon.ico)
 #pragma compile(FileDescription, Diablo II Stats reader)
 #pragma compile(ProductName, D2Stats)
-#pragma compile(ProductVersion, 3.11.4)
-#pragma compile(FileVersion, 3.11.4)
-#pragma compile(Comments, 11.10.2021)
+#pragma compile(ProductVersion, 3.11.5)
+#pragma compile(FileVersion, 3.11.5)
+#pragma compile(Comments, 20.04.2022)
 #pragma compile(UPX, True) ;compression
 #pragma compile(inputboxres, True)
 ;#pragma compile(ExecLevel, requireAdministrator)
