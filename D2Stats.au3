@@ -1,5 +1,6 @@
 #RequireAdmin
 #include <Array.au3>
+#include <File.au3>
 #include <GuiEdit.au3>
 #include <GuiSlider.au3>
 #include <HotKey.au3>
@@ -9,6 +10,7 @@
 #include <WinAPI.au3>
 
 #include <AutoItConstants.au3>
+#include <ComboConstants.au3>
 #include <FileConstants.au3>
 #include <GUIConstantsEx.au3>
 #include <MemoryConstants.au3>
@@ -1047,11 +1049,11 @@ func _GUI_OptionType($sOption)
 	return $g_avGUIOptionList[ _GUI_OptionID($sOption) ][2]
 endfunc
 
-func _GUI_Option($sOption, $vValue = default)
+func _GUI_Option($sOption, $vValue = null)
 	local $iOption = _GUI_OptionID($sOption)
 	local $vOld = $g_avGUIOptionList[$iOption][1]
 	
-	if not ($vValue == default or $vValue == $vOld) then
+	if not ($vValue == null or $vValue == $vOld) then
 		$g_avGUIOptionList[$iOption][1] = $vValue
 		SaveGUISettings()
 	endif
@@ -1120,10 +1122,96 @@ func OnClick_Tab()
 	GUICtrlSetState($g_idReadMercenary, $iState)
 endfunc
 
-func OnClick_NotifySave()
-	_GUI_Option("notify-text", GUICtrlRead($g_idNotifyEdit))
+func OnChange_NotifyRulesCombo()
+	if (BitAND(GUICtrlGetState($g_idNotifySave), $GUI_ENABLE)) then
+		local $iButton = MsgBox(BitOR($MB_ICONQUESTION, $MB_YESNO), "D2Stats", "There are unsaved changes in the current notifier rules. Save?", 0, $g_hGUI)
+		if ($iButton == $IDYES) then
+			SaveCurrentNotifierRulesToFile(_GUI_Option("selectedNotifierRulesName"))
+		endif
+	endif
+
+	local $sSelectedNofitierRules = GUICtrlRead($g_idNotifyRulesCombo)
+	
+	local $sNotifierRulesFilePath = ""
+	for $i = 1 to $g_aNotifierRulesFilePaths[0] step +1
+		if (GetNotifierRulesName($g_aNotifierRulesFilePaths[$i]) == $sSelectedNofitierRules) then
+			$sNotifierRulesFilePath = $g_aNotifierRulesFilePaths[$i]
+			exitloop
+		endif
+	next
+	
+	; first case should never happen, but we'll check anyway
+	if ($sNotifierRulesFilePath == "" or not FileExists($sNotifierRulesFilePath)) then
+		MsgBox($MB_ICONERROR, "File Not Found", "The file for the notifier rules named " & $sNotifierRulesFilePath & " could not be found.")
+		return
+	endif
+	
+	local $aNotifierRules[] = []
+	if (not _FileReadToArray($sNotifierRulesFilePath, $aNotifierRules)) then
+		MsgBox($MB_ICONERROR, "Error Reading File", "Could not read the file '" & $sNotifierRulesFilePath & "'. Error code: " & @error)
+		return
+	endif
+	
+	local $sNotifierRules = ""
+	for $i = 1 to $aNotifierRules[0] step +1
+		$sNotifierRules &= $aNotifierRules[$i] & @CRLF
+	next
+	
+	GUICtrlSetData($g_idNotifyEdit, $sNotifierRules)
+	
+	_GUI_Option("selectedNotifierRulesName", $sSelectedNofitierRules)
+	_GUI_Option("notify-text", $sNotifierRules)
 	OnChange_NotifyEdit()
 	$g_bNotifyCompile = True
+endfunc
+
+func OnClick_NotifyNew()
+	local $sNewNotifierRulesName = ""
+	if (not AskUserForNotifierRulesName($sNewNotifierRulesName)) then
+		return False
+	endif
+	
+	if not CreateNotifierRulesFile(GetNotifierRulesFilePath($sNewNotifierRulesName)) then
+		return False
+	endif
+	
+	RefreshNotifyRulesCombo($sNewNotifierRulesName)
+endfunc
+
+func OnClick_NotifyRename()
+	local $sOldNotifierRulesName = GUICtrlRead($g_idNotifyRulesCombo)
+	local $sNewNotifierRulesName = ""
+	
+	if (not AskUserForNotifierRulesName($sNewNotifierRulesName, $sOldNotifierRulesName)) then
+		return False
+	endif
+	
+	if (not FileMove(GetNotifierRulesFilePath($sOldNotifierRulesName), GetNotifierRulesFilePath($sNewNotifierRulesName))) then
+		MsgBox($MB_ICONERROR, "Error!", "An error occurred while renaming the notifier rules file!")
+		return False
+	endif
+	
+	RefreshNotifyRulesCombo($sNewNotifierRulesName)
+endfunc
+
+func OnClick_NotifyDelete()
+	local $sSelectedNofitierRules = GUICtrlRead($g_idNotifyRulesCombo)
+	
+	local $iMessageBoxResult = MsgBox(4, "Delete Notifier Rules?" ,"Are you sure you want to delete the notifier rules named '" & $sSelectedNofitierRules & "'?", 0, $g_hGUI)
+	if ($iMessageBoxResult == $IDNO) then
+		return
+	endif
+
+	if (not FileDelete(GetNotifierRulesFilePath($sSelectedNofitierRules))) then
+		MsgBox($MB_ICONERROR, "Error!", "An error occurred while deleting the notifier rules file!")
+		return
+	endif
+	
+	RefreshNotifyRulesCombo()
+endfunc
+
+func OnClick_NotifySave()
+	SaveCurrentNotifierRulesToFile(GUICtrlRead($g_idNotifyRulesCombo))
 endfunc
 
 func OnClick_NotifyReset()
@@ -1179,6 +1267,107 @@ func OnChange_NotifyEdit()
 	local $iState = _GUI_Option("notify-text") == GUICtrlRead($g_idNotifyEdit) ? $GUI_DISABLE : $GUI_ENABLE
 	GUICtrlSetState($g_idNotifySave, $iState)
 	GUICtrlSetState($g_idNotifyReset, $iState)
+endfunc
+
+func GetNotifierRulesName($sNotifierRulesFilePath)
+	return StringReplace(StringMid($sNotifierRulesFilePath, StringInStr($sNotifierRulesFilePath, "\", 2, -1) + 1), $g_sNotifierRulesExtension, "", -1)
+endfunc
+
+func GetNotifierRulesFilePath($sNotifierRulesName)
+	return $g_sNotifierRulesDirectory & "\" & $sNotifierRulesName & $g_sNotifierRulesExtension
+endfunc
+
+func SaveCurrentNotifierRulesToFile($sNotifierRulesName)
+	local $sNotifyEditContents = GUICtrlRead($g_idNotifyEdit)
+	CreateNotifierRulesFile(GetNotifierRulesFilePath($sNotifierRulesName), $sNotifyEditContents)
+	_GUI_Option("selectedNotifierRulesName", $sNotifierRulesName)
+	_GUI_Option("notify-text", $sNotifyEditContents)
+	OnChange_NotifyEdit()
+	$g_bNotifyCompile = True
+endfunc
+
+func CreateNotifierRulesFile($sNotifierRulesFilePath, $sNotifierRules = "")
+	DirCreate($g_sNotifierRulesDirectory)
+	
+	if ($sNotifierRules == "") then $sNotifierRules = $g_sNotifyTextDefault
+	
+	local $aNotifierRules[] = [$sNotifierRules]
+	
+	if (not _FileWriteFromArray($sNotifierRulesFilePath, $aNotifierRules)) then
+		MsgBox($MB_ICONERROR, "Error Creating File", "An error occurred when creating the notifier rules file. File: " & $sNotifierRulesFilePath & " Error code: " & @error)
+		return False
+	endif
+	
+	return True
+endfunc
+
+func AskUserForNotifierRulesName(byref $sNewNotifierRulesName, $sInitialNotifierRulesName = "")
+	local const $iMaxNameLength = 30
+	local $sInputBoxTitle = $sInitialNotifierRulesName == "" ? "New Notifier Rules" : "Rename Notifier Rules"
+	
+	while (True)
+		local $sUserInput = InputBox($sInputBoxTitle, "Enter a name for the notifier rules (max "& $iMaxNameLength & " characters):", $sInitialNotifierRulesName, "", 320, 130, default, default, 0, $g_hGUI)
+		
+		if (@error) then
+			return False
+		endif
+		
+		$sUserInput = StringStripWS($sUserInput, BitOR($STR_STRIPLEADING, $STR_STRIPTRAILING))
+		$sInitialNotifierRulesName = $sUserInput
+		if ($sUserInput == "") then
+			MsgBox($MB_ICONERROR, "Invalid Name", 'No name entered.')
+			continueloop
+		endif
+		
+		if (StringRegExp($sUserInput, '[\Q\/:*?"<>|\E]')) then
+			MsgBox($MB_ICONERROR, "Invalid Name", 'The name you have entered should NOT contain the following symbols: \/:*?"<>|')
+			continueloop
+		endif
+		
+		if (StringLen($sUserInput) > $iMaxNameLength) then
+			MsgBox($MB_ICONERROR, "Invalid Name", "The name you have entered is too long. Maximum is " & $iMaxNameLength & " characters.")
+			continueloop
+		endif
+		
+		local $sNewNotifierRulesFilePath = GetNotifierRulesFilePath($sUserInput)
+		if (FileExists($sNewNotifierRulesFilePath)) then
+			MsgBox($MB_ICONERROR, "Notifier Rules Already Exists", "The notifier rules name you have entered is already in use. Choose another name.")
+			continueloop
+		endif
+		
+		$sNewNotifierRulesName = $sUserInput
+		return True;
+	wend
+endfunc
+
+func RefreshNotifyRulesCombo($sSelectedNotifierRulesName = "")
+	global $g_aNotifierRulesFilePaths = _FileListToArray($g_sNotifierRulesDirectory, "*" & $g_sNotifierRulesExtension, $FLTA_FILES, True)
+	if (@error not == 0 or $g_aNotifierRulesFilePaths == 0) then
+		SetError(0)
+		CreateNotifierRulesFile(GetNotifierRulesFilePath("Default"), _GUI_Option("notify-text"))
+		$g_aNotifierRulesFilePaths = _FileListToArray($g_sNotifierRulesDirectory, "*" & $g_sNotifierRulesExtension, $FLTA_FILES, True)
+	endif
+
+	if (@error not == 0 or $g_aNotifierRulesFilePaths == 0) then
+		MsgBox($MB_ICONERROR, "Error!", "Could not locate/create any notifier rules files inside " & $g_sNotifierRulesDirectory)
+		return False
+	endif
+
+	local $sComboData = ""
+	local $sDefaultSelectedNotifierRules = GetNotifierRulesName($g_aNotifierRulesFilePaths[1])
+	
+	for $i = 1 to $g_aNotifierRulesFilePaths[0] step +1
+		local $sNotifierRulesName = GetNotifierRulesName($g_aNotifierRulesFilePaths[$i])
+		; the data must start with | so it can wipe the old data from the combo control
+		$sComboData &= "|" & $sNotifierRulesName
+		
+		if ($sSelectedNotifierRulesName == $sNotifierRulesName) then
+			$sDefaultSelectedNotifierRules = $sNotifierRulesName
+		endif
+	next
+	
+	GUICtrlSetData($g_idNotifyRulesCombo, $sComboData, $sDefaultSelectedNotifierRules)
+	OnChange_NotifyRulesCombo()
 endfunc
 
 func OnChange_VolumeSlider()
@@ -1354,10 +1543,22 @@ func CreateGUI()
 	
 	GUICtrlCreateTabItem("Notifier")
 	
+	local $iButtonWidth = 60
+	local $iControlMargin = 4
+	local $iComboWidth = $g_iGUIWidth - 3 * $iButtonWidth - 3 * $iControlMargin - 8
+	
+	global $g_idNotifyRulesCombo = GUICtrlCreateCombo("", $iControlMargin, _GUI_LineY(0) + 1, $iComboWidth, 25, BitOR($CBS_DROPDOWNLIST, $WS_VSCROLL))
+	GUICtrlSetOnEvent(-1, "OnChange_NotifyRulesCombo")
+	global $g_idNotifyRulesNew = GUICtrlCreateButton("New", $iComboWidth + 2 * $iControlMargin, _GUI_LineY(0), $iButtonWidth, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_NotifyNew")
+	global $g_idNotifyRulesRename = GUICtrlCreateButton("Rename", $iComboWidth + $iButtonWidth + 3 * $iControlMargin, _GUI_LineY(0), $iButtonWidth, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_NotifyRename")
+	global $g_idNotifyRulesDelete = GUICtrlCreateButton("Delete", $iComboWidth + 2 * $iButtonWidth + 4 * $iControlMargin, _GUI_LineY(0), $iButtonWidth, 25)
+	GUICtrlSetOnEvent(-1, "OnClick_NotifyDelete")
+	
 	local $iNotifyY = $g_iGUIHeight - 29
 	
-	global $g_idNotifyEdit = GUICtrlCreateEdit("", 4, _GUI_LineY(0), $g_iGUIWidth - 8, $iNotifyY - _GUI_LineY(0) - 5)
-	
+	global $g_idNotifyEdit = GUICtrlCreateEdit("", 4, _GUI_LineY(2), $g_iGUIWidth - 8, $iNotifyY - _GUI_LineY(2) - 5)
 	global $g_idNotifySave = GUICtrlCreateButton("Save", 4 + 0*62, $iNotifyY, 60, 25)
 	GUICtrlSetOnEvent(-1, "OnClick_NotifySave")
 	global $g_idNotifyReset = GUICtrlCreateButton("Reset", 4 + 1*62, $iNotifyY, 60, 25)
@@ -1368,6 +1569,7 @@ func CreateGUI()
 	GUICtrlSetOnEvent(-1, "OnClick_NotifyDefault")
 	
 	OnClick_NotifyReset()
+	RefreshNotifyRulesCombo(_GUI_Option("selectedNotifierRulesName"))
 	
 	GUICtrlCreateTabItem("Sounds")
 	for $i = 0 to $g_iNumSounds - 1
@@ -1857,6 +2059,8 @@ func DefineGlobals()
 		$g_asNotifyFlags[$eNotifyFlagsSound][$i] = "sound" & $i
 	next
 
+	global const $g_sNotifierRulesDirectory = @WorkingDir & "\NotifierRules"
+	global const $g_sNotifierRulesExtension = ".rules"
 	global $g_avNotifyCache[0][3]					; Name, Tier flag, Last line of name
 	global $g_avNotifyCompile[0][$eNotifyFlagsLast]	; Flags, Regex
 	global $g_bNotifyCache = True
@@ -1893,7 +2097,8 @@ func DefineGlobals()
 		["toggle", 0x0024, "hk", "Switch Show Items between hold/toggle mode", "HotKey_ToggleShowItems"], _
 		["toggleMsg", 1, "cb", "Message when Show Items is disabled in toggle mode"], _
 		["readstats", 0x0000, "hk", "Read stats without tabbing out of the game", "HotKey_ReadStats"], _
-		["notify-text", $g_sNotifyTextDefault, "tx"] _
+		["notify-text", $g_sNotifyTextDefault, "tx"], _
+		["selectedNotifierRulesName", "Default", "tx"] _
 	]
 endfunc
 #EndRegion
