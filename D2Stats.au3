@@ -1872,6 +1872,30 @@ func EjectDropFilter($hDropFilter)
 endfunc
 
 #cs
+D2Client.dll+594A1 - C7 05 F4C2BC6F 00000000 - mov [D2Client.dll+11C2F4],00000000 { (0),0 }
+->
+D2Client.dll+594A1 - 90                    - nop 
+D2Client.dll+594A2 - 90                    - nop 
+D2Client.dll+594A3 - 90                    - nop 
+D2Client.dll+594A4 - 90                    - nop 
+D2Client.dll+594A5 - 90                    - nop 
+D2Client.dll+594A6 - 90                    - nop 
+D2Client.dll+594A7 - 90                    - nop 
+D2Client.dll+594A8 - 90                    - nop 
+D2Client.dll+594A9 - 90                    - nop 
+D2Client.dll+594AA - 90                    - nop 
+#ce
+
+func IsEntityInteractionOverrideEnabled()
+	return _MemoryRead($g_hD2Client + 0x594A1, $g_ahD2Handle, "byte") == 0x90
+endfunc
+
+func ToggleEntityInteractionOverride()
+	local $sWrite = IsEntityInteractionOverrideEnabled() ? "0xC705" & SwapEndian($g_hD2Client + 0x11C2F4) & "00000000" : "0x90909090909090909090" 
+	_MemoryWrite($g_hD2Client + 0x594A1, $g_ahD2Handle, $sWrite, "byte[10]")
+endfunc
+
+#cs
 D2Client.dll+42AE1 - A3 *                  - mov [D2Client.dll+11C3DC],eax { [00000000] }
 D2Client.dll+42AE6 - A3 *                  - mov [D2Client.dll+11C3E0],eax { [00000000] }
 ->
@@ -1950,6 +1974,7 @@ func ToggleShowItems()
 	_MemoryWrite($g_hD2Client + 0x3B2E1, $g_ahD2Handle, $sWrite3, "byte[6]")
 	
 	_MemoryWrite($g_hD2Client + 0xFADB4, $g_ahD2Handle, 0)
+	ToggleEntityInteractionOverride()
 	PrintString($bRestore ? "Hold to show items." : "Toggle to show items.", $ePrintBlue)
 endfunc
 
