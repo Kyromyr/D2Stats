@@ -37,7 +37,7 @@
 
 if ($CmdLine[0] == 3 and $CmdLine[1] == "sound") then ; Notifier sounds
 	SoundSetWaveVolume($CmdLine[3])
-	SoundPlay(StringFormat("%s\Sounds\%s.mp3", @ScriptDir, $CmdLine[2]), $SOUND_WAIT)
+	SoundPlay(StringFormat("%s\Sounds\%s.wav", @ScriptDir, $CmdLine[2]), $SOUND_WAIT)
 	SoundPlay("")
 	exit
 elseif (not _Singleton("D2Stats-Singleton")) then
