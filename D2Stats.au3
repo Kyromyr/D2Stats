@@ -813,11 +813,12 @@ func NotifierMain()
 	
 	if (not $pPaths or not $iPaths) then return
 	
-	local $pPath, $pUnit, $pUnitData
-	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iNewEarLevel, $iFlags, $sName, $iTierFlag
+	local $pPath, $pUnit, $pUnitData, $pCurrentUnit
+	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iNewEarLevel, $iFlags, $iTierFlag
 	local $bIsNewItem, $bIsSocketed, $bIsEthereal
-	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour, $iFlagsSound
-	local $bNotify, $sText, $iColor
+	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour, $iFlagsSound, $iFlagsDisplay
+	local $bNotify, $iColor
+	local $sType, $sText, $sStat
 	
 	local $bNotifySuperior = _GUI_Option("notify-superior")
 
@@ -833,6 +834,7 @@ func NotifierMain()
 			$iUnitType = DllStructGetData($tUnitAny, "iUnitType")
 			$pUnitData = DllStructGetData($tUnitAny, "pUnitData")
 			$iClass = DllStructGetData($tUnitAny, "iClass")
+			$pCurrentUnit = $pUnit
 			$pUnit = DllStructGetData($tUnitAny, "pUnit")
 			
 			; iUnitType 4 = item
@@ -851,26 +853,33 @@ func NotifierMain()
 				$bIsSocketed = BitAND(0x800, $iFlags) <> 0
 				$bIsEthereal = BitAND(0x400000, $iFlags) <> 0
 				
-				$sName = $g_avNotifyCache[$iClass][0]
+				$sType = $g_avNotifyCache[$iClass][0]
 				$iTierFlag = $g_avNotifyCache[$iClass][1]
 				$sText = $g_avNotifyCache[$iClass][2]
 				
 				$bNotify = False
 				
 				for $j = 0 to UBound($g_avNotifyCompile) - 1
-					if (StringRegExp($sName, $g_avNotifyCompile[$j][$eNotifyFlagsMatch])) then
+					if (StringRegExp($sType, $g_avNotifyCompile[$j][$eNotifyFlagsMatch])) then
 						$iFlagsTier = $g_avNotifyCompile[$j][$eNotifyFlagsTier]
 						$iFlagsQuality = $g_avNotifyCompile[$j][$eNotifyFlagsQuality]
 						$iFlagsMisc = $g_avNotifyCompile[$j][$eNotifyFlagsMisc]
 						$iFlagsColour = $g_avNotifyCompile[$j][$eNotifyFlagsColour]
 						$iFlagsSound = $g_avNotifyCompile[$j][$eNotifyFlagsSound]
+						$iFlagsDisplay = $g_avNotifyCompile[$j][$eNotifyFlagsDisplay]
+
+						if ($iFlagsDisplay == NotifierFlag("name")) then
+							$sText = GetItemName($pCurrentUnit)
+						elseif ($iFlagsDisplay == NotifierFlag("stat")) then
+							$sText = $sText & " " & GetItemStat($pCurrentUnit)
+						endif
 
 						if ($iFlagsTier and not BitAND($iFlagsTier, $iTierFlag)) then continueloop
 						if ($iFlagsQuality and not BitAND($iFlagsQuality, BitRotate(1, $iQuality - 1, "D"))) then continueloop
 						if (not $bIsSocketed and BitAND($iFlagsMisc, NotifierFlag("socket"))) then continueloop
 						
 						if ($bIsEthereal) then
-							$sText &= " (Eth)"
+							$sText = "(Eth) " & $sText
 						elseif (BitAND($iFlagsMisc, NotifierFlag("eth"))) then
 							continueloop
 						endif
@@ -1230,6 +1239,7 @@ func OnClick_NotifyHelp()
 		'> 0-4 sacred - Item must be one of these tiers.', _
 		'   Tier 0 means untiered items (runes, amulets, etc).', _
 		'> normal superior rare set unique - Item must be one of these qualities.', _
+		'> type name stat - To print type name, real name or full stats.' _
 		'> eth - Item must be ethereal.', _
 		'> white red lime blue gold orange yellow green purple - Notification color.', _
 		StringFormat('> sound[1-%s] - Notification sound.', $g_iNumSounds), _
@@ -1790,6 +1800,33 @@ func PrintString($sString, $iColor = $ePrintWhite)
 	return True
 endfunc
 
+func GetItemName($pUnit)
+	if (not IsIngame()) then return ""
+	;~ clean before use
+	_MemoryWrite($g_pD2InjectString, $g_ahD2Handle, 0, "byte[256]")
+	RemoteThread($g_pD2Client_GetItemName, $pUnit)
+	if (@error) then return _Log("GetItemName", "Failed to create remote thread.")
+	return GetOutputString(256)
+endfunc
+
+func GetItemStat($pUnit)
+	if (not IsIngame()) then return ""
+	;~ clean before use
+	_MemoryWrite($g_pD2InjectString, $g_ahD2Handle, 0, "byte[2048]")
+	RemoteThread($g_pD2Client_GetItemStat, $pUnit)
+	if (@error) then return _Log("GetItemStat", "Failed to create remote thread.")
+	return GetOutputString(2048)
+endfunc
+
+func GetOutputString($length)
+	if (not IsIngame()) then return ""
+	local $sString = _MemoryRead($g_pD2InjectString, $g_ahD2Handle, StringFormat("wchar[%s]", $length))
+	if (@error) then return _Log("GetOutputString", "Failed to create remote thread.")
+
+	$sString = StringReplace($sString, @LF, " ")
+	return $sString
+endfunc
+
 func WriteString($sString)
 	if (not IsIngame()) then return _Log("WriteString", "Not ingame.")
 	
@@ -1975,14 +2012,53 @@ func InjectCode($pWhere, $sCode)
 endfunc
 
 func InjectFunctions()
+#cs 
+	D2Client.dll+CDE00 - 53                    - push ebx
+	D2Client.dll+CDE01 - 68 *                  - push D2Client.dll+CDE20
+	D2Client.dll+CDE06 - 31 C0                 - xor eax,eax
+	D2Client.dll+CDE08 - E8 *                  - call D2Client.dll+7D850
+	D2Client.dll+CDE0D - C3                    - ret 
+#ce
 	local $iPrintOffset = ($g_hD2Client + 0x7D850) - ($g_hD2Client + 0xCDE0D)
 	local $sWrite = "0x5368" & SwapEndian($g_pD2InjectString) & "31C0E8" & SwapEndian($iPrintOffset) & "C3"
 	local $bPrint = InjectCode($g_pD2InjectPrint, $sWrite)
 	
+#cs 
+	D2Client.dll+CDE10 - 8B CB                 - mov ecx,ebx
+	D2Client.dll+CDE12 - 31 C0                 - xor eax,eax
+	D2Client.dll+CDE14 - BB *                  - mov ebx,D2Lang.dll+9450
+	D2Client.dll+CDE19 - FF D3                 - call ebx
+	D2Client.dll+CDE1B - C3                    - ret 
+#ce
 	$sWrite = "0x8BCB31C0BB" & SwapEndian($g_hD2Lang + 0x9450) & "FFD3C3"
 	local $bGetString = InjectCode($g_pD2InjectGetString, $sWrite)
+	
+#cs 
+	D2Client.dll+CDE20 - 68 00010000           - push 00000100
+	D2Client.dll+CDE25 - 68 *                  - push D2Client.dll+CDEF0
+	D2Client.dll+CDE2A - 53                    - push ebx
+	D2Client.dll+CDE2B - E8 *                  - call D2Client.dll+914F0
+	D2Client.dll+CDE30 - C3                    - ret 
+#ce
+	local $iIDWNT = ($g_hD2Client + 0x914F0) - ($g_hD2Client + 0xCDE30)
+	$sWrite = "0x680001000068" & SwapEndian($g_pD2InjectString) & "53E8" & SwapEndian($iIDWNT) & "C3"
+	local $bGetItemName = InjectCode($g_pD2Client_GetItemName, $sWrite)
 
-	return $bPrint and $bGetString
+#cs 
+	D2Client.dll+CDE40 - 57                    - push edi
+	D2Client.dll+CDE41 - BF *                  - mov edi,D2Client.dll+CDEF0
+	D2Client.dll+CDE43 - 6A 00                 - push 00
+	D2Client.dll+CDE45 - 6A 01                 - push 01
+	D2Client.dll+CDE47 - 53                    - push ebx
+	D2Client.dll+CDE4B - E8 *                  - call D2Client.QueryInterface+A240
+	D2Client.dll+CDE50 - 5F                    - pop edi
+	D2Client.dll+CDE51 - C3                    - ret 
+#ce
+	local $iIDWNTT = ($g_hD2Client + 0x560B0) - ($g_hD2Client + 0xCDE50)
+	$sWrite = "0x57BF" & SwapEndian($g_pD2InjectString) & "6A006A0153E8" & SwapEndian($iIDWNTT) & "5FC3"
+	local $bGetItemStat = InjectCode($g_pD2Client_GetItemStat, $sWrite)
+
+	return $bPrint and $bGetString and $bGetItemName and $bGetItemStat
 endfunc
 
 func UpdateDllHandles()
@@ -2011,7 +2087,10 @@ func UpdateDllHandles()
 	local $pD2Inject = $g_hD2Client + 0xCDE00
 	$g_pD2InjectPrint = $pD2Inject + 0x0
 	$g_pD2InjectGetString = $pD2Inject + 0x10
-	$g_pD2InjectString = $pD2Inject + 0x20
+	$g_pD2Client_GetItemName = $pD2Inject + 0x20;
+	$g_pD2Client_GetItemStat = $pD2Inject + 0x40;
+	;~ make more room for full item description
+	$g_pD2InjectString = _MemVirtualAllocEx($g_ahD2Handle[1], 0, 0x1000, BitOR($MEM_COMMIT, $MEM_RESERVE), $PAGE_EXECUTE_READWRITE)
 	
 	$g_pD2sgpt = _MemoryRead($g_hD2Common + 0x99E1C, $g_ahD2Handle)
 
@@ -2042,14 +2121,15 @@ func DefineGlobals()
 	global $g_avGUI[256][3] = [[0]]			; Text, X, Control [0] Count
 	global $g_avGUIOption[32][3] = [[0]]	; Option, Control, Function [0] Count
 	
-	global enum $eNotifyFlagsTier, $eNotifyFlagsQuality, $eNotifyFlagsMisc, $eNotifyFlagsNoMask, $eNotifyFlagsColour, $eNotifyFlagsSound, $eNotifyFlagsMatch, $eNotifyFlagsLast
+	global enum $eNotifyFlagsTier, $eNotifyFlagsQuality, $eNotifyFlagsMisc, $eNotifyFlagsNoMask, $eNotifyFlagsColour, $eNotifyFlagsSound, $eNotifyFlagsDisplay, $eNotifyFlagsMatch, $eNotifyFlagsLast
 	global $g_asNotifyFlags[$eNotifyFlagsLast][32] = [ _
 		[ "0", "1", "2", "3", "4", "sacred" ], _
 		[ "low", "normal", "superior", "magic", "set", "rare", "unique", "craft", "honor" ], _
 		[ "eth", "socket" ], _
 		[], _
 		[ "clr_none", "white", "red", "lime", "blue", "gold", "grey", "black", "clr_unk", "orange", "yellow", "green", "purple", "show", "hide" ], _
-		[ "sound_none" ] _
+		[ "sound_none" ], _
+		[ "type", "name", "stat"] _
 	]
 	
 	global const $g_iNumSounds = 6 ; Max 31
@@ -2076,7 +2156,7 @@ func DefineGlobals()
 	
 	global $g_iD2pid, $g_iUpdateFailCounter
 
-	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString
+	global $g_pD2sgpt, $g_pD2InjectPrint, $g_pD2InjectString, $g_pD2InjectGetString, $g_pD2Client_GetItemName, $g_pD2Client_GetItemStat
 
 	global $g_bHotkeysEnabled = False
 	global $g_hTimerCopyName = 0
