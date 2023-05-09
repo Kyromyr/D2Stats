@@ -1246,7 +1246,7 @@ func OnClick_NotifyHelp()
 		'> 0-4 sacred - Item must be one of these tiers.', _
 		'   Tier 0 means untiered items (runes, amulets, etc).', _
 		'> normal superior rare set unique - Item must be one of these qualities.', _
-		'> type name stat - To print type name, real name or full stats.' _
+		'> type name stat - To print type name, real name or full stats.', _
 		'> eth - Item must be ethereal.', _
 		'> white red lime blue gold orange yellow green purple - Notification color.', _
 		StringFormat('> sound[1-%s] - Notification sound.', $g_iNumSounds), _
