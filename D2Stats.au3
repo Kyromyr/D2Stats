@@ -814,7 +814,7 @@ func NotifierMain()
 	if (not $pPaths or not $iPaths) then return
 	
 	local $pPath, $pUnit, $pUnitData, $pCurrentUnit
-	local $iUnitType, $iClass, $iQuality, $iEarLevel, $iNewEarLevel, $iFlags, $iTierFlag
+	local $iUnitType, $iClass, $iUnitId, $iQuality, $iEarLevel, $iNewEarLevel, $iFlags, $iTierFlag
 	local $bIsNewItem, $bIsSocketed, $bIsEthereal
 	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour, $iFlagsSound, $iFlagsDisplay
 	local $bNotify, $iColor
@@ -822,7 +822,7 @@ func NotifierMain()
 	
 	local $bNotifySuperior = _GUI_Option("notify-superior")
 
-	local $tUnitAny = DllStructCreate("dword iUnitType;dword iClass;dword pad1[3];dword pUnitData;dword pad2[52];dword pUnit;")
+	local $tUnitAny = DllStructCreate("dword iUnitType;dword iClass;dword pad1;dword dwUnitId;dword pad2;dword pUnitData;dword pad3[52];dword pUnit;")
 	local $tItemData = DllStructCreate("dword iQuality;dword pad1[5];dword iFlags;dword pad2[11];byte iEarLevel;")
 	
 	for $i = 0 to $iPaths - 1
@@ -833,6 +833,7 @@ func NotifierMain()
 			_WinAPI_ReadProcessMemory($g_ahD2Handle[1], $pUnit, DllStructGetPtr($tUnitAny), DllStructGetSize($tUnitAny), 0)
 			$iUnitType = DllStructGetData($tUnitAny, "iUnitType")
 			$pUnitData = DllStructGetData($tUnitAny, "pUnitData")
+			$iUnitId = DllStructGetData($tUnitAny, "dwUnitId")
 			$iClass = DllStructGetData($tUnitAny, "iClass")
 			$pCurrentUnit = $pUnit
 			$pUnit = DllStructGetData($tUnitAny, "pUnit")
@@ -840,7 +841,7 @@ func NotifierMain()
 			; iUnitType 1 = monster
 			if(_GUI_Option("goblin-alert")) Then
 				if ($iUnitType == 1 and _ArraySearch($g_goblinIds, $iClass) > -1) then
-					GoblinAlert()
+					GoblinAlert($iUnitId)
 				endif
 			endif
 			
@@ -1776,14 +1777,24 @@ Func _GetDPI()
     Return $avRet
 EndFunc   ;==>_GetDPI
 
-Func GoblinAlert()
-	Local $currentTime = TimerInit()
-	If TimerDiff($g_lastGoblinSound) < 10000 Then Return
-	
-	NotifierPlaySound(6)
-	PrintString("There is a goblin nearby.")
-	
-	$g_lastGoblinSound = $currentTime
+Func GoblinAlert($id)
+	If CheckGoblinHaveSeenBefore($id) Then
+		NotifierPlaySound(6)
+		PrintString("There is a goblin nearby.")
+	EndIf
+EndFunc
+
+Func CheckGoblinHaveSeenBefore($id)
+    If _ArraySearch($g_goblinBuffer, $id) <> -1 Then
+        Return False
+    EndIf
+
+    _ArrayAdd($g_goblinBuffer, $id)
+    If UBound($g_goblinBuffer) > 10 Then
+        _ArrayDelete($g_goblinBuffer, 0)
+    EndIf
+
+    Return True
 EndFunc
 #EndRegion
 
@@ -2199,6 +2210,6 @@ func DefineGlobals()
 		["selectedNotifierRulesName", "Default", "tx"] _
 	]
 	global $g_goblinIds = [2774, 2775, 2776, 2777, 2778, 2779, 2780, 2781, 2784, 2785, 2786, 2787, 2788, 2789, 2790, 2791, 2792, 2793, 2794, 2795, 2799, 2802, 2803, 2805]
-	global $g_lastGoblinSound = 0
+	global $g_goblinBuffer[] = []
 endfunc
 #EndRegion
