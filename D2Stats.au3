@@ -814,16 +814,18 @@ func NotifierMain()
 	if (not $pPaths or not $iPaths) then return
 	
 	local $pPath, $pUnit, $pUnitData, $pCurrentUnit
-	local $iUnitType, $iClass, $iUnitId, $iQuality, $iEarLevel, $iNewEarLevel, $iFlags, $iTierFlag
+	local $iUnitType, $iClass, $iUnitId, $iQuality, $iFileIndex, $iEarLevel, $iNewEarLevel, $iFlags, $iTierFlag, $iLvl
 	local $bIsNewItem, $bIsSocketed, $bIsEthereal
 	local $iFlagsTier, $iFlagsQuality, $iFlagsMisc, $iFlagsColour, $iFlagsSound, $iFlagsDisplay
 	local $bNotify, $iColor
-	local $sType, $sText, $sStat
+	local $sType, $sText, $sStat, $sUniqueTier
 	
 	local $bNotifySuperior = _GUI_Option("notify-superior")
 
 	local $tUnitAny = DllStructCreate("dword iUnitType;dword iClass;dword pad1;dword dwUnitId;dword pad2;dword pUnitData;dword pad3[52];dword pUnit;")
-	local $tItemData = DllStructCreate("dword iQuality;dword pad1[5];dword iFlags;dword pad2[11];byte iEarLevel;")
+	local $tItemData = DllStructCreate("dword iQuality;dword pad1[5];dword iFlags;dword pad2[3];dword dwFileIndex; dword pad2[7];byte iEarLevel;")
+	local $tUniqueItemsTxt = DllStructCreate("dword pad1[13];word wLvl;")
+	local $pUniqueItemsTxt = _MemoryRead($g_pD2sgpt + 0xC24, $g_ahD2Handle)
 	
 	for $i = 0 to $iPaths - 1
 		$pPath = _MemoryRead($pPaths + 4*$i, $g_ahD2Handle)
@@ -851,6 +853,7 @@ func NotifierMain()
 				$iQuality = DllStructGetData($tItemData, "iQuality")
 				$iFlags = DllStructGetData($tItemData, "iFlags")
 				$iEarLevel = DllStructGetData($tItemData, "iEarLevel")
+				$iFileIndex = DllStructGetData($tItemData, "dwFileIndex")
 				
 				; Using the ear level field to check if we've seen this item on the ground before
 				; Resets when the item is picked up or we move too far away
@@ -915,7 +918,22 @@ func NotifierMain()
 					
 					if ($bNotifySuperior and $iQuality == $eQualitySuperior) then $sText = "Superior " & $sText
 
-					PrintString("- " & $sText, $iColor)
+					if(_GUI_Option("unique-tier") and $iQuality == 7) Then
+						_WinAPI_ReadProcessMemory($g_ahD2Handle[1], $pUniqueItemsTxt + ($iFileIndex * 0x14c), DllStructGetPtr($tUniqueItemsTxt), DllStructGetSize($tUniqueItemsTxt), 0)
+						$iLvl = DllStructGetData($tUniqueItemsTxt, "wLvl")
+						if($iLvl == 1) Then
+						elseif ($iLvl <= 100) then
+							$sUniqueTier = " {TU} "
+						elseif ($iLvl <= 115) then
+							$sUniqueTier = " {SU} "
+						elseif ($iLvl <= 120) then
+							$sUniqueTier = " {SSU} "
+						elseif ($iLvl <= 130) then
+							$sUniqueTier = " {SSSU} "
+						endif
+					endif
+
+					PrintString("- " & $sUniqueTier & $sText, $iColor)
 					
 					if ($iFlagsSound <> NotifierFlag("sound_none")) then NotifierPlaySound($iFlagsSound)
 				endif
@@ -2190,7 +2208,7 @@ func DefineGlobals()
 	global $g_hTimerCopyName = 0
 	global $g_sCopyName = ""
 
-	global const $g_iGUIOptionsGeneral = 5
+	global const $g_iGUIOptionsGeneral = 6
 	global const $g_iGUIOptionsHotkey = 6
 
 	global const $g_sNotifyTextDefault = BinaryToString("0x3120322033203420756E69717565202020202020202020202020202020232054696572656420756E69717565730D0A73616372656420756E6971756520202020202020202020202020202020232053616372656420756E69717565730D0A2252696E67247C416D756C6574247C4A6577656C2220756E69717565202320556E69717565206A6577656C72790D0A225175697665722220756E697175650D0A7365740D0A2242656C6C61646F6E6E61220D0A22536872696E65205C28313022202020202020202020202020202020202320536872696E65730D0A23225175697665722220726172650D0A232252696E67247C416D756C6574222072617265202020202020202020202320526172652072696E677320616E6420616D756C6574730D0A2373616372656420657468207375706572696F7220726172650D0A0D0A225369676E6574206F66204C6561726E696E67220D0A2247726561746572205369676E6574220D0A22456D626C656D220D0A2254726F706879220D0A224379636C65220D0A22456E6368616E74696E67220D0A2257696E6773220D0A2252756E6573746F6E657C457373656E63652422202320546567616E7A652072756E65730D0A2247726561742052756E6522202020202020202020232047726561742072756E65730D0A224F72625C7C2220202020202020202020202020202320554D4F730D0A224F696C206F6620436F6E6A75726174696F6E220D0A2244696D656E73696F6E616C204B6579220D0A224F6363756C7420456666696779220D0A224D797374696320447965220D0A2252656C6963220D0A225175657374204974656D220D0A232252696E67206F66207468652046697665220D0A0D0A232048696465206974656D730D0A686964652031203220332034206C6F77206E6F726D616C207375706572696F72206D6167696320726172650D0A6869646520225E2852696E677C416D756C6574292422206D616769630D0A68696465202251756976657222206E6F726D616C206D616769630D0A6869646520225E28416D6574687973747C546F70617A7C53617070686972657C456D6572616C647C527562797C4469616D6F6E647C536B756C6C7C4F6E79787C426C6F6F6473746F6E657C54757271756F6973657C416D6265727C5261696E626F772053746F6E652924220D0A6869646520225E466C61776C657373220D0A73686F77202228477265617465727C537570657229204865616C696E6720506F74696F6E220D0A686964652022284865616C696E677C4D616E612920506F74696F6E220D0A6869646520225E4B657924220D0A6869646520225E28456C7C456C647C5469727C4E65667C4574687C4974687C54616C7C52616C7C4F72747C5468756C7C416D6E7C536F6C7C536861656C7C446F6C7C48656C7C496F7C4C756D7C4B6F7C46616C7C4C656D7C50756C7C556D7C4D616C7C4973747C47756C7C5665787C4F686D7C4C6F7C5375727C4265727C4A61687C4368616D7C5A6F64292052756E652422")
@@ -2200,6 +2218,7 @@ func DefineGlobals()
 		["notify-enabled", 1, "cb", "Enable notifier"], _
 		["notify-superior", 0, "cb", "Notifier prefixes superior items with 'Superior'"], _
 		["goblin-alert", 1, "cb", "Play sound (sound 6) when goblins are nearby."], _
+		["unique-tier", 1, "cb", "Show sacred tier of unique (SU/SSU/SSSU)"], _
 		["copy", 0x002D, "hk", "Copy item text", "HotKey_CopyItem"], _
 		["copy-name", 0, "cb", "Only copy item name"], _
 		["filter", 0x0124, "hk", "Inject/eject DropFilter", "HotKey_DropFilter"], _
