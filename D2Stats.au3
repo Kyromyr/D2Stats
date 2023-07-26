@@ -36,13 +36,9 @@
 ;#pragma compile(LegalTrademarks, '"Trademark something, and some text in "quotes" and stuff')
 
 
-if ($CmdLine[0] == 4 and $CmdLine[1] == "sound") then ; Notifier sounds
-	Local $format = "mp3"
-	if($CmdLine[4] == "wav") then
-		$format = "wav"
-	endif
+if ($CmdLine[0] == 4 and $CmdLine[1] == "sound") then ; Notifier sounds	
 	SoundSetWaveVolume($CmdLine[3])
-	SoundPlay(StringFormat("%s\Sounds\%s.%s", @ScriptDir, $CmdLine[2], $format), $SOUND_WAIT)
+	SoundPlay(StringFormat("%s\Sounds\%s.%s", @ScriptDir, $CmdLine[2], $CmdLine[4]), $SOUND_WAIT)
 	SoundPlay("")
 	exit
 elseif (not _Singleton("D2Stats-Singleton")) then
