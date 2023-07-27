@@ -1,0 +1,45 @@
+name: Release
+
+on: 
+  push:
+    tags:
+    - '*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    environment: build
+    permissions:
+      contents: write
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get tag name
+        id: tagName
+        uses: olegtarasov/get-tag@v2.1.1
+
+      - name: Replace versions
+        run: bash replace-version.sh ${{ steps.tagName.outputs.tag }}
+
+      - name: Compile
+        shell: cmd
+        run: ./Compile.bat
+
+      - name: Zip file
+        uses: TheDoctor0/zip-release@0.6.0
+        with:
+          directory: './'
+          path: './D2Stats.exe'
+          type: 'zip'
+          filename: 'D2Stats.zip'
+
+      - name: Release Zip file
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ./D2Stats.zip
+          generateReleaseNotes: true
