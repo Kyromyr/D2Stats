@@ -933,7 +933,11 @@ func NotifierMain()
 						endif
 					endif
 
-					PrintString("- " & $sUniqueTier & $sText, $iColor)
+					if ($iFlagsColour) then
+						$sText = StringRegExpReplace($sText, "ÿc.", "")
+					endif
+
+					PrintString($iFlagsColour & "- " & $sUniqueTier & $sText, $iColor)
 					
 					if ($iFlagsSound <> NotifierFlag("sound_none")) then NotifierPlaySound($iFlagsSound)
 				endif
